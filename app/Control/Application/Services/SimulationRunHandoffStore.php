@@ -48,6 +48,9 @@ final class SimulationRunHandoffStore
             'modules_catalog'   => $modulesCatalog,
             'deadline_at'       => now()->addMinutes($durationMinutes + 1)->toIso8601String(),
             'written_at'        => now()->toIso8601String(),
+            'phase'             => 'dispatched',
+            'progress_current'  => 0,
+            'planned_total'     => (int) $run->planned_total,
         ];
 
         file_put_contents(
@@ -69,6 +72,25 @@ final class SimulationRunHandoffStore
         $decoded = json_decode((string) file_get_contents($path), true);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    public function updateProgress(string $runId, int $current, int $total, string $phase = 'publishing'): void
+    {
+        $payload = $this->read($runId);
+        if ($payload === null) {
+            return;
+        }
+
+        $payload['progress_current'] = max(0, $current);
+        $payload['planned_total']    = max(1, $total);
+        $payload['progress_percent'] = min(100, (int) round(($current / max(1, $total)) * 100));
+        $payload['phase']            = $phase;
+        $payload['progress_at']      = now()->toIso8601String();
+
+        file_put_contents(
+            $this->path($runId),
+            json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+        );
     }
 
     public function forget(string $runId): void

@@ -8,13 +8,6 @@
 /vendor
 .env
 .env.backup
-.env.production
-.env.control-plane
-.env.client-*
-database/instances/*.sqlite
-database/instances/*.sqlite-journal
-database/instances/*.sqlite-wal
-database/instances/*.sqlite-shm
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -31,3 +24,8 @@ yarn-error.log
 /config/modules/instances/
 /playwright-report/
 /test-results/
+/bootstrap/cache
+/database/database.sqlite
+/public/build
+/storage/logs
+/storage/app/simulation-launchers/

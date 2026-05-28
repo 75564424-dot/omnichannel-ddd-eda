@@ -97,15 +97,7 @@ final class LocalFleetSimulationRunner
         );
 
         if (PHP_OS_FAMILY === 'Windows') {
-            $quoted = array_map(static fn (string $part): string => '"'.str_replace('"', '""', $part).'"', $command);
-            $shell = 'cmd /C start /B "" '
-                .'set "APP_ENV='.$envId.'"&& '
-                .'set "PLATFORM_CONTROL_PLANE=false"&& '
-                .'set "PLATFORM_CLIENT_SLUG='.$clientSlug.'"&& '
-                .implode(' ', $quoted)
-                .' >> "'.str_replace('"', '""', $logPath).'" 2>&1';
-            $process = Process::fromShellCommandline($shell, base_path(), $workerEnv);
-            $process->run();
+            $this->dispatchWindowsWorker($runId, $envId, $clientSlug, $php, $logPath);
 
             return;
         }
@@ -113,8 +105,61 @@ final class LocalFleetSimulationRunner
         $process = new Process($command, base_path(), $workerEnv);
         $process->setTimeout(null);
         $process->start(function (string $type, string $buffer) use ($logPath): void {
-            file_put_contents($logPath, '['.$type.'] '.$buffer, FILE_APPEND);
+            if ($buffer !== '') {
+                file_put_contents($logPath, $buffer, FILE_APPEND);
+            }
         });
+    }
+
+    /**
+     * Detached worker on Windows (Process::start from artisan serve often dies silently).
+     *
+     * Uses {@code start /B cmd /C script.bat}: {@code start "" /B script.bat} often opens an idle shell
+     * and never runs the worker (see storage/logs/simulation-worker-*.log stuck at "Starting").
+     */
+    private function dispatchWindowsWorker(
+        string $runId,
+        string $envId,
+        string $clientSlug,
+        string $php,
+        string $logPath,
+    ): void {
+        if ($runId === '') {
+            throw new \InvalidArgumentException('runId vacío al despachar worker de simulación.');
+        }
+
+        $launcherDir = storage_path('app/simulation-launchers');
+        if (! is_dir($launcherDir)) {
+            mkdir($launcherDir, 0755, true);
+        }
+
+        $batPath = $launcherDir.DIRECTORY_SEPARATOR.$runId.'.bat';
+        $basePath = base_path();
+        $quotedPhp = '"'.str_replace('"', '""', $php).'"';
+        $quotedArtisan = '"'.str_replace('"', '""', $basePath.DIRECTORY_SEPARATOR.'artisan').'"';
+        $quotedLog = '"'.str_replace('"', '""', $logPath).'"';
+
+        $bat = implode("\r\n", [
+            '@echo off',
+            'set APP_ENV='.$envId,
+            'set PLATFORM_CONTROL_PLANE=false',
+            'set PLATFORM_CLIENT_SLUG='.$clientSlug,
+            'cd /d "'.str_replace('/', '\\', $basePath).'"',
+            $quotedPhp.' '.$quotedArtisan.' platform:simulation:execute-run '.$runId
+                .' --env='.$envId.' --no-ansi >>'.$quotedLog.' 2>&1',
+        ])."\r\n";
+
+        file_put_contents($batPath, $bat);
+
+        $quotedBat = '"'.str_replace('"', '""', $batPath).'"';
+        $process = Process::fromShellCommandline('cmd /C start /B cmd /C '.$quotedBat, $basePath);
+        $process->run();
+
+        file_put_contents(
+            $logPath,
+            '['.now()->toDateTimeString().'] Dispatched Windows worker: '.$batPath.PHP_EOL,
+            FILE_APPEND,
+        );
     }
 
     /**

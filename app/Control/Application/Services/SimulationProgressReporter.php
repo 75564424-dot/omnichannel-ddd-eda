@@ -15,6 +15,7 @@ final class SimulationProgressReporter
 
     public function __construct(
         private readonly SimulationRunControlPlaneClient $client,
+        private readonly SimulationRunHandoffStore $handoffStore,
         private readonly int $minIntervalSeconds = 2,
         private readonly int $stepEvents = 3,
     ) {}
@@ -35,7 +36,9 @@ final class SimulationProgressReporter
                 return;
             }
 
-            $this->client->reportProgress($runId, $current, $total > 0 ? $total : $plannedTotal);
+            $effectiveTotal = $total > 0 ? $total : $plannedTotal;
+            $this->handoffStore->updateProgress($runId, $current, $effectiveTotal);
+            $this->client->reportProgress($runId, $current, $effectiveTotal);
             $this->lastReported = $current;
             $this->lastReportAt = $now;
         };

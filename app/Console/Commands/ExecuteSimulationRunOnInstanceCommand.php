@@ -56,9 +56,17 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
 
         $tenantSlug = (string) ($spec['tenant_slug'] ?? '');
         $instanceSlug = (string) config('platform.client_slug', '');
-        if ($tenantSlug === '' || $instanceSlug === '' || $tenantSlug !== $instanceSlug) {
+        if ($tenantSlug === '') {
+            $message = 'Handoff sin tenant_slug.';
+            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, $usedHandoff));
+            $this->error($message);
+
+            return self::FAILURE;
+        }
+
+        if (! $usedHandoff && ($instanceSlug === '' || $tenantSlug !== $instanceSlug)) {
             $message = "Tenant slug «{$tenantSlug}» no coincide con esta instancia «{$instanceSlug}».";
-            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, $usedHandoff, $tenantSlug, $instanceSlug));
+            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, false, $tenantSlug, $instanceSlug));
             $this->error($message);
 
             return self::FAILURE;
@@ -69,11 +77,14 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
         $plannedTotal    = (int) ($spec['planned_total'] ?? 0);
         $prepareFirst    = (bool) ($spec['prepare_first'] ?? true);
         $catalog         = is_array($spec['modules_catalog'] ?? null) ? $spec['modules_catalog'] : [];
+        $effectiveTotal  = $plannedTotal > 0 ? $plannedTotal : max(1, $eventsPerMinute * $durationMinutes);
 
         set_time_limit(max(600, $durationMinutes * 120 + 120));
 
+        $handoffStore->updateProgress($runId, 0, $effectiveTotal, 'starting');
+
         try {
-            $controlPlane->reportProgress($runId, 0, $plannedTotal > 0 ? $plannedTotal : max(1, $eventsPerMinute * $durationMinutes));
+            $controlPlane->reportProgress($runId, 0, $effectiveTotal);
 
             $result = $automation->runOnClientSilo(
                 tenantSlug: $tenantSlug,

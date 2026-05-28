@@ -14,6 +14,9 @@ final class SimulationRunStaleGuard
 {
     public function __construct(
         private readonly SimulationRunFailureHandler $failureHandler,
+        private readonly SimulationRunHandoffStore $handoffStore,
+        private readonly SimulationRunHandoffProgressSync $handoffProgressSync,
+        private readonly SimulationRunWorkerMonitor $workerMonitor,
     ) {}
 
     public function failExpiredRuns(): int
@@ -22,18 +25,20 @@ final class SimulationRunStaleGuard
             return 0;
         }
 
+        $this->handoffProgressSync->syncActiveRuns();
+
         $failed = 0;
         $runs = SimulationRunModel::query()
             ->whereIn('status', [SimulationRunModel::STATUS_PENDING, SimulationRunModel::STATUS_RUNNING])
             ->get();
 
         foreach ($runs as $run) {
-            $reason = $this->staleReason($run);
+            $reason = $this->staleReason($run->fresh());
             if ($reason === null) {
                 continue;
             }
 
-            $this->failureHandler->handle($run, $reason, ['source' => 'stale_guard']);
+            $this->failureHandler->handle($run, $reason, $this->failureContext($run));
             $failed++;
         }
 
@@ -42,22 +47,47 @@ final class SimulationRunStaleGuard
 
     private function staleReason(SimulationRunModel $run): ?string
     {
-        $durationMinutes = max(1, (int) $run->duration_minutes);
-        $graceMinutes    = 3;
         $startedAt = $run->started_at ?? $run->created_at;
         if (! $startedAt instanceof \Carbon\CarbonInterface) {
             return null;
         }
 
-        if ($startedAt->lte(now()->subMinutes($durationMinutes + $graceMinutes))) {
-            return 'Tiempo máximo de simulación superado ('
-                .$durationMinutes.' min + '.$graceMinutes.' min de gracia).';
+        $handoffProgress = $this->workerMonitor->handoffProgress($run->id);
+        $effectiveProgress = max((int) $run->progress_current, $handoffProgress);
+        $maxWallMinutes = $this->workerMonitor->maxWallClockMinutes($run);
+        $elapsedMinutes = $startedAt->diffInMinutes(now(), absolute: true);
+
+        if ($this->workerMonitor->isLikelyAlive($run)) {
+            if ($elapsedMinutes <= $maxWallMinutes) {
+                return null;
+            }
+
+            return 'Tiempo máximo de ejecución del worker superado (~'.$maxWallMinutes
+                .' min para '.$run->planned_total.' eventos). Revise el log del worker.';
         }
 
         if ($run->status === SimulationRunModel::STATUS_RUNNING
-            && (int) $run->progress_current === 0
-            && $startedAt->lte(now()->subMinutes(2))) {
-            return 'Sin progreso: el worker del silo cliente no arrancó o no pudo contactar al control plane (:8000).';
+            && $effectiveProgress > 0
+            && $elapsedMinutes <= $maxWallMinutes) {
+            return null;
+        }
+
+        $startupGraceMinutes = 3;
+        if ($run->status === SimulationRunModel::STATUS_RUNNING
+            && $effectiveProgress === 0
+            && $elapsedMinutes >= $startupGraceMinutes
+            && $elapsedMinutes < $maxWallMinutes) {
+            $handoff = $this->handoffStore->read($run->id);
+            $phase = is_string($handoff['phase'] ?? null) ? $handoff['phase'] : 'sin handoff';
+
+            return 'El worker del silo cliente no arrancó o murió al inicio (fase: '.$phase.'). '
+                .'Log: storage/logs/simulation-worker-'.$run->id.'.log';
+        }
+
+        if ($run->status === SimulationRunModel::STATUS_RUNNING
+            && $elapsedMinutes >= $maxWallMinutes) {
+            return 'Tiempo máximo de simulación superado (~'.$maxWallMinutes.' min, '
+                .$effectiveProgress.'/'.$run->planned_total.' eventos).';
         }
 
         $createdAt = $run->created_at;
@@ -68,5 +98,21 @@ final class SimulationRunStaleGuard
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function failureContext(SimulationRunModel $run): array
+    {
+        $logPath = $this->workerMonitor->logPath($run->id);
+        $excerpt = is_file($logPath)
+            ? \Illuminate\Support\Str::limit((string) file_get_contents($logPath), 4000)
+            : null;
+
+        return [
+            'source'     => 'stale_guard',
+            'worker_log' => $excerpt,
+        ];
     }
 }
