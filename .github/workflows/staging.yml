@@ -64,7 +64,7 @@ jobs:
         run: bash scripts/ci/smoke-test.sh
 
       - name: OWASP ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.14.0
+        uses: zaproxy/action-baseline@v0.15.0
         continue-on-error: true
         with:
           target: http://127.0.0.1:8080
