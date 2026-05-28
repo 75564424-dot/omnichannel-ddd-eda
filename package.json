@@ -1,0 +1,39 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/copy-icon-font.mjs",
+    "prebuild": "node scripts/copy-icon-font.mjs && node scripts/clear-vite-hot.mjs",
+    "build": "vite build",
+    "postbuild": "node scripts/clear-vite-hot.mjs",
+    "clear-hot": "node scripts/clear-vite-hot.mjs",
+    "predev": "node scripts/copy-icon-font.mjs",
+    "dev": "node scripts/vite-dev.mjs",
+    "prelocal": "node scripts/copy-icon-font.mjs",
+    "local": "node scripts/local-dev.mjs",
+    "serve": "npm run clear-hot && php artisan serve --host=127.0.0.1 --port=8000",
+    "local:build": "npm run build && npm run serve",
+    "serve:laravel": "npm run serve",
+    "serve:laravel:build": "npm run local:build",
+    "test:ui": "playwright test",
+    "test:ui:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@material-symbols/font-400": "^0.44.10",
+    "@playwright/test": "^1.49.0",
+    "@tailwindcss/forms": "^0.5.7",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "autoprefixer": "^10.4.19",
+    "axios": "^1.6.4",
+    "laravel-vite-plugin": "^1.0.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.7.21",
+    "@inertiajs/vue3": "^3.0",
+    "vue": "^3.4.21"
+  }
+}

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: middleware-env
+  namespace: platform-middleware
+data:
+  APP_ENV: production
+  APP_DEBUG: "false"
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: mysql
+  DB_HOST: mysql.platform-middleware.svc.cluster.local
+  DB_PORT: "3306"
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  REDIS_HOST: redis.platform-middleware.svc.cluster.local
+  REDIS_PORT: "6379"
+  PLATFORM_API_AUTH_ENABLED: "true"
+  PLATFORM_WEB_AUTH_ENABLED: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: middleware-secrets
+  namespace: platform-middleware
+type: Opaque
+stringData:
+  APP_KEY: "base64:CHANGE_ME_GENERATE_WITH_php_artisan_key_generate"
+  DB_DATABASE: platform_middleware
+  DB_USERNAME: platform
+  DB_PASSWORD: change-me
+  PLATFORM_ADMIN_PASSWORD: change-me
+  PLATFORM_API_KEYS: "prod-key|events:publish,bus:read,bus:admin,dashboard:read"

@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: middleware-db-backup
+  namespace: platform-middleware
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: mysqldump
+              image: mysql:8.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TS=$(date +%Y%m%d_%H%M%S)
+                  mysqldump -h "$DB_HOST" -u"$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" \
+                    | gzip > "/backups/${DB_DATABASE}_${TS}.sql.gz"
+                  find /backups -name '*.sql.gz' -mtime +14 -delete
+              envFrom:
+                - secretRef:
+                    name: middleware-secrets
+              env:
+                - name: DB_HOST
+                  value: mysql.platform-middleware.svc.cluster.local
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backups
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: middleware-backup-pvc

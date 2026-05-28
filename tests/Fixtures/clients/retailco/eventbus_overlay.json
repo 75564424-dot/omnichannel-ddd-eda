@@ -1,0 +1,23 @@
+{
+  "producers": {
+    "retailco_pos": {
+      "label": "RetailCo POS",
+      "produces": [
+        "RetailCo.Order.Created",
+        "RetailCo.Stock.Updated"
+      ]
+    }
+  },
+  "subscriptions": {
+    "RetailCo.Order.Created": [
+      {
+        "module": "analytics_sink"
+      }
+    ],
+    "RetailCo.Stock.Updated": [
+      {
+        "module": "analytics_sink"
+      }
+    ]
+  }
+}

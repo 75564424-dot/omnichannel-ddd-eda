@@ -1,0 +1,28 @@
+{
+  "service_contact_message": "Acme POS simulation fixture — staging only.",
+  "middleware": {
+    "id": "middleware",
+    "name": "Middleware bus",
+    "description": "Acme POS middleware rehearsal.",
+    "role": "routing"
+  },
+  "producers": [
+    {
+      "id": "acme_pos",
+      "name": "Acme POS Terminal",
+      "event_types_emitted": [
+        "AcmePOS.Sale.Completed"
+      ],
+      "channels": ["POS"]
+    }
+  ],
+  "subscribers": [
+    {
+      "id": "acme_reporting",
+      "name": "Acme Reporting",
+      "event_types_consumed": [
+        "AcmePOS.Sale.Completed"
+      ]
+    }
+  ]
+}

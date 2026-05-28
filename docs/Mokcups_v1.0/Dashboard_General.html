@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sifrah | Enhanced Global Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d5e3fd",
+                        "inverse-surface": "#303032",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "surface-container-high": "#eae7e9",
+                        "outline-variant": "#c6c6cd",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e4e2e4",
+                        "surface": "#fcf8fa",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-container": "#57657b",
+                        "on-primary-container": "#7c839b",
+                        "secondary": "#515f74",
+                        "on-tertiary-container": "#818486",
+                        "surface-bright": "#fcf8fa",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary": "#000000",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface-tint": "#565e74",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "background": "#fcf8fa",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#dae2fd",
+                        "surface-dim": "#dcd9db",
+                        "on-background": "#1b1b1d",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container": "#f0edef",
+                        "on-surface-variant": "#45464d",
+                        "surface-container-highest": "#e4e2e4",
+                        "inverse-on-surface": "#f3f0f2",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "outline": "#76777d",
+                        "primary-container": "#131b2e",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#f6f3f5",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#000000",
+                        "tertiary-container": "#191c1e",
+                        "on-surface": "#1b1b1d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "margin": "24px",
+                        "xl": "32px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "md": "16px",
+                        "2xl": "48px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Inter"],
+                        "caption": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "h3": ["Inter"],
+                        "h2": ["Inter"],
+                        "data-tabular": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "h1": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "h3": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "data-tabular": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #fcf8fa; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        .pulse-ring { position: relative; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+        .pulse-ring::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #22c55e; animation: pulse 2s infinite ease-out; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- SideNavBar (Authority: JSON & Contextual mapping) -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] border-r border-slate-200 bg-white dark:bg-slate-950 flex flex-col py-6 px-4 space-y-2 z-50">
+<div class="mb-8 px-2">
+<span class="text-lg font-bold text-slate-900 dark:text-white font-h2">Management</span>
+<p class="text-caption font-caption text-slate-500">Event-Driven Ops</p>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white border-r-2 border-slate-900 dark:border-slate-50 flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-sans text-[13px] font-medium">Dashboard</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-sans text-[13px] font-medium">Sales</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-sans text-[13px] font-medium">Inventory</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-sans text-[13px] font-medium">Orders</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-sans text-[13px] font-medium">Middleware</span>
+</div>
+</nav>
+<div class="pt-6 border-t border-slate-200 space-y-1">
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-sans text-[13px] font-medium">Support</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 px-4 py-3 rounded-sm">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="font-sans text-[13px] font-medium">Logs</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="pl-[280px] min-h-screen">
+<!-- TopNavBar (Authority: JSON) -->
+<header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm flex items-center justify-between w-full h-16 px-6">
+<div class="flex items-center gap-6">
+<span class="text-xl font-black tracking-tighter text-slate-900 dark:text-white">Sifrah</span>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+<div class="pulse-ring"></div>
+<span class="font-label-caps text-[10px] text-slate-600 tracking-wider">LIVE CONNECTION ACTIVE</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-4 border-r border-slate-200 pr-4">
+<span class="material-symbols-outlined text-slate-500 hover:text-slate-900 transition-colors cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-slate-500 hover:text-slate-900 transition-colors cursor-pointer" data-icon="sensors">sensors</span>
+<span class="material-symbols-outlined text-slate-500 hover:text-slate-900 transition-colors cursor-pointer" data-icon="settings">settings</span>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate manager in a clean, high-key office environment. The lighting is soft and neutral, conveying trust and precision. The background is a minimalist blurred workspace with light slate and white tones, matching the luxury enterprise UI aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXPkRCLkG8CQ7kCIl1w7ksNx8USbvxtUCTt7zqnbfm_SM68U4ngOj7A702iIe4K2mqsqIh32-hMst7-2RzkX3Uo_s4qNkI2uVScH3OXGMnGYXfEwpxbJ-rQR4sy5DqM1ue1fGfwkHiD7ljmiKlMKtdtedU8Qt3xHJAMJLPsfSI3Q_YSRMC7H6ayQztsFQJtoKHehZhMkWrcswCjLi07tEJ1PiKnd9Ul6YPptqvHboMONnOfIbb0fy5jvzC2d2Cz5QdylHVP0AjQGI"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<div class="p-lg max-w-[1600px] mx-auto space-y-lg">
+<!-- Metric Cards (Top Row) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-white p-lg border border-slate-200 shadow-sm rounded-sm">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-caption font-label-caps text-on-surface-variant opacity-70">STOCK TOTAL</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="inventory">inventory</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-h1 text-primary">142,500</span>
+<span class="text-caption text-green-600 font-medium">+2.4%</span>
+</div>
+<div class="mt-md h-1 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[75%]"></div>
+</div>
+</div>
+<div class="bg-white p-lg border border-slate-200 shadow-sm rounded-sm">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-caption font-label-caps text-on-surface-variant opacity-70">CRITICAL SKUs</span>
+<span class="material-symbols-outlined text-error" data-icon="warning">warning</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-h1 text-primary">24</span>
+<span class="text-caption text-error font-medium">Action Needed</span>
+</div>
+<div class="mt-md flex gap-1">
+<div class="h-1 bg-error w-1/3 rounded-full"></div>
+<div class="h-1 bg-slate-100 w-2/3 rounded-full"></div>
+</div>
+</div>
+<div class="bg-white p-lg border border-slate-200 shadow-sm rounded-sm">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-caption font-label-caps text-on-surface-variant opacity-70">RECENT SALES</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="payments">payments</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-h1 text-primary">$45,200</span>
+<span class="text-caption text-green-600 font-medium">Today</span>
+</div>
+<div class="mt-md h-8 flex items-end gap-1">
+<div class="bg-slate-100 w-full h-1/2"></div>
+<div class="bg-slate-100 w-full h-2/3"></div>
+<div class="bg-primary w-full h-full"></div>
+<div class="bg-slate-100 w-full h-1/3"></div>
+</div>
+</div>
+<div class="bg-white p-lg border border-slate-200 shadow-sm rounded-sm">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-caption font-label-caps text-on-surface-variant opacity-70">ACTIVE ORDERS</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-h1 text-primary">1,204</span>
+<span class="text-caption text-on-surface-variant opacity-50">Global</span>
+</div>
+<div class="mt-md h-1 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[45%]"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Event Flow Visualization (Central Component) -->
+<div class="col-span-12 lg:col-span-9 bg-white border border-slate-200 shadow-sm rounded-sm overflow-hidden">
+<div class="p-md border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+<span class="font-h3 text-primary flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+                            Event Flow Visualization
+                        </span>
+<div class="flex gap-2">
+<span class="px-2 py-1 bg-white border border-slate-200 text-[10px] font-bold rounded-sm">LIVE TOPOLOGY</span>
+</div>
+</div>
+<div class="p-2xl min-h-[320px] flex items-center justify-center bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]">
+<div class="flex items-center w-full max-w-4xl justify-between relative">
+<!-- Node 1 -->
+<div class="flex flex-col items-center gap-4 z-10">
+<div class="w-20 h-20 bg-white border-2 border-primary flex items-center justify-center rounded-xl shadow-lg">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="storefront">storefront</span>
+</div>
+<div class="text-center">
+<p class="font-h3 text-sm">Ventas / POS</p>
+<p class="text-[10px] text-green-600 font-bold uppercase tracking-widest">Input Stream</p>
+</div>
+</div>
+<!-- Connection 1 -->
+<div class="flex-1 h-px bg-slate-200 relative mx-4 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/30 to-transparent w-full h-full -translate-x-full animate-[shimmer_2s_infinite]"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 bg-white border border-slate-100 text-[10px] font-bold shadow-sm whitespace-nowrap">
+                                    PROCESANDO
+                                </div>
+</div>
+<!-- Node 2 -->
+<div class="flex flex-col items-center gap-4 z-10">
+<div class="w-24 h-24 bg-primary flex items-center justify-center rounded-full shadow-2xl relative">
+<span class="material-symbols-outlined text-white text-4xl" data-icon="hub">hub</span>
+<div class="absolute inset-0 rounded-full border-4 border-white opacity-20 scale-110"></div>
+</div>
+<div class="text-center">
+<p class="font-h3 text-sm">Middleware Bus</p>
+<p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Core Engine</p>
+</div>
+</div>
+<!-- Connection 2 -->
+<div class="flex-1 h-px bg-slate-200 relative mx-4 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-slate-400/30 to-transparent w-full h-full -translate-x-full animate-[shimmer_3s_infinite_reverse]"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 bg-white border border-slate-100 text-[10px] font-bold shadow-sm whitespace-nowrap">
+                                    EN TRÁNSITO
+                                </div>
+</div>
+<!-- Node 3 -->
+<div class="flex flex-col items-center gap-4 z-10">
+<div class="w-20 h-20 bg-white border-2 border-slate-200 flex items-center justify-center rounded-xl shadow-lg">
+<span class="material-symbols-outlined text-slate-400 text-3xl" data-icon="inventory_2">inventory_2</span>
+</div>
+<div class="text-center">
+<p class="font-h3 text-sm">Inventario / Pedidos</p>
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Output Sink</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Module Status List (Right Sidebar) -->
+<div class="col-span-12 lg:col-span-3 space-y-gutter">
+<div class="bg-white border border-slate-200 shadow-sm rounded-sm overflow-hidden">
+<div class="p-md border-b border-slate-100 bg-slate-50/50">
+<span class="text-label-caps font-bold text-slate-500">SYSTEM NODES</span>
+</div>
+<div class="p-4 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-green-500"></div>
+<span class="text-data-tabular font-medium">Ventas Web</span>
+</div>
+<span class="text-caption px-2 py-0.5 bg-green-50 text-green-700 rounded-full font-bold">ONLINE</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-amber-500"></div>
+<span class="text-data-tabular font-medium">Inventario</span>
+</div>
+<span class="text-caption px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold">SYNCING</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-green-500"></div>
+<span class="text-data-tabular font-medium">Pedidos</span>
+</div>
+<span class="text-caption px-2 py-0.5 bg-green-50 text-green-700 rounded-full font-bold">ONLINE</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-data-tabular font-medium">Middleware</span>
+</div>
+<span class="text-caption px-2 py-0.5 bg-slate-900 text-white rounded-full font-bold">HI-LOAD</span>
+</div>
+</div>
+</div>
+<div class="bg-primary p-lg rounded-sm text-white space-y-md">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400" data-icon="speed">speed</span>
+<span class="text-label-caps font-bold tracking-widest text-slate-400">ENGINE METRICS</span>
+</div>
+<div>
+<p class="text-caption opacity-60">Avg Latency</p>
+<p class="font-h2">24 ms</p>
+</div>
+<div class="pt-4 border-t border-white/10">
+<p class="text-caption opacity-60">Stream Status</p>
+<p class="font-h3 text-green-400">ACTIVE</p>
+</div>
+</div>
+</div>
+<!-- Real-Time Event Feed (Bottom Left) -->
+<div class="col-span-12 lg:col-span-8 bg-white border border-slate-200 shadow-sm rounded-sm">
+<div class="p-md border-b border-slate-100 flex justify-between items-center">
+<span class="font-h3 text-sm">Real-Time Event Feed</span>
+<div class="flex gap-4 text-caption text-slate-400">
+<span>Ingress: 124.2 MB/s</span>
+<span>Egress: 89.1 MB/s</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50 border-b border-slate-100">
+<tr>
+<th class="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Timestamp</th>
+<th class="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Event</th>
+<th class="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Origin</th>
+<th class="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Impact</th>
+<th class="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+<th class="px-6 py-3"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50 transition-colors cursor-pointer group">
+<td class="px-6 py-3 font-data-tabular text-slate-400 text-xs">[10:32:45]</td>
+<td class="px-6 py-3 font-data-tabular font-bold">VentaRealizada</td>
+<td class="px-6 py-3 font-body-md text-slate-600">Ventas Web</td>
+<td class="px-6 py-3 font-data-tabular text-error">-1 SKU</td>
+<td class="px-6 py-3">
+<span class="flex items-center gap-1.5 text-green-600 text-[10px] font-bold">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" data-weight="fill">check_circle</span> SUCCESS
+                                        </span>
+</td>
+<td class="px-6 py-3 text-right">
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="bg-slate-50/80 border-l-4 border-primary">
+<td class="px-6 py-3 font-data-tabular text-slate-400 text-xs">[10:32:12]</td>
+<td class="px-6 py-3 font-data-tabular font-bold">StockActualizado</td>
+<td class="px-6 py-3 font-body-md text-slate-600">Inventario</td>
+<td class="px-6 py-3 font-data-tabular text-green-600">+50 Units</td>
+<td class="px-6 py-3">
+<span class="flex items-center gap-1.5 text-green-600 text-[10px] font-bold">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" data-weight="fill">check_circle</span> SUCCESS
+                                        </span>
+</td>
+<td class="px-6 py-3 text-right">
+<span class="material-symbols-outlined text-primary" data-icon="expand_more">expand_more</span>
+</td>
+</tr>
+<tr class="bg-slate-50/50">
+<td class="px-12 py-6 border-y border-slate-100" colspan="6">
+<div class="grid grid-cols-4 gap-xl">
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Event Type</p>
+<p class="font-data-tabular text-sm">InventoryDeltaSync</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Full Path</p>
+<p class="font-data-tabular text-sm">AWS/S3 -&gt; Bus -&gt; DB_Sync</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Processing Time</p>
+<p class="font-data-tabular text-sm text-primary">85 ms</p>
+</div>
+<div class="flex justify-end">
+<button class="bg-primary text-white px-4 py-2 text-[10px] font-bold rounded-sm hover:opacity-90 transition-opacity">VIEW RAW LOGS</button>
+</div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors cursor-pointer group">
+<td class="px-6 py-3 font-data-tabular text-slate-400 text-xs">[10:31:05]</td>
+<td class="px-6 py-3 font-data-tabular font-bold">PedidoCreado</td>
+<td class="px-6 py-3 font-body-md text-slate-600">Pedidos</td>
+<td class="px-6 py-3 font-data-tabular text-slate-400">N/A</td>
+<td class="px-6 py-3">
+<span class="flex items-center gap-1.5 text-green-600 text-[10px] font-bold">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" data-weight="fill">check_circle</span> SUCCESS
+                                        </span>
+</td>
+<td class="px-6 py-3 text-right">
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Middleware Status Panel (Bottom Right) -->
+<div class="col-span-12 lg:col-span-4 grid grid-rows-2 gap-gutter">
+<div class="bg-white border border-slate-200 shadow-sm rounded-sm p-lg">
+<div class="flex justify-between items-center mb-md">
+<span class="font-h3 text-sm">Engine Performance</span>
+<span class="material-symbols-outlined text-slate-400" data-icon="analytics">analytics</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-caption text-slate-500">Queue Status</span>
+<span class="font-data-tabular font-bold">12 events (FIFO)</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-caption text-slate-500">Processing Rate</span>
+<span class="font-data-tabular font-bold">3,842 eps</span>
+</div>
+<div class="h-12 w-full flex items-end gap-1 overflow-hidden">
+<div class="bg-slate-100 w-full h-1/4"></div>
+<div class="bg-slate-100 w-full h-1/2"></div>
+<div class="bg-slate-100 w-full h-3/4"></div>
+<div class="bg-slate-100 w-full h-1/3"></div>
+<div class="bg-slate-100 w-full h-2/3"></div>
+<div class="bg-primary w-full h-full"></div>
+<div class="bg-slate-100 w-full h-4/5"></div>
+<div class="bg-slate-100 w-full h-1/2"></div>
+<div class="bg-slate-100 w-full h-1/4"></div>
+</div>
+</div>
+</div>
+<div class="relative rounded-sm overflow-hidden group">
+<img alt="Middleware Status" class="w-full h-full object-cover" data-alt="A sophisticated data visualization dashboard showing complex network graphs and real-time streaming data flows. The aesthetic is dark and professional, featuring glowing navy and cyan accents against a deep charcoal background. The mood is highly technical and precise, reflecting the internal power of a middleware event-driven system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC44RMudYGzvDm66RuLMXrQ620L4Vlh35YJScQhstGrV411F8cCtZVLSvVpRCxi6Ac-lYei_nr1jmNgHaMWovcQDOMjx_Bvx5eRu4yzrOLe82x_UtlculKsc5GP5J5lNRR9HsWm45SKJ3mudPagdFSyeBU1GpHAtcxj6Iiz_NgeF_LqWy6TbuSuomPXdQJYt9RQVghc9WDGVSWIO5gaQhM7OI-H5sCrEzt_cpuezYfs6Wy8TjhvCgrnWFulZB-dh8UOuuarXrJ1a58"/>
+<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm p-lg flex flex-col justify-end">
+<p class="text-[10px] font-bold text-slate-300 tracking-[0.2em] mb-1">REAL-TIME STREAM</p>
+<h4 class="text-white font-h2 text-lg">Cluster Activity Monitoring</h4>
+<div class="mt-4 flex gap-4">
+<div>
+<p class="text-[10px] text-white/50 uppercase font-bold">Active Nodes</p>
+<p class="text-white font-h3">14</p>
+</div>
+<div>
+<p class="text-[10px] text-white/50 uppercase font-bold">Load Balance</p>
+<p class="text-white font-h3">98.2%</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Style overrides and helper animations -->
+<style>
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</body></html>

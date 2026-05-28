@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - alert_rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: omnichannel_middleware
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['app:80']
+        labels:
+          environment: local

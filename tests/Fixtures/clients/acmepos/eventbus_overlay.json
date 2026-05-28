@@ -1,0 +1,17 @@
+{
+  "producers": {
+    "acme_pos": {
+      "label": "Acme POS Terminal",
+      "produces": [
+        "AcmePOS.Sale.Completed"
+      ]
+    }
+  },
+  "subscriptions": {
+    "AcmePOS.Sale.Completed": [
+      {
+        "module": "acme_reporting"
+      }
+    ]
+  }
+}

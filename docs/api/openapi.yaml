@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: Omnichannel Middleware Platform API
+  version: 1.0.0
+  description: |
+    Contract-first API for middleware bus, dashboard observability, and integrations.
+    Versioned base path: `/api/v1/`. Legacy paths `/api/middleware`, `/api/dashboard`, `/api/integrations` remain supported.
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://{instance}.example.com
+    description: Client instance
+    variables:
+      instance:
+        default: client
+
+tags:
+  - name: Middleware
+  - name: Dashboard
+  - name: Integrations
+  - name: Health
+
+paths:
+  /up:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Application is up
+
+  /api/v1/middleware/queue:
+    get:
+      tags: [Middleware]
+      summary: List message queue entries
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Queue entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedQueueResponse'
+
+  /api/v1/middleware/events/publish:
+    post:
+      tags: [Middleware]
+      summary: Publish event to bus
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishEventRequest'
+      responses:
+        '201':
+          description: Event published
+        '200':
+          description: Idempotent replay (already processed)
+        '422':
+          description: Validation error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/v1/middleware/metrics:
+    get:
+      tags: [Middleware]
+      summary: Bus metrics snapshot
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: Metrics
+
+  /api/v1/middleware/topology:
+    get:
+      tags: [Middleware]
+      summary: Bus topology
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: Topology
+
+  /api/v1/middleware/dead-letters:
+    get:
+      tags: [Middleware]
+      summary: Dead letter queue
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: DLQ entries
+
+  /api/v1/dashboard/events/feed:
+    get:
+      tags: [Dashboard]
+      summary: Event feed projection
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Feed entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFeedResponse'
+
+  /api/v1/dashboard/stream:
+    get:
+      tags: [Dashboard]
+      summary: SSE live event stream
+      security: [{ platformApiKey: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: text/event-stream
+
+  /api/v1/integrations/webhooks/{integrationCode}:
+    post:
+      tags: [Integrations]
+      summary: Webhook ingress
+      parameters:
+        - name: integrationCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Accepted
+
+components:
+  securitySchemes:
+    platformApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+        maxLength: 128
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    PublishEventRequest:
+      type: object
+      required: [event_id, event_type, payload, occurred_at]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+        payload:
+          type: object
+        occurred_at:
+          type: string
+          format: date-time
+        origin:
+          type: string
+        correlation_id:
+          type: string
+          format: uuid
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    PaginatedQueueResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PaginatedFeedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

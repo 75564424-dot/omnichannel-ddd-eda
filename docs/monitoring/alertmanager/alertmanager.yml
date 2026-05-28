@@ -1,0 +1,20 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ['alertname', 'client']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default
+    # Configure per environment — examples:
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX'
+    #     channel: '#middleware-alerts'
+    # email_configs:
+    #   - to: 'ops@example.com'
+    # pagerduty_configs:
+    #   - routing_key: '<PAGERDUTY_KEY>'

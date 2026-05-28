@@ -1,0 +1,11 @@
+[
+  {
+    "event_type": "AcmePOS.Sale.Completed",
+    "origin": "AcmePOSSimulation",
+    "payload_template": {
+      "receipt_id": "RCP-{n}",
+      "channel": "POS",
+      "total": 12.5
+    }
+  }
+]

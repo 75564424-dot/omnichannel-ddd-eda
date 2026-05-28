@@ -1,0 +1,412 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Provisioning Center | System Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        .glass-card {
+            background: rgba(18, 24, 32, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 242, 255, 0.1);
+            position: absolute;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan {
+            from { top: 0; }
+            to { top: 100%; }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3a494b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #849495; }
+        
+        .topology-node {
+            transition: all 0.3s ease;
+        }
+        .topology-node:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#b9cacb",
+                        "tertiary": "#f5f7ff",
+                        "outline-variant": "#3a494b",
+                        "tertiary-fixed-dim": "#c1c7d2",
+                        "on-error-container": "#ffdad6",
+                        "on-primary": "#00363a",
+                        "surface-container-highest": "#323538",
+                        "surface-bright": "#37393d",
+                        "inverse-on-surface": "#2e3134",
+                        "primary-fixed-dim": "#00dbe7",
+                        "error-container": "#93000a",
+                        "on-tertiary-fixed": "#161c24",
+                        "tertiary-container": "#d6dbe7",
+                        "on-secondary-fixed": "#001849",
+                        "surface-dim": "#111417",
+                        "on-tertiary": "#2b3139",
+                        "inverse-surface": "#e1e2e7",
+                        "surface-container-high": "#272a2e",
+                        "on-secondary-container": "#f9f7ff",
+                        "on-background": "#e1e2e7",
+                        "on-tertiary-container": "#5a606a",
+                        "surface-container-lowest": "#0b0e11",
+                        "surface": "#111417",
+                        "primary-container": "#00f2ff",
+                        "tertiary-fixed": "#dde3ee",
+                        "on-tertiary-fixed-variant": "#414750",
+                        "on-secondary": "#002b75",
+                        "outline": "#849495",
+                        "on-surface": "#e1e2e7",
+                        "on-secondary-fixed-variant": "#003fa4",
+                        "secondary": "#b3c5ff",
+                        "on-primary-container": "#006a71",
+                        "secondary-fixed": "#dae1ff",
+                        "surface-container-low": "#191c1f",
+                        "primary-fixed": "#74f5ff",
+                        "secondary-container": "#0266ff",
+                        "on-primary-fixed": "#002022",
+                        "on-error": "#690005",
+                        "inverse-primary": "#00696f",
+                        "secondary-fixed-dim": "#b3c5ff",
+                        "surface-tint": "#00dbe7",
+                        "error": "#ffb4ab",
+                        "background": "#111417",
+                        "surface-container": "#1d2023",
+                        "primary": "#e1fdff",
+                        "on-primary-fixed-variant": "#004f54",
+                        "surface-variant": "#323538"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px",
+                        "unit": "8px",
+                        "sidebar-width": "260px"
+                    },
+                    "fontFamily": {
+                        "data-display": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["JetBrains Mono"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md overflow-hidden">
+<!-- Background Grid -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03]" style="background-image: radial-gradient(#00f2ff 1px, transparent 1px); background-size: 32px 32px;"></div>
+<!-- Permanent Navigation Sidebar -->
+<aside class="fixed inset-y-0 left-0 w-sidebar-width h-full bg-surface-container-low/90 backdrop-blur-2xl border-r border-white/5 shadow-2xl z-50 flex flex-col py-gutter space-y-2">
+<div class="px-6 mb-8"><h1 class="font-headline-md text-headline-md text-primary font-bold tracking-tighter">System Control</h1><p class="text-on-surface-variant font-label-sm text-[10px] tracking-widest mt-1 uppercase">Cloud Management</p></div>
+
+<nav class="flex-1 overflow-y-auto"><div class="text-on-surface-variant px-4 py-3 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"><span class="material-symbols-outlined">dashboard</span><span class="font-label-sm text-label-sm">Global Overview</span></div><div class="text-on-surface-variant px-4 py-3 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"><span class="material-symbols-outlined">corporate_fare</span><span class="font-label-sm text-label-sm">Tenant Registry</span></div><div class="bg-primary/10 text-primary border-l-4 border-primary px-4 py-3 flex items-center gap-4 cursor-pointer"><span class="material-symbols-outlined">add_box</span><span class="font-label-sm text-label-sm font-bold">Provisioning</span></div><div class="text-on-surface-variant px-4 py-3 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"><span class="material-symbols-outlined">dns</span><span class="font-label-sm text-label-sm">Infrastructure</span></div><div class="text-on-surface-variant px-4 py-3 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"><span class="material-symbols-outlined">monitoring</span><span class="font-label-sm text-label-sm">Analytics</span></div><div class="text-on-surface-variant px-4 py-3 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"><span class="material-symbols-outlined">security</span><span class="font-label-sm text-label-sm">Security</span></div></nav>
+<div class="px-6 py-4 mt-auto border-t border-white/5"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-surface-container-high border border-white/10 overflow-hidden"><img alt="Operator" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsWVdeOU2X2mhoidvIrhNaE-N1JPw5nbzHC-oBOSHg6tK96cY71mpeijTzYgejpzNtAA5Th3D5xvJ0k11z7Im2hvA4bIKB09bkuoDTp2Kydt1IgDrhXqEPyfOWIy3G7hnmq20A12Zy3a1OYfdW2zyVLbf81FO4isHdRTfnIWzXrFtBBskhq7QjajFRmRVXokJMobE2KoflRkQN-WoMM6f6r3YgKdAcQe25U7aONVFCGDUmwTlsCaqn9K3pXtjsElqbRFE59h5a05VL"></div><div class="hidden md:block"><p class="font-label-sm text-label-sm text-primary">Admin_01</p><p class="text-[10px] text-on-surface-variant uppercase">Global Admin</p></div></div></div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-sidebar-width h-screen flex flex-col relative">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 z-40 bg-surface/70 backdrop-blur-xl border-b border-white/10 sticky top-0">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Environment /</span>
+<span class="font-label-sm text-label-sm text-primary-fixed-dim font-bold">PROD-CLUSTER-01</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full border border-white/5">
+<div class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_#00f2ff]"></div>
+<span class="font-label-sm text-label-sm text-on-surface">SYSTEM_HEALTH: NOMINAL</span>
+</div>
+<span class="material-symbols-outlined text-primary cursor-pointer">notifications</span>
+</div>
+</header>
+<!-- Content Body -->
+<div class="flex-1 overflow-y-auto p-8 space-y-gutter pb-16">
+<!-- Header Section -->
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Provisioning Center</h2>
+<p class="text-on-surface-variant font-body-md">Cloud-native deployment orchestrator for middleware microservices.</p>
+</div>
+<div class="flex gap-4">
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+                        Nuevo Provisioning
+                    </button>
+</div>
+</div>
+<!-- Top: Active Provisioning Table -->
+<section class="glass-card rounded-xl overflow-hidden">
+<div class="px-6 py-4 border-b border-white/5 bg-surface-container/30 flex justify-between items-center">
+<h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-widest">Active Provisioning Queue</h3>
+<span class="text-[11px] text-on-surface-variant">2 Tasks Running | 1 Pending</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-label-sm text-label-sm">
+<thead class="bg-surface-container-low/50 text-on-surface-variant uppercase">
+<tr>
+<th class="px-6 py-3 font-bold">Service ID</th>
+<th class="px-6 py-3 font-bold">Target Cluster</th>
+<th class="px-6 py-3 font-bold">Status</th>
+<th class="px-6 py-3 font-bold">Progress</th>
+<th class="px-6 py-3 font-bold">Initiated By</th>
+<th class="px-6 py-3 font-bold">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-6 py-4">
+<div class="font-bold text-on-surface">edge-gateway-v2.4</div>
+<div class="text-[10px] text-on-surface-variant font-data-display">PRV-8829-X-DELTA</div>
+</td>
+<td class="px-6 py-4">PROD-CLUSTER-01</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-secondary-container/20 text-secondary text-[10px] border border-secondary/30">PROVISIONING</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary-container h-full" style="width: 64%"></div>
+</div>
+<span class="font-data-display">64%</span>
+</div>
+</td>
+<td class="px-6 py-4 font-data-display text-on-surface-variant">auto_sys_admin</td>
+<td class="px-6 py-4">
+<button class="text-error hover:underline">Abort</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-6 py-4">
+<div class="font-bold text-on-surface">auth-module-v1.2</div>
+<div class="text-[10px] text-on-surface-variant font-data-display">PRV-9102-B-ALPHA</div>
+</td>
+<td class="px-6 py-4">STAGING-US-02</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-primary-container/10 text-primary text-[10px] border border-primary/20">PRE-VALIDATION</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary-container h-full" style="width: 12%"></div>
+</div>
+<span class="font-data-display">12%</span>
+</div>
+</td>
+<td class="px-6 py-4 font-data-display text-on-surface-variant">dev_operator_04</td>
+<td class="px-6 py-4">
+<button class="text-error hover:underline">Abort</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Center: Horizontal Pipeline Visualization -->
+<section class="glass-card p-8 rounded-xl relative overflow-hidden">
+<div class="scanline"></div>
+<h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-widest mb-10">Active Pipeline: edge-gateway-v2.4</h3>
+<div class="relative flex items-center justify-between px-4">
+<!-- Progress Line Background -->
+<div class="absolute top-1/2 left-12 right-12 h-[2px] bg-outline-variant -translate-y-1/2"></div>
+<!-- Progress Line Active -->
+<div class="absolute top-1/2 left-12 h-[2px] bg-primary-container shadow-[0_0_10px_#00f2ff] -translate-y-1/2 transition-all duration-1000" style="width: 58%"></div>
+<!-- Stages -->
+<div class="relative z-10 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<span class="font-label-sm text-primary font-bold">Validation</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<span class="font-label-sm text-primary font-bold">DB Setup</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<span class="font-label-sm text-primary font-bold">Cluster Alloc</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary-container border-2 border-primary-container neon-glow-cyan">
+<span class="material-symbols-outlined text-[24px] animate-spin">sync</span>
+</div>
+<span class="font-label-sm text-primary-container font-bold">Networking</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-3 opacity-40">
+<div class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center text-on-surface-variant">
+<span class="font-label-sm">05</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Middleware</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-3 opacity-40">
+<div class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center text-on-surface-variant">
+<span class="font-label-sm">06</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Module Activation</span>
+</div>
+</div>
+</section>
+<!-- Bottom Layout: Topology & Logs -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Bottom Left: Detailed Topology -->
+<section class="lg:col-span-7 glass-card rounded-xl flex flex-col">
+<div class="px-6 py-4 border-b border-white/5 bg-surface-container/30">
+<h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-widest">Target Topology Map</h3>
+</div>
+<div class="flex-1 p-8 flex flex-col items-center justify-center min-h-[400px] relative">
+<!-- Cluster 01 Representation -->
+<div class="relative w-full max-w-lg">
+<!-- Cluster Core -->
+<div class="mx-auto w-48 h-48 rounded-full border-2 border-dashed border-primary-container/30 flex items-center justify-center p-4">
+<div class="w-full h-full rounded-full bg-primary-container/10 border border-primary-container/40 flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-primary text-[32px]">hub</span>
+<span class="text-[10px] font-bold text-primary mt-1 uppercase tracking-tighter leading-none">PROD-CLUSTER-01<br>MASTER</span>
+</div>
+</div>
+<!-- Orbiting Nodes -->
+<div class="absolute -top-4 -left-4 topology-node">
+<div class="p-3 bg-surface-container rounded-lg border border-primary/20 neon-glow-cyan flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[20px] text-primary">dns</span>
+<span class="text-[9px] font-data-display text-on-surface-variant">node-01-la</span>
+<div class="flex gap-0.5">
+<div class="w-1 h-1 bg-primary rounded-full"></div>
+<div class="w-1 h-1 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="absolute -bottom-4 -right-4 topology-node">
+<div class="p-3 bg-surface-container rounded-lg border border-primary/20 neon-glow-cyan flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[20px] text-primary">dns</span>
+<span class="text-[9px] font-data-display text-on-surface-variant">node-02-la</span>
+<div class="flex gap-0.5">
+<div class="w-1 h-1 bg-primary rounded-full"></div>
+<div class="w-1 h-1 bg-primary rounded-full animate-pulse"></div>
+</div>
+</div>
+</div>
+<div class="absolute top-1/2 -right-8 -translate-y-1/2 topology-node">
+<div class="p-3 bg-surface-container rounded-lg border border-white/10 flex flex-col items-center gap-1 opacity-60">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">dns</span>
+<span class="text-[9px] font-data-display">node-03-spare</span>
+</div>
+</div>
+<div class="absolute top-1/2 -left-8 -translate-y-1/2 topology-node">
+<div class="p-3 bg-surface-container rounded-lg border border-primary/20 neon-glow-cyan flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[20px] text-primary">dns</span>
+<span class="text-[9px] font-data-display text-on-surface-variant">node-04-la</span>
+<div class="flex gap-0.5">
+<div class="w-1 h-1 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Details Panel Overlay (Mock) -->
+<div class="absolute bottom-4 left-4 right-4 p-4 bg-black/40 rounded-lg border border-white/5 backdrop-blur-md">
+<div class="grid grid-cols-3 gap-4 text-[10px] uppercase font-label-sm">
+<div><p class="text-on-surface-variant">Allocated CPU</p><p class="text-primary font-bold">12.4 vCPU</p></div>
+<div><p class="text-on-surface-variant">Memory Usage</p><p class="text-primary font-bold">48.2 GB</p></div>
+<div><p class="text-on-surface-variant">Node Groups</p><p class="text-primary font-bold">MW-OPTIMIZED</p></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Right: Expanded Live Log Stream -->
+<section class="lg:col-span-5 glass-card bg-black/40 rounded-xl flex flex-col h-[400px] lg:h-auto">
+<div class="px-6 py-3 border-b border-white/5 flex justify-between items-center bg-surface-container/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">terminal</span>
+<span class="font-label-sm text-label-sm font-bold uppercase tracking-widest text-primary">Live Deployment Logs</span>
+</div>
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-error/40 border border-error/60"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-secondary/40 border border-secondary/60"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-primary-container/40 border border-primary-container/60"></div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 font-data-display text-[12px] leading-relaxed text-on-surface-variant/80" id="terminal">
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:02:11</span> Initializing deployment context...</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:02:12</span> Fetching manifest from GitOps repo: git://cluster/manifests/edge-gateway</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:02:15</span> Manifest validated successfully. Hash: 8ae92ff1</div>
+<div class="mb-1"><span class="text-secondary">[K8S]</span> <span class="text-on-surface/40">2023-10-27 14:02:18</span> Creating namespace 'prov-temp-8829'...</div>
+<div class="mb-1"><span class="text-secondary">[K8S]</span> <span class="text-on-surface/40">2023-10-27 14:02:22</span> Namespace created. Applying RBAC policies.</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:02:30</span> DB Setup phase initiated. Targeting RDS-A-04.</div>
+<div class="mb-1"><span class="text-error">[WARN]</span> <span class="text-on-surface/40">2023-10-27 14:02:45</span> Latency spike detected on DB connection (42ms). Retrying...</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:02:47</span> DB connection established. Schemas provisioned.</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:03:01</span> Starting Cluster Allocation...</div>
+<div class="mb-1"><span class="text-secondary">[K8S]</span> <span class="text-on-surface/40">2023-10-27 14:03:05</span> Scheduled pods on node group 'middleware-optimized-large'.</div>
+<div class="mb-1 text-primary-container animate-pulse"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2023-10-27 14:03:15</span> PULLING IMAGES: gcr.io/middleware-hub/edge-gateway:v2.4</div>
+<div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:15</span> Configuring service mesh sidecars for 'edge-gateway-v2.4'...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:19</span> Requesting SSL certificate from Let's Encrypt CA...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:20</span> SSL certificate issued. Secret 'edge-gateway-tls' created.</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:24</span> Updating Istio VirtualService entries for path /api/v2...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:27</span> Internal health-check (liveness) probe: SUCCESS (200 OK)</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:29</span> Propagating DNS records to Cloudflare Edge...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:13:32</span> Deployment progress: 68% - Analyzing metrics for instability...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:04</span> Configuring service mesh sidecars for 'edge-gateway-v2.4'...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:07</span> Requesting SSL certificate from Let's Encrypt CA...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:10</span> SSL certificate issued. Secret 'edge-gateway-tls' created.</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:13</span> Updating Istio VirtualService entries for path /api/v2...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:16</span> Internal health-check (liveness) probe: SUCCESS (200 OK)</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:19</span> Propagating DNS records to Cloudflare Edge...</div><div class="mb-1"><span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">2026-05-27 13:17:23</span> Deployment progress: 68% - Analyzing metrics for instability...</div><div class="mb-1"><span class="text-primary-container animate-pulse">_</span></div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interaction for Log Stream simulation
+        const terminal = document.getElementById('terminal');
+        const logs = [
+            "Configuring service mesh sidecars for 'edge-gateway-v2.4'...",
+            "Requesting SSL certificate from Let's Encrypt CA...",
+            "SSL certificate issued. Secret 'edge-gateway-tls' created.",
+            "Updating Istio VirtualService entries for path /api/v2...",
+            "Internal health-check (liveness) probe: SUCCESS (200 OK)",
+            "Propagating DNS records to Cloudflare Edge...",
+            "Deployment progress: 68% - Analyzing metrics for instability..."
+        ];
+        let logIndex = 0;
+
+        function addLog() {
+            if (logIndex < logs.length) {
+                const now = new Date();
+                const time = now.toISOString().replace('T', ' ').substring(0, 19);
+                const logEntry = document.createElement('div');
+                logEntry.className = 'mb-1';
+                logEntry.innerHTML = `<span class="text-primary-fixed-dim">[INFO]</span> <span class="text-on-surface/40">${time}</span> ${logs[logIndex]}`;
+                terminal.insertBefore(logEntry, terminal.lastElementChild);
+                terminal.scrollTop = terminal.scrollHeight;
+                logIndex++;
+                setTimeout(addLog, Math.random() * 3000 + 1000);
+            }
+        }
+
+        setTimeout(addLog, 2000);
+    </script>
+
+
+
+
+</body></html>

@@ -1,0 +1,6 @@
+{
+  "$comment": "Plantilla de referencia — copiar a modules_config.json bajo \"producers\" (no se carga automáticamente).",
+  "id": "producer_id",
+  "name": "Human readable name",
+  "event_types_emitted": ["DomainEventA", "DomainEventB"]
+}

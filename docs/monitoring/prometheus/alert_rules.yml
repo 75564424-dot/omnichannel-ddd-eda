@@ -1,0 +1,72 @@
+groups:
+  - name: omnichannel_middleware
+    rules:
+      - alert: BusStopped
+        expr: bus_stream_status{client=~".+"} == 0
+        for: 5m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Bus stream_status is STOPPED"
+          description: "Middleware bus has been STOPPED for more than 5 minutes on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#busstopped"
+
+      - alert: HighErrorRate
+        expr: bus_error_rate_percent{client=~".+"} > 10
+        for: 5m
+        labels:
+          severity: P1
+        annotations:
+          summary: "High bus error rate"
+          description: "Error rate {{ $value }}% exceeds 10% on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#higherrorrate"
+
+      - alert: DLQBacklog
+        expr: bus_dlq_unresolved{client=~".+"} > 10
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Dead letter queue backlog"
+          description: "{{ $value }} unresolved DLQ entries on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#dlqbacklog"
+
+      - alert: HighLatency
+        expr: bus_processing_latency_ms{client=~".+"} > 2000
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "High bus processing latency"
+          description: "Average latency {{ $value }}ms exceeds 2000ms on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#highlatency"
+
+      - alert: DiskSpace
+        expr: database_usage_percent{client=~".+"} > 80
+        for: 10m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Database storage high"
+          description: "Database usage {{ $value }}% exceeds 80% on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#diskspace"
+
+      - alert: CanaryStale
+        expr: canary_last_success_age_seconds{client=~".+"} > 600
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Synthetic canary publish stale"
+          description: "No successful canary publish in {{ $value }}s on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#canarystale"
+
+      - alert: QueueBacklog
+        expr: queue_jobs_pending{client=~".+"} > 1000
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Laravel queue backlog"
+          description: "{{ $value }} pending jobs on {{ $labels.client }}."
+          runbook_url: "docs/monitoring/Runbook_Alertas.md#queuebacklog"

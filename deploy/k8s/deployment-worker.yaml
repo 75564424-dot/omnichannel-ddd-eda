@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: middleware-worker
+  namespace: platform-middleware
+  labels:
+    app: middleware-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: middleware-worker
+  template:
+    metadata:
+      labels:
+        app: middleware-worker
+    spec:
+      containers:
+        - name: worker
+          image: platform-event-bus-core:latest
+          imagePullPolicy: IfNotPresent
+          command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600"]
+          envFrom:
+            - configMapRef:
+                name: middleware-env
+            - secretRef:
+                name: middleware-secrets
+          env:
+            - name: DOCKER_APP_ROLE
+              value: worker
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

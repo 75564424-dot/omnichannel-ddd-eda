@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "Omnichannel Middleware API v1",
+    "description": "Generated from Plan_APIs — import into Postman or Insomnia",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "apiKey", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Middleware",
+      "item": [
+        {
+          "name": "GET Queue (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/api/v1/middleware/queue?page=1&limit=50"
+          }
+        },
+        {
+          "name": "POST Publish Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"00000000-0000-4000-8000-000000000099\",\n  \"event_type\": \"Platform.Api.Test\",\n  \"occurred_at\": \"2026-05-22T12:00:00Z\",\n  \"payload\": { \"event_id\": \"00000000-0000-4000-8000-000000000099\", \"event\": \"Platform.Api.Test\" }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/middleware/events/publish"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "GET Event Feed (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/api/v1/dashboard/events/feed?page=1&limit=25"
+          }
+        }
+      ]
+    }
+  ]
+}

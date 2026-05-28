@@ -1,0 +1,14 @@
+Artículo,Aporte Clave,"Componentes Validados (EDA, DDD, Middleware, etc.)",Cómo aporta a la propuesta,Brechas identificadas,Acciones de mejora
+Understanding EDA (2025),EDA + DDD + Middleware + métricas reales,"EDA, DDD, Middleware, Omnicanal, Tiempo Real",Valida completamente la arquitectura propuesta como estándar moderno,"No contexto local, no detalla optimización",Adaptación local + incluir lógica de optimización
+Real-Time Inventory (2025),Streaming en tiempo real con Kafka,"EDA, Middleware, Tiempo Real",Refuerza el middleware como núcleo del sistema,No usa DDD explícitamente,Formalizar DDD en la propuesta
+Zero-Latency Grid (2026),Latencia sub-minuto y visibilidad total,"EDA, Middleware, Tiempo Real",Valida necesidad de tiempo real en retail,No DDD,Integrar modelo DDD en arquitectura
+Headless Commerce (2024),Arquitectura desacoplada API-first,"Middleware, Microservicios",Refuerza integración como servicio,No profundiza tiempo real,Fortalecer capa de eventos
+EDA Inventory (2025),Modelo productores-broker-consumidores,"EDA, Middleware",Valida flujo de eventos del middleware,No DDD,Definir bounded contexts claramente
+Enterprise Integration (2025),Modelo de 4 capas,"Middleware, API-first",Valida estructura del middleware,No DDD formal,Documentar dominios
+Automation Retail (2024),Middleware + JMS + tiempo real,"Middleware, Tiempo Real",Refuerza resiliencia del sistema,Enfoque Java específico,Generalizar arquitectura
+Optimization GA (2022),Modelo matemático de optimización,"Omnicanal, Inventario",Valida lógica de negocio,No arquitectura software,Integrar motor de optimización
+DDD E-Commerce (2025),DDD completo,"DDD, EDA",Base metodológica de dominios,Complejidad alta,Simplificar implementación
+Omnichannel Tech (2023),Necesidad de integración,"Omnicanal, Middleware",Justifica el problema,No técnico,Complementar con arquitectura
+Microservices + EDA (2025),Microservicios + eventos,"EDA, DDD, Microservicios",Valida arquitectura completa,No retail físico,Adaptar a contexto real
+Distributed Systems (2025),Escalabilidad + consistencia,"EDA, Middleware",Refuerza escalabilidad,No DDD explícito,Alinear con dominios
+Composable Commerce (2025),Arquitectura modular,"DDD, EDA",Valida modelo como servicio,No middleware central,Definir middleware como núcleo

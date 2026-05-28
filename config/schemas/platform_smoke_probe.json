@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["event_id", "event", "occurred_at"],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event": { "type": "string", "minLength": 1 },
+    "occurred_at": { "type": "string", "minLength": 1 },
+    "ref": { "type": "string" }
+  },
+  "additionalProperties": true
+}

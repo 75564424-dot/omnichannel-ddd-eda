@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    paths:
+        - app/Middleware/Application
+        - app/Middleware/Domain
+        - app/Dashboard/Application
+        - app/Dashboard/Domain
+        - app/Shared/Platform
+        - app/Shared/Security
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        -
+            identifier: property.onlyWritten
+            path: app/Dashboard/Domain/ValueObjects/NodeStatus.php

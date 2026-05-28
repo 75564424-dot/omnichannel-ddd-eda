@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: middleware-web
+  namespace: platform-middleware
+  labels:
+    app: middleware-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: middleware-web
+  template:
+    metadata:
+      labels:
+        app: middleware-web
+    spec:
+      containers:
+        - name: php-fpm
+          image: platform-event-bus-core:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: middleware-env
+            - secretRef:
+                name: middleware-secrets
+          ports:
+            - containerPort: 9000
+              name: fpm
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+            - name: app-public
+              mountPath: /var/www/html/public
+              readOnly: true
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: middleware-nginx
+        - name: app-public
+          emptyDir: {}

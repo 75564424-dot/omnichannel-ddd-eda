@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sifrah - Módulo de Inventario (EDA Enhanced)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed-variant": "#3a485c",
+                    "on-tertiary-container": "#818486",
+                    "secondary-fixed": "#d5e3fd",
+                    "primary-fixed-dim": "#bec6e0",
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-highest": "#e4e2e4",
+                    "surface-container": "#f0edef",
+                    "on-primary-container": "#7c839b",
+                    "surface-tint": "#565e74",
+                    "secondary-container": "#d5e3fd",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "tertiary-container": "#191c1e",
+                    "on-secondary-fixed": "#0d1c2f",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-bright": "#fcf8fa",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "on-secondary-container": "#57657b",
+                    "primary-container": "#131b2e",
+                    "error-container": "#ffdad6",
+                    "primary": "#000000",
+                    "inverse-surface": "#303032",
+                    "surface-variant": "#e4e2e4",
+                    "on-error-container": "#93000a",
+                    "error": "#ba1a1a",
+                    "outline": "#76777d",
+                    "secondary": "#515f74",
+                    "on-surface": "#1b1b1d",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#000000",
+                    "inverse-on-surface": "#f3f0f2",
+                    "surface": "#fcf8fa",
+                    "on-tertiary": "#ffffff",
+                    "surface-dim": "#dcd9db",
+                    "secondary-fixed-dim": "#b9c7e0",
+                    "surface-container-high": "#eae7e9",
+                    "primary-fixed": "#dae2fd",
+                    "inverse-primary": "#bec6e0",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f6f3f5",
+                    "on-surface-variant": "#45464d",
+                    "on-primary-fixed": "#131b2e",
+                    "on-tertiary-fixed": "#191c1e",
+                    "on-background": "#1b1b1d",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "background": "#fcf8fa"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "md": "16px",
+                    "2xl": "48px",
+                    "gutter": "20px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "unit": "4px",
+                    "margin": "24px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "h2": ["Inter"],
+                    "data-tabular": ["Inter"],
+                    "h3": ["Inter"],
+                    "h1": ["Inter"],
+                    "caption": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-caps": ["Inter"]
+            },
+            "fontSize": {
+                    "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "data-tabular": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "h3": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "h1": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @keyframes flow-dash {
+            to { stroke-dashoffset: -20; }
+        }
+        .animate-flow {
+            stroke-dasharray: 5;
+            animation: flow-dash 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 bottom-0 flex flex-col py-6 px-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 font-inter text-sm font-medium h-screen w-72 border-r border-slate-200 dark:border-slate-800 no-shadow transition-all duration-150 z-50">
+<!-- Brand -->
+<div class="flex items-center gap-md px-4 mb-xl">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined icon-fill">domain</span>
+</div>
+<div>
+<h1 class="font-black text-slate-900 dark:text-white uppercase tracking-widest text-h3 font-h3 leading-none">Sifrah Systems</h1>
+<p class="text-caption font-caption text-slate-500 mt-1">Enterprise EDA</p>
+</div>
+</div>
+<!-- Main Navigation -->
+<ul class="flex flex-col gap-unit flex-1">
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-body-md">Sales</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined icon-fill" data-icon="inventory_2">inventory_2</span>
+<span class="font-body-md">Inventory</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-body-md">Orders</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="font-body-md">Middleware</span>
+</a>
+</li>
+</ul>
+<!-- Footer Navigation -->
+<ul class="flex flex-col gap-unit mt-auto pt-4 border-t border-slate-200 dark:border-slate-800">
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-body-md">Support</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-body-md">Sign Out</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-72 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-16 px-6 sticky top-0 z-40 bg-white dark:bg-slate-900 w-full border-b border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none transition-colors duration-200 ease-in-out">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-50 font-h2">Sifrah</span>
+<div class="relative ml-4 hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" data-icon="search">search</span>
+<input class="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 transition-all placeholder:text-slate-400 text-slate-900" placeholder="Search inventory..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="hidden sm:flex items-center gap-2 mr-4 text-xs font-medium text-slate-500">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+</span>
+<span>Active Connection</span>
+<span class="mx-1">•</span>
+<span class="text-slate-400">Last updated: 4s ago</span>
+</div>
+<button class="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors duration-200 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-white"></span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-slate-200 ml-2 overflow-hidden border border-slate-300">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGJxsnIbpEDLeWLQqviH-GJriyYAKQGHKRlr65aVhqbJRXxdvJB-p_t_3VXTvunxKtYQ2icpG_e2smTY-TR0UFGIFQN63BeQt5Xnla0LWJVwMglGfgl-azju2Gyha1T8XUH3Z0yUTvDRINHui_0txs-MFet8yI3PFQo3oMItRqMbjdGGxG-rtyBxgzci4xL0pJRtcVe4OYjRU6xHCUpU7iveVXVotbUg3PjmcsyICeaorYX6xJGuV_KtWiFUviGICtUehO-rpiyqs"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-margin flex-1 max-w-[1600px] w-full mx-auto grid grid-cols-1 xl:grid-cols-12 gap-margin">
+<!-- Header Section -->
+<div class="xl:col-span-12 flex justify-between items-end mb-4">
+<div>
+<h2 class="font-h1 text-h1 text-on-background mb-2">Módulo de Inventario</h2>
+<div class="flex items-center gap-4">
+<p class="font-body-lg text-body-lg text-on-surface-variant flex items-center gap-2">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+</span>
+                        Live Event Stream Active
+                    </p>
+<div class="h-4 w-[1px] bg-outline-variant"></div>
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] font-label-caps text-on-surface-variant">Events (5m)</span>
+<span class="text-sm font-bold text-primary">1,245</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-label-caps text-on-surface-variant">Avg Latency</span>
+<span class="text-sm font-bold text-primary">112ms</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="px-4 py-2 border border-outline-variant rounded-md text-on-surface font-label-caps text-label-caps hover:bg-surface-container-low transition-colors shadow-sm">
+                    Export Report
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-md font-label-caps text-label-caps hover:bg-inverse-surface transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Stock
+                </button>
+</div>
+</div>
+<!-- Main Content Area (Left/Center) -->
+<div class="xl:col-span-8 flex flex-col gap-margin">
+<!-- EDA Flow Component -->
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 p-md flex items-center justify-between shadow-sm">
+<div class="flex flex-col items-center gap-1 w-24">
+<div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+<span class="material-symbols-outlined icon-fill">point_of_sale</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface-variant">Ventas/POS</span>
+</div>
+<div class="flex-1 flex items-center px-4">
+<svg class="w-full h-4" preserveaspectratio="none" viewbox="0 0 100 20">
+<line class="animate-flow" stroke="#CBD5E1" stroke-dasharray="4 4" stroke-width="2" x1="0" x2="100" y1="10" y2="10"></line>
+<circle cx="50" cy="10" fill="#3B82F6" r="4">
+<animate attributename="opacity" dur="2s" repeatcount="indefinite" values="0.3;1;0.3"></animate>
+</circle>
+</svg>
+</div>
+<div class="flex flex-col items-center gap-1 w-24">
+<div class="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center">
+<span class="material-symbols-outlined icon-fill">hub</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface-variant">Middleware</span>
+</div>
+<div class="flex-1 flex items-center px-4">
+<svg class="w-full h-4" preserveaspectratio="none" viewbox="0 0 100 20">
+<line class="animate-flow" stroke="#CBD5E1" stroke-dasharray="4 4" stroke-width="2" x1="0" x2="100" y1="10" y2="10"></line>
+</svg>
+</div>
+<div class="flex flex-col items-center gap-1 w-24">
+<div class="w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center border-2 border-green-200">
+<span class="material-symbols-outlined icon-fill">inventory_2</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface-variant">Inventario</span>
+</div>
+</div>
+<!-- Quick Stats Row -->
+<div class="grid grid-cols-3 gap-gutter">
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 shadow-[0px_4px_12px_rgba(15,23,42,0.03)] p-lg flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-2">Total Units</span>
+<span class="font-h2 text-h2 text-on-surface">14,230</span>
+<div class="mt-4 h-8 bg-slate-50 border-t border-slate-100 flex items-end">
+<div class="w-full h-4 bg-gradient-to-t from-secondary-fixed to-transparent opacity-50 rounded-t-sm"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 shadow-[0px_4px_12px_rgba(15,23,42,0.03)] p-lg flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-2">Low Stock Alerts</span>
+<span class="font-h2 text-h2 text-error">24</span>
+<div class="mt-4 h-8 bg-slate-50 border-t border-slate-100 flex items-end">
+<div class="w-full h-2 bg-gradient-to-t from-error-container to-transparent opacity-50 rounded-t-sm"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 shadow-[0px_4px_12px_rgba(15,23,42,0.03)] p-lg flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-2">Stream Status</span>
+<span class="font-h2 text-h2 text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-green-500">check_circle</span> ACTIVE
+                    </span>
+<div class="mt-4 h-8 flex items-center">
+<span class="text-caption font-caption text-on-surface-variant">Cluster: US-East-1 (AWS)</span>
+</div>
+</div>
+</div>
+<!-- Product Table Card -->
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 shadow-[0px_4px_12px_rgba(15,23,42,0.03)] flex-1 flex flex-col overflow-hidden">
+<div class="px-lg py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+<h3 class="font-h3 text-h3 text-on-surface">Product Inventory</h3>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-slate-50 rounded text-slate-500 transition-colors"><span class="material-symbols-outlined">filter_list</span></button>
+<button class="p-1 hover:bg-slate-50 rounded text-slate-500 transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/50 border-b border-slate-200">
+<th class="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant font-semibold">SKU</th>
+<th class="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant font-semibold">Name</th>
+<th class="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant font-semibold text-right">Stock (Huancayo)</th>
+<th class="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant font-semibold text-right">Stock (Lima)</th>
+<th class="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="font-data-tabular text-data-tabular text-on-surface">
+<tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors group">
+<td class="px-lg py-3 text-on-surface-variant">SKU-123</td>
+<td class="px-lg py-3 font-medium">UltraBook Pro 15"</td>
+<td class="px-lg py-3 text-right">45</td>
+<td class="px-lg py-3 text-right">120</td>
+<td class="px-lg py-3">
+<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-green-50 text-green-700 font-label-caps text-[10px]">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> In Stock
+                                    </span>
+</td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors group">
+<td class="px-lg py-3 text-on-surface-variant">SKU-124</td>
+<td class="px-lg py-3 font-medium">Mechanical Keyboard Mx</td>
+<td class="px-lg py-3 text-right text-error font-semibold">2</td>
+<td class="px-lg py-3 text-right">15</td>
+<td class="px-lg py-3">
+<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-orange-50 text-orange-700 font-label-caps text-[10px]">
+<span class="material-symbols-outlined text-[12px] icon-fill text-orange-500">warning</span> Low Stock
+                                    </span>
+</td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors group">
+<td class="px-lg py-3 text-on-surface-variant">SKU-125</td>
+<td class="px-lg py-3 font-medium">Ergonomic Mouse V2</td>
+<td class="px-lg py-3 text-right text-error font-semibold">0</td>
+<td class="px-lg py-3 text-right text-error font-semibold">0</td>
+<td class="px-lg py-3">
+<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-red-50 text-red-700 font-label-caps text-[10px]">
+<span class="material-symbols-outlined text-[12px] icon-fill text-red-500">error</span> Out of Stock
+                                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Event Log Sidebar (Right Column) -->
+<div class="xl:col-span-4 flex flex-col gap-margin">
+<div class="bg-surface-container-lowest rounded-lg border border-slate-200 shadow-[0px_4px_12px_rgba(15,23,42,0.03)] flex-1 flex flex-col">
+<div class="px-lg py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-lg flex justify-between items-center">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span> Eventos de Dominio
+                    </h3>
+<span class="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">LIVE</span>
+</div>
+<div class="p-lg flex-1 overflow-y-auto max-h-[500px]">
+<div class="relative pl-6 border-l-2 border-slate-100 space-y-6">
+<!-- Event 1 (Sale) -->
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[31px] bg-white p-1">
+<div class="w-3 h-3 rounded-full border-2 border-blue-500 bg-white"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-[10px] text-on-surface-variant">[14:20:04]</span>
+<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold uppercase">POS-WEB</span>
+</div>
+<div class="bg-blue-50 border border-blue-100 rounded p-3 transition-shadow hover:shadow-md">
+<p class="font-body-md text-body-md text-on-surface font-semibold flex justify-between">
+                                        Venta impactó stock
+                                        <span class="text-error font-bold">-1 unit</span>
+</p>
+<p class="font-caption text-caption text-on-surface-variant mt-1">SKU-123 (UltraBook Pro)</p>
+</div>
+</div>
+</div>
+<!-- Event 2 (Sync) -->
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[31px] bg-white p-1">
+<div class="w-3 h-3 rounded-full border-2 border-green-500 bg-white"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-[10px] text-on-surface-variant">[13:45:12]</span>
+<span class="px-1.5 py-0.5 rounded bg-green-50 text-green-700 text-[9px] font-bold uppercase">ERP-SYNC</span>
+</div>
+<div class="bg-green-50 border border-green-100 rounded p-3 transition-shadow hover:shadow-md">
+<p class="font-body-md text-body-md text-on-surface font-semibold flex justify-between">
+                                        Reposición registrada
+                                        <span class="text-green-600 font-bold">+50 units</span>
+</p>
+<p class="font-caption text-caption text-on-surface-variant mt-1">Warehouse: Lima North</p>
+</div>
+</div>
+</div>
+<!-- Event 3 (Error) -->
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[31px] bg-white p-1">
+<div class="w-3 h-3 rounded-full border-2 border-red-500 bg-white"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-[10px] text-on-surface-variant">[13:12:45]</span>
+<span class="px-1.5 py-0.5 rounded bg-red-50 text-red-700 text-[9px] font-bold uppercase">MIDDLEWARE</span>
+</div>
+<div class="bg-red-50 border border-red-100 rounded p-3 transition-shadow hover:shadow-md">
+<p class="font-body-md text-body-md text-error font-bold">Error de Validación</p>
+<p class="font-caption text-caption text-on-surface-variant mt-1">Duplicate event ID: evt_88x2j</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Event Details Panel -->
+<div class="bg-surface-container-low border border-slate-200 rounded-lg p-lg shadow-inner">
+<div class="flex items-center gap-2 mb-md border-b border-slate-200 pb-2">
+<span class="material-symbols-outlined text-primary text-sm">info</span>
+<h4 class="font-label-caps text-label-caps text-on-surface font-bold">Metadata del Evento Seleccionado</h4>
+</div>
+<div class="grid grid-cols-2 gap-y-3 text-[12px]">
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-medium">Event Type</span>
+<span class="font-mono text-primary font-semibold">VentaRealizada</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-medium">Origin</span>
+<span class="font-mono text-primary font-semibold">Terminal POS-44</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-medium">Processing Time</span>
+<span class="font-mono text-primary font-semibold">120ms</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-medium">Status</span>
+<span class="inline-flex items-center gap-1 font-mono text-green-600 font-semibold uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Procsd
+                        </span>
+</div>
+<div class="col-span-2 flex flex-col mt-2">
+<span class="text-on-surface-variant font-medium">Raw Payload</span>
+<div class="bg-slate-900 text-slate-300 p-2 rounded mt-1 font-mono text-[10px] whitespace-pre-wrap">{"order_id": "90210", "sku": "SKU-123", "qty": -1, "timestamp": 1672531200}</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

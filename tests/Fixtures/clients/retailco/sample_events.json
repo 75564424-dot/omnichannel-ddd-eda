@@ -1,0 +1,22 @@
+[
+  {
+    "event_type": "RetailCo.Order.Created",
+    "origin": "RetailCoSimulation",
+    "payload_template": {
+      "order_ref": "ORD-{n}",
+      "channel": "POS",
+      "amount": 49.99,
+      "currency": "USD"
+    }
+  },
+  {
+    "event_type": "RetailCo.Stock.Updated",
+    "origin": "RetailCoSimulation",
+    "payload_template": {
+      "sku": "SKU-{n}",
+      "delta": -2,
+      "channel": "WEB",
+      "warehouse": "WH-01"
+    }
+  }
+]

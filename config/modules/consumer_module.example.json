@@ -1,0 +1,6 @@
+{
+  "$comment": "Plantilla de referencia — copiar a modules_config.json bajo \"subscribers\".",
+  "id": "consumer_id",
+  "name": "Human readable name",
+  "event_types_consumed": ["DomainEventX", "DomainEventY"]
+}

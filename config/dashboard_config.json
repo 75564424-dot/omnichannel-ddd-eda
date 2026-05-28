@@ -1,0 +1,84 @@
+{
+  "$schema_comment": "Dashboard product config — KPI cards, charts, and optional daily series without code changes.",
+  "event_envelope": {
+    "description": "Generic envelope for observability (external modules map their payloads into this shape).",
+    "fields": {
+      "id": "event_id (UUID)",
+      "type": "event / event_type — arbitrary catalog name supplied by the producer module",
+      "origin": "channel, module, or source hint carried inside the payload",
+      "timestamp": "occurred_at (ISO-8601)",
+      "payload": "opaque JSON — aggregations use configurable JSON paths only"
+    }
+  },
+  "daily_series": {
+    "event_type": "Platform.Demo.Measurement",
+    "payload_path": ["measurement", "amount"]
+  },
+  "counter_cards": [
+    {
+      "id": "events_last_60s",
+      "name": "Eventos (60s)",
+      "enabled": true,
+      "suffix": "evt",
+      "source": "event_feed",
+      "aggregation": "count_window_seconds",
+      "seconds": 60
+    },
+    {
+      "id": "events_last_24h",
+      "name": "Eventos (24h)",
+      "enabled": true,
+      "suffix": "evt",
+      "source": "event_feed",
+      "aggregation": "count_window_seconds",
+      "seconds": 86400
+    },
+    {
+      "id": "avg_feed_latency_ms",
+      "name": "Latencia media feed",
+      "enabled": true,
+      "suffix": "ms",
+      "source": "event_feed",
+      "aggregation": "avg_latency_ms",
+      "sample_size": 100
+    },
+    {
+      "id": "bus_events_last_24h",
+      "name": "Eventos en bus (24h)",
+      "enabled": true,
+      "suffix": "evt",
+      "source": "bus_queue",
+      "aggregation": "count_window_seconds",
+      "seconds": 86400
+    }
+  ],
+  "metrics": [
+    {
+      "id": "demo_feed_sum_by_day",
+      "name": "Serie diaria (feed)",
+      "type": "chart",
+      "enabled": true,
+      "chart": "bar",
+      "source": "event_feed",
+      "event_types": ["Platform.Demo.Measurement"],
+      "aggregation": "sum_by_day",
+      "payload_path": ["measurement", "amount"],
+      "days_default": 14,
+      "value_label": "Total",
+      "y_label": "Unidades",
+      "value_format": "number"
+    },
+    {
+      "id": "events_by_origin_consumer",
+      "name": "Eventos por origen y consumidor",
+      "type": "chart",
+      "enabled": true,
+      "chart": "dual_bar",
+      "source": "bus_queue",
+      "aggregation": "count_origin_and_consumer",
+      "days_default": 14,
+      "value_label": "Eventos",
+      "y_label": "Cantidad"
+    }
+  ]
+}

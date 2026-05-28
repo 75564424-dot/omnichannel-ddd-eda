@@ -1,0 +1,42 @@
+{
+  "service_contact_message": "RetailCo simulation fixture — staging / rehearsal only.",
+  "middleware": {
+    "id": "middleware",
+    "name": "Middleware bus",
+    "description": "RetailCo omnichannel routing instance.",
+    "role": "routing"
+  },
+  "producers": [
+    {
+      "id": "retailco_pos",
+      "name": "RetailCo POS",
+      "event_types_emitted": [
+        "RetailCo.Order.Created",
+        "RetailCo.Stock.Updated"
+      ],
+      "channels": ["POS", "WEB"]
+    }
+  ],
+  "subscribers": [
+    {
+      "id": "analytics_sink",
+      "name": "Analytics Sink",
+      "event_types_consumed": [
+        "RetailCo.Order.Created",
+        "RetailCo.Stock.Updated"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "id": "pos_integration",
+      "name": "POS Channel Integration",
+      "channel": "POS"
+    },
+    {
+      "id": "web_integration",
+      "name": "Web Channel Integration",
+      "channel": "WEB"
+    }
+  ]
+}
