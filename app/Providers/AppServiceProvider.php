@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Dashboard\Interfaces\Providers\DashboardServiceProvider;
 use App\Middleware\Interfaces\Providers\MiddlewareServiceProvider;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        $xsrfCookie = (string) config('session.xsrf_cookie', 'XSRF-TOKEN');
+        EncryptCookies::except([$xsrfCookie, 'XSRF-TOKEN']);
     }
 }

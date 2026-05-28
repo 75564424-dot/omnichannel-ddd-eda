@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Control\SimulationRunInternalController;
 use App\Http\Controllers\Health\ReadinessController;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureAuthenticatedInstanceBinding;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeadersMiddleware;
+use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use App\Observability\Interfaces\Providers\ObservabilityServiceProvider;
 use App\Providers\LoggingServiceProvider;
 use App\Providers\SecurityServiceProvider;
@@ -29,11 +32,24 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
+            Route::middleware(['simulation.internal'])
+                ->prefix('control/internal')
+                ->group(function (): void {
+                    Route::get('simulation-runs/{run}', [SimulationRunInternalController::class, 'show']);
+                    Route::patch('simulation-runs/{run}/progress', [SimulationRunInternalController::class, 'progress']);
+                    Route::post('simulation-runs/{run}/complete', [SimulationRunInternalController::class, 'complete']);
+                    Route::post('simulation-runs/{run}/fail', [SimulationRunInternalController::class, 'fail']);
+                });
+
             Route::middleware('web')->group(base_path('routes/control.php'));
             Route::get('/health/ready', ReadinessController::class)->name('health.ready');
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(replace: [
+            ValidateCsrfToken::class => VerifyCsrfToken::class,
+        ]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,

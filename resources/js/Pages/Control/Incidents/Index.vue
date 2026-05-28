@@ -48,13 +48,16 @@
             class="flex w-full items-start gap-3 px-4 py-3 text-left"
             @click="toggleExpand(item.id)"
           >
-            <span class="material-symbols-outlined mt-0.5 text-[20px]" :class="item.type === 'client_report' ? 'text-[#00dbe7]' : 'text-[#ffb4ab]'">
-              {{ item.type === 'client_report' ? 'support_agent' : 'sensors' }}
+            <span
+              class="material-symbols-outlined mt-0.5 text-[20px]"
+              :class="timelineIconClass(item.type)"
+            >
+              {{ timelineIcon(item.type) }}
             </span>
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="text-[10px] uppercase tracking-wide" :class="item.type === 'client_report' ? 'text-[#00dbe7]' : 'text-[#ffb4ab]'">
-                  {{ item.type === 'client_report' ? 'Cliente' : 'Sistema' }}
+                <span class="text-[10px] uppercase tracking-wide" :class="timelineLabelClass(item.type)">
+                  {{ timelineLabel(item.type) }}
                 </span>
                 <span class="text-[10px] text-[#849495]">{{ item.sort_at }}</span>
                 <span v-if="item.severity" class="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase">{{ item.severity }}</span>
@@ -77,6 +80,14 @@
             </template>
             <template v-else>
               <div class="flex flex-wrap gap-2">
+                <Link
+                  v-if="item.simulation_run_id"
+                  :href="`/control/simulations/${item.simulation_run_id}/report`"
+                  class="inline-flex items-center gap-1 rounded border border-amber-400/40 px-2 py-1 text-[10px] uppercase text-amber-300 hover:bg-amber-400/10"
+                >
+                  <span class="material-symbols-outlined text-[14px]">analytics</span>
+                  Reporte de simulación
+                </Link>
                 <Link
                   :href="`/control/incidents/reports/${item.detail.id}`"
                   class="inline-flex items-center gap-1 rounded border border-[#00dbe7]/40 px-2 py-1 text-[10px] uppercase text-[#00dbe7] hover:bg-[#00dbe7]/10"
@@ -248,6 +259,30 @@ function statusClass(status) {
   if (status === 'acknowledged') return 'text-amber-400';
   if (status === 'active') return 'text-[#ffb4ab]';
   return 'text-[#00dbe7]';
+}
+
+function timelineIcon(type) {
+  if (type === 'simulation_failure') return 'science_off';
+  if (type === 'client_report') return 'support_agent';
+  return 'sensors';
+}
+
+function timelineIconClass(type) {
+  if (type === 'simulation_failure') return 'text-amber-300';
+  if (type === 'client_report') return 'text-[#00dbe7]';
+  return 'text-[#ffb4ab]';
+}
+
+function timelineLabel(type) {
+  if (type === 'simulation_failure') return 'Simulación';
+  if (type === 'client_report') return 'Cliente';
+  return 'Sistema';
+}
+
+function timelineLabelClass(type) {
+  if (type === 'simulation_failure') return 'text-amber-300';
+  if (type === 'client_report') return 'text-[#00dbe7]';
+  return 'text-[#ffb4ab]';
 }
 
 function toggleExpand(id) {

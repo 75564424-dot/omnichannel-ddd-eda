@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+        <meta name="xsrf-cookie" content="<?php echo e(config('session.xsrf_cookie', 'XSRF-TOKEN')); ?>">
         <meta name="app-name" content="<?php echo e(config('app.name')); ?>">
         <title><?php echo e(config('app.name')); ?></title>
         <?php echo app('Illuminate\Foundation\Vite')(['resources/js/app.js']); ?>

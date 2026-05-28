@@ -58,6 +58,10 @@ export function buildEnvContent(instance, appKey) {
     ensureSqliteDatabase(slug);
     const dbAbsolute = sqlitePathForSlug(slug).replace(/\\/g, '/');
     const sessionCookie = `platform_session_${slug.replace(/-/g, '_')}`;
+    const xsrfCookie = sessionCookie.replace('_session', '_xsrf');
+    const adminPasswordValue = adminPassword && String(adminPassword).trim() !== ''
+        ? adminPassword
+        : 'client-local-dev';
     const modulesConfigPath = `config/modules/instances/${slug}/modules_config.json`;
     const displayName = isControlPlane ? 'SaaS' : label;
 
@@ -79,6 +83,8 @@ PLATFORM_CONTROL_PLANE=${isControlPlane ? 'true' : 'false'}
 PLATFORM_PORTAL_MULTI_TENANT_LOGIN=false
 PLATFORM_SEED_INSTANCE_TENANT=true
 PLATFORM_SIMULATION_ENABLED=false
+PLATFORM_CONTROL_PLANE_URL=http://127.0.0.1:8000
+PLATFORM_SIMULATION_INTERNAL_TOKEN=local-dev-simulation-token
 ${isControlPlane ? `PLATFORM_LOCAL_FLEET_AUTO_PROVISION=true
 PLATFORM_LOCAL_FLEET_PORT_START=8001
 PLATFORM_LOCAL_FLEET_DEFAULT_ADMIN_PASSWORD=client-local-dev
@@ -90,6 +96,7 @@ QUEUE_CONNECTION=sync
 CACHE_STORE=database
 SESSION_DRIVER=database
 SESSION_COOKIE=${sessionCookie}
+SESSION_XSRF_COOKIE=${xsrfCookie}
 ${isControlPlane ? '' : `MODULES_CONFIG_PATH=${modulesConfigPath}\n`}
 
 PLATFORM_API_AUTH_ENABLED=true
@@ -107,7 +114,7 @@ PLATFORM_SAAS_ADMIN_PASSWORD=${isControlPlane ? adminPassword : 'unused'}
 PLATFORM_SEED_ADMIN_OPERATOR=${isControlPlane ? 'false' : 'true'}
 PLATFORM_ADMIN_NAME="${isControlPlane ? 'Platform Admin' : adminName}"
 PLATFORM_ADMIN_EMAIL=${isControlPlane ? 'admin@unused-local' : adminEmail}
-PLATFORM_ADMIN_PASSWORD=${isControlPlane ? 'unused' : adminPassword}
+PLATFORM_ADMIN_PASSWORD=${isControlPlane ? 'unused' : adminPasswordValue}
 PLATFORM_ADMIN_ROLE=platform_admin
 `;
 }

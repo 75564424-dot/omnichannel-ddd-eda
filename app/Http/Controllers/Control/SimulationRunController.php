@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Control;
 
 use App\Control\Application\Services\SimulationRunMetricsCollector;
 use App\Control\Application\Services\SimulationRunOrchestrator;
+use App\Control\Application\Services\SimulationRunStaleGuard;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
@@ -21,11 +22,14 @@ final class SimulationRunController
     public function __construct(
         private readonly SimulationRunOrchestrator $orchestrator,
         private readonly SimulationRunMetricsCollector $metricsCollector,
+        private readonly SimulationRunStaleGuard $staleGuard,
     ) {}
 
     public function index(Request $request): Response
     {
         Gate::authorize('platform.manage-users');
+
+        $this->staleGuard->failExpiredRuns();
 
         $tenantId = $request->string('tenant_id')->toString();
         $tenantId = $tenantId !== '' ? $tenantId : null;
@@ -101,7 +105,7 @@ final class SimulationRunController
         $etaMin = (int) $validated['duration_minutes'];
 
         return redirect()
-            ->route('control.companies.index')
+            ->route('control.simulations.index', ['run' => $started['run_id']])
             ->with('message', "Simulación iniciada para {$tenant->name}. Duración estimada ~{$etaMin} min.")
             ->with('active_simulation_run_id', $started['run_id']);
     }
@@ -109,6 +113,8 @@ final class SimulationRunController
     public function status(SimulationRunModel $run): JsonResponse
     {
         Gate::authorize('platform.manage-users');
+
+        $this->staleGuard->failExpiredRuns();
 
         $payload = $this->metricsCollector->presentationForRun($run->fresh(['tenant']));
 
@@ -122,8 +128,11 @@ final class SimulationRunController
         $run->load('tenant');
         $payload = $this->metricsCollector->presentationForRun($run);
 
-        if ($run->status !== SimulationRunModel::STATUS_COMPLETED || empty($payload['metrics'])) {
-            abort(404, 'El reporte no está disponible hasta que la simulación finalice correctamente.');
+        if (! in_array($run->status, [
+            SimulationRunModel::STATUS_COMPLETED,
+            SimulationRunModel::STATUS_FAILED,
+        ], true) || empty($payload['metrics'])) {
+            abort(404, 'El reporte no está disponible para esta simulación.');
         }
 
         return Inertia::render('Control/Simulation/Report', $payload);

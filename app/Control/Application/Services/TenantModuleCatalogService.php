@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Control\Application\Services;
 
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\Support\ModulesConfigPath;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 final class TenantModuleCatalogService
@@ -51,7 +53,32 @@ final class TenantModuleCatalogService
             return $this->normalizeCatalog($stored, $tenant->name);
         }
 
+        $fromInstance = $this->catalogFromInstanceFiles($tenant->slug);
+        if ($fromInstance !== null) {
+            return $fromInstance;
+        }
+
         return $this->defaultCatalogForTenant($tenant);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function catalogFromInstanceFiles(string $tenantSlug): ?array
+    {
+        $slug = Str::slug($tenantSlug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $path = base_path('config/modules/instances/'.$slug.'/modules_config.json');
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded)
+            ? $this->normalizeCatalog($decoded, $slug)
+            : null;
     }
 
     /**
@@ -95,7 +122,7 @@ final class TenantModuleCatalogService
             throw new RuntimeException('Este tenant no corresponde a la instancia desplegada en este servidor.');
         }
 
-        $path = config_path('modules/modules_config.json');
+        $path = ModulesConfigPath::resolve();
         $catalog = $this->getCatalog($tenant);
 
         File::put(

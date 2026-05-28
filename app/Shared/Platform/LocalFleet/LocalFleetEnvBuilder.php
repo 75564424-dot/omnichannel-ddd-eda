@@ -20,9 +20,13 @@ final class LocalFleetEnvBuilder
         $displayName = $label;
         $dbAbsolute = str_replace('\\', '/', base_path('database/instances/'.$slug.'.sqlite'));
         $sessionCookie = 'platform_session_'.str_replace('-', '_', $slug);
+        $xsrfCookie = str_replace('_session', '_xsrf', $sessionCookie);
         $envId = (string) ($instance['id'] ?? 'client-'.$slug);
         $adminEmail = (string) ($instance['adminEmail'] ?? 'admin@'.$slug.'-local');
-        $adminPassword = (string) ($instance['adminPassword'] ?? 'change-me-local');
+        $adminPassword = (string) ($instance['adminPassword'] ?? '');
+        if ($adminPassword === '') {
+            $adminPassword = 'client-local-dev';
+        }
         $adminName = (string) ($instance['adminName'] ?? 'Admin '.$label);
 
         return <<<ENV
@@ -44,6 +48,8 @@ PLATFORM_CONTROL_PLANE=false
 PLATFORM_PORTAL_MULTI_TENANT_LOGIN=false
 PLATFORM_SEED_INSTANCE_TENANT=true
 PLATFORM_SIMULATION_ENABLED=false
+PLATFORM_CONTROL_PLANE_URL=http://127.0.0.1:8000
+PLATFORM_SIMULATION_INTERNAL_TOKEN=local-dev-simulation-token
 
 DB_CONNECTION=sqlite
 DB_DATABASE={$dbAbsolute}
@@ -52,6 +58,7 @@ QUEUE_CONNECTION=sync
 CACHE_STORE=database
 SESSION_DRIVER=database
 SESSION_COOKIE={$sessionCookie}
+SESSION_XSRF_COOKIE={$xsrfCookie}
 
 MODULES_CONFIG_PATH=config/modules/instances/{$slug}/modules_config.json
 

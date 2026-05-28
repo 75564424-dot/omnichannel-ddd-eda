@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Middleware\Application\Services\SimulationPulseService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -45,7 +46,7 @@ final class ResetOperationalDemoDataCommand extends Command
         'processing_jobs',
     ];
 
-    public function handle(): int
+    public function handle(SimulationPulseService $simulationPulse): int
     {
         if (! $this->option('force') && ! $this->confirm('¿Vaciar tablas operativas de la plataforma (feed, bus, métricas)?', false)) {
             $this->warn('Cancelado.');
@@ -71,6 +72,9 @@ final class ResetOperationalDemoDataCommand extends Command
         }
 
         $this->info("Tablas operativas vaciadas: {$cleared}.");
+
+        $simulationPulse->clear();
+        $this->line('  · middleware.simulation_pulse (cache)');
 
         if ($this->option('with-queues')) {
             foreach (['jobs', 'failed_jobs'] as $table) {

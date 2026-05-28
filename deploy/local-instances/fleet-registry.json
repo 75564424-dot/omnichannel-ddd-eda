@@ -8,7 +8,7 @@
       "port": 8001,
       "role": "client",
       "adminEmail": "admin@local",
-      "adminPassword": "",
+      "adminPassword": "client-local-dev",
       "adminName": "Platform Admin"
     },
     {
@@ -18,7 +18,7 @@
       "port": 8002,
       "role": "client",
       "adminEmail": "prueba@prueba",
-      "adminPassword": "",
+      "adminPassword": "client-local-dev",
       "adminName": "Prueba"
     }
   ]

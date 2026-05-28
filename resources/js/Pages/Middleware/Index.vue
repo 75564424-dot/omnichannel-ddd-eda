@@ -10,8 +10,11 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-highest rounded-full text-xs font-medium text-on-surface">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
-            {{ isBusActive ? 'Bus Active' : 'Bus Offline' }}
+            <span
+              class="w-2 h-2 rounded-full"
+              :class="middlewareFlowActive ? 'bg-emerald-500 live-pulse' : (isBusActive ? 'bg-emerald-500' : 'bg-slate-400')"
+            ></span>
+            {{ middlewareFlowActive ? 'Simulación activa' : (isBusActive ? 'Bus Active' : 'Bus Offline') }}
           </span>
         </div>
       </div>
@@ -100,7 +103,10 @@
             </span>
           </div>
         </div>
-        <div class="flex items-stretch gap-4 bg-surface-container-low rounded-xl border border-surface-container-highest p-6">
+        <div
+          class="flex items-stretch gap-4 bg-surface-container-low rounded-xl border border-surface-container-highest p-6"
+          :class="{ 'middleware-flow-active': middlewareFlowActive }"
+        >
 
           <!-- Producer Nodes -->
           <div class="flex flex-col gap-3 w-[280px] shrink-0">
@@ -132,23 +138,24 @@
           </div>
 
           <!-- Arrow In + Label -->
-          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2">
-            <div class="flex-1 w-px bg-outline-variant"></div>
+          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2 relative min-h-[120px]">
+            <span v-if="middlewareFlowActive" class="flow-packet flow-packet-in" aria-hidden="true"></span>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
             <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest rotate-90 whitespace-nowrap my-2">Publishes</p>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
-            <div class="flex-1 w-px bg-outline-variant"></div>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
           </div>
 
           <!-- Event Bus -->
           <div class="flex flex-col items-center justify-center shrink-0 px-4">
             <div
               class="bg-primary-container border-2 rounded-2xl py-6 px-5 flex flex-col items-center justify-center shadow-lg relative transition-all duration-300"
-              :class="busHasRecentActivity ? 'border-emerald-500 ring-4 ring-emerald-400/40 scale-[1.02]' : 'border-primary'"
+              :class="middlewareFlowActive || busHasRecentActivity ? 'border-emerald-500 ring-4 ring-emerald-400/40 scale-[1.02]' : 'border-primary'"
             >
               <div
                 class="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full ring-2 ring-white transition-colors"
-                :class="busHasRecentActivity ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'"
+                :class="middlewareFlowActive || busHasRecentActivity ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'"
               ></div>
               <span class="material-symbols-outlined text-on-primary-container text-[36px] mb-2">hub</span>
               <span class="text-[11px] font-black text-on-primary-container tracking-[0.15em]">EVENT BUS</span>
@@ -157,12 +164,13 @@
           </div>
 
           <!-- Arrow Out + Label -->
-          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2">
-            <div class="flex-1 w-px bg-outline-variant"></div>
+          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2 relative min-h-[120px]">
+            <span v-if="middlewareFlowActive" class="flow-packet flow-packet-out" aria-hidden="true"></span>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
             <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest rotate-90 whitespace-nowrap my-2">Dispatches</p>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
-            <div class="flex-1 w-px bg-outline-variant"></div>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
           </div>
 
           <!-- Consumer Nodes -->
@@ -293,6 +301,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { onNodesChanged } from '@/platform-node-events';
 
 export default {
   name: 'MiddlewareIndex',
@@ -305,13 +314,16 @@ export default {
     busStatus: { type: [Boolean, String, Object], default: true },
   },
   setup(props) {
-    const POLL_SECONDS = 45;
+    const POLL_SECONDS_IDLE = 45;
+    const POLL_SECONDS_ACTIVE = 3;
 
     const syncingRegistry = ref(false);
+    const simulationPulse = ref({ active: false });
 
     const liveQueue = ref([...(props.queue ?? [])]);
     const liveMetrics = ref({ ...(props.metrics ?? {}) });
-    const countdown = ref(POLL_SECONDS);
+    const pollSeconds = ref(POLL_SECONDS_IDLE);
+    const countdown = ref(POLL_SECONDS_IDLE);
     let refreshTimer = null;
     let countdownTimer = null;
 
@@ -409,6 +421,10 @@ export default {
     );
 
     const busHasRecentActivity = computed(() => hasQueuedFlowActivity.value);
+
+    const middlewareFlowActive = computed(
+      () => simulationPulse.value.active === true || hasQueuedFlowActivity.value,
+    );
 
     const activeTypesSummary = computed(() => {
       const c = recentEventTypeCounts.value;
@@ -563,6 +579,24 @@ export default {
       }
     }
 
+    async function fetchSimulationPulse() {
+      try {
+        const res = await window.axios.get('/api/middleware/simulation-pulse');
+        simulationPulse.value = res.data?.data ?? res.data ?? { active: false };
+      } catch {
+        simulationPulse.value = { active: false };
+      }
+    }
+
+    function applyPollCadence() {
+      const next = middlewareFlowActive.value ? POLL_SECONDS_ACTIVE : POLL_SECONDS_IDLE;
+      if (pollSeconds.value === next) return;
+      pollSeconds.value = next;
+      countdown.value = next;
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshData, next * 1000);
+    }
+
     async function refreshData() {
       try {
         const [metricsRes, queueRes, topologyRes] = await Promise.all([
@@ -570,7 +604,9 @@ export default {
           window.axios.get('/api/middleware/queue', { params: { limit: 100 } }),
           window.axios.get('/api/middleware/topology'),
         ]);
-        liveMetrics.value = metricsRes.data?.data ?? metricsRes.data ?? {};
+        await fetchSimulationPulse();
+        const metricsPayload = metricsRes.data?.data ?? metricsRes.data ?? {};
+        liveMetrics.value = { ...metricsPayload };
         liveQueue.value = queueRes.data?.data ?? queueRes.data ?? [];
         const topo = topologyRes.data?.data ?? topologyRes.data;
         if (topo && typeof topo === 'object') {
@@ -584,29 +620,40 @@ export default {
       } catch (e) {
         console.error('Middleware refresh failed:', e);
       }
-      countdown.value = POLL_SECONDS;
+      countdown.value = pollSeconds.value;
+      applyPollCadence();
     }
 
     function startTimers() {
-      refreshTimer = setInterval(refreshData, POLL_SECONDS * 1000);
+      refreshTimer = setInterval(refreshData, pollSeconds.value * 1000);
       countdownTimer = setInterval(() => {
         countdown.value = Math.max(0, countdown.value - 1);
       }, 1000);
     }
 
+    watch(middlewareFlowActive, () => applyPollCadence());
+
+    let stopNodesListener = null;
+
     onMounted(() => {
       refreshData();
       startTimers();
+      stopNodesListener = onNodesChanged(() => {
+        refreshData();
+        countdown.value = pollSeconds.value;
+      });
     });
     onUnmounted(() => {
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
+      stopNodesListener?.();
     });
 
     return {
       liveQueue, liveMetrics, liveTopology, countdown, topologyProducers, topologyConsumers,
       topologyGeneratedAt, activeTypesSummary, recentEventTypeCounts, busHasRecentActivity,
-      pollSeconds: POLL_SECONDS,
+      middlewareFlowActive, simulationPulse,
+      pollSeconds,
       producerEventChipClass, consumerEventChipClass, producerCardClass, consumerCardClass,
       isBusActive,
       displayQueue, formatNumber, formatMetric, formatErrorRate, truncateId, formatTimestamp, formatConsumers,

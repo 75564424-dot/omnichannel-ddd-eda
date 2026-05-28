@@ -125,9 +125,12 @@ final class ControlIncidentsService
         }
 
         foreach ($reports as $report) {
+            $log = is_array($report['diagnostic_log'] ?? null) ? $report['diagnostic_log'] : [];
+            $isSimulation = ($log['source'] ?? '') === 'simulation_failure';
+
             $items[] = [
                 'id'           => $report['id'],
-                'type'         => 'client_report',
+                'type'         => $isSimulation ? 'simulation_failure' : 'client_report',
                 'sort_at'      => $report['created_at'],
                 'client_label' => $report['client_label'],
                 'title'        => $report['subject'],
@@ -135,6 +138,7 @@ final class ControlIncidentsService
                 'severity'     => strtoupper($report['severity']),
                 'status'       => $report['status'],
                 'detail'       => $report,
+                'simulation_run_id' => $isSimulation ? ($log['run_id'] ?? null) : null,
             ];
         }
 

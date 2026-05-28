@@ -93,8 +93,13 @@ return [
     'simulation' => [
         'enabled'      => env('PLATFORM_SIMULATION_ENABLED', true),
         'fixture_slug' => env('PLATFORM_SIMULATION_FIXTURE_SLUG', 'acmepos'),
+        'control_plane_url' => env('PLATFORM_CONTROL_PLANE_URL', 'http://127.0.0.1:8000'),
+        'internal_token'    => env('PLATFORM_SIMULATION_INTERNAL_TOKEN', 'local-dev-simulation-token'),
         'tenant_fixture_map' => [
-            'acme-retail' => 'acmepos',
+            'acme-retail'     => 'acmepos',
+            'pruebas-retail'  => 'acmepos',
+            'retail-norte'    => 'acmepos',
+            'retail-sur'      => 'acmepos',
         ],
         'defaults' => [
             'events_per_minute' => (int) env('PLATFORM_SIMULATION_EVENTS_PER_MINUTE', 10),

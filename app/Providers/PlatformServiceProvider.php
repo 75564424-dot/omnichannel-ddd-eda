@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
 use App\Shared\Platform\DatabaseInstanceTenantContext;
 use App\Shared\Platform\LocalFleet\LocalFleetEnvBuilder;
+use App\Control\Application\Services\LocalFleetSimulationRunner;
 use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
 use App\Shared\Platform\LocalFleet\LocalFleetRegistry;
 use App\Shared\Platform\LocalFleet\LocalFleetTenantMirror;
@@ -41,6 +42,8 @@ final class PlatformServiceProvider extends ServiceProvider
         $this->app->singleton(LocalFleetTenantMirror::class, fn ($app) => new LocalFleetTenantMirror(
             $app->make(LocalFleetEnvBuilder::class),
         ));
+
+        $this->app->singleton(LocalFleetSimulationRunner::class);
 
         $this->app->singleton(LocalFleetInstanceProvisioner::class, function ($app) {
             $config = config('platform.local_fleet', []);

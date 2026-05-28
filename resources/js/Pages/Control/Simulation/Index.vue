@@ -6,6 +6,10 @@
         <p class="mt-1 text-sm text-[#b9cacb]">
           Listado por fecha y hora. Los reportes detallados están disponibles al finalizar cada ejecución.
         </p>
+        <p v-if="hasActiveRuns" class="mt-2 flex items-center gap-2 text-xs text-[#00dbe7]">
+          <span class="inline-block h-2 w-2 rounded-full bg-[#00dbe7] animate-pulse"></span>
+          Actualizando progreso en vivo cada 2 s
+        </p>
       </div>
       <Link
         href="/control/companies"
@@ -52,7 +56,7 @@
         </thead>
         <tbody class="divide-y divide-white/5">
           <tr
-            v-for="run in runs.data"
+            v-for="run in displayRuns"
             :key="run.id"
             class="hover:bg-white/5"
             :class="run.id === highlightRunId ? 'bg-[#00f2ff]/5' : ''"
@@ -72,6 +76,15 @@
             <td class="px-6 py-3 font-mono text-xs">
               {{ run.published }} / {{ run.planned_total }}
               <span v-if="isRunActive(run.status)" class="ml-1 text-[#00dbe7]">({{ run.progress_percent }}%)</span>
+              <div
+                v-if="isRunActive(run.status)"
+                class="mt-1.5 h-1.5 w-full max-w-[140px] overflow-hidden rounded-full bg-white/10"
+              >
+                <div
+                  class="h-full rounded-full bg-[#00dbe7] transition-all duration-500"
+                  :style="{ width: `${run.progress_percent ?? 0}%` }"
+                ></div>
+              </div>
             </td>
             <td class="px-6 py-3">
               <span class="text-xs uppercase" :class="statusClass(run.status)">{{ statusLabel(run.status) }}</span>
@@ -91,7 +104,7 @@
               <span v-else class="text-[10px] text-[#849495]">—</span>
             </td>
           </tr>
-          <tr v-if="!runs.data?.length">
+          <tr v-if="!displayRuns.length">
             <td colspan="6" class="px-6 py-12 text-center text-[#849495]">
               No hay simulaciones registradas.
               <Link href="/control/companies" class="text-[#00dbe7] hover:underline">Iniciar una</Link>.
@@ -117,7 +130,7 @@
 <script setup>
 import ControlLayout from '@/Layouts/ControlLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps({
   runs: { type: Object, required: true },
@@ -131,6 +144,35 @@ const highlightRunId = computed(() => props.highlight_run_id);
 const filterForm = reactive({
   tenant_id: props.filters.tenant_id ?? '',
 });
+
+const liveRuns = ref([...(props.runs?.data ?? [])]);
+let pollTimer = null;
+
+function mergeRunsFromServer(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return;
+  }
+  const byId = Object.fromEntries(liveRuns.value.map((r) => [r.id, r]));
+  liveRuns.value = rows.map((row) => {
+    const local = byId[row.id];
+    if (!local || !isRunActive(local.status)) {
+      return { ...row };
+    }
+    const localProgress = Number(local.published ?? 0);
+    const serverProgress = Number(row.published ?? 0);
+    return serverProgress >= localProgress ? { ...row } : { ...row, ...local };
+  });
+}
+
+watch(
+  () => props.runs?.data,
+  (rows) => mergeRunsFromServer(rows),
+  { deep: true },
+);
+
+const displayRuns = computed(() => liveRuns.value);
+
+const hasActiveRuns = computed(() => liveRuns.value.some((run) => isRunActive(run.status)));
 
 function applyFilter() {
   router.get('/control/simulations', {
@@ -158,6 +200,79 @@ function statusClass(status) {
   if (status === 'failed') return 'text-red-400';
   return 'text-[#849495]';
 }
+
+function mergeRunFromStatus(payload) {
+  if (!payload?.run) return;
+  const updated = payload.run;
+  const idx = liveRuns.value.findIndex((r) => r.id === updated.id);
+  if (idx < 0) return;
+
+  liveRuns.value[idx] = {
+    ...liveRuns.value[idx],
+    status: updated.status,
+    published: updated.published ?? liveRuns.value[idx].published,
+    planned_total: updated.planned_total ?? liveRuns.value[idx].planned_total,
+    progress_percent: updated.progress_percent ?? liveRuns.value[idx].progress_percent,
+    finished_at: updated.finished_at ?? liveRuns.value[idx].finished_at,
+    error_message: updated.error_message ?? liveRuns.value[idx].error_message,
+    can_view_report: updated.can_view_report ?? liveRuns.value[idx].can_view_report,
+  };
+}
+
+async function fetchRunStatus(runId) {
+  const res = await fetch(`/control/simulations/${runId}/status`, {
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    credentials: 'same-origin',
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function pollActiveRuns() {
+  const active = liveRuns.value.filter((run) => isRunActive(run.status));
+  if (active.length === 0) {
+    stopPolling();
+    return;
+  }
+
+  await Promise.all(
+    active.map(async (run) => {
+      const data = await fetchRunStatus(run.id);
+      if (data) mergeRunFromStatus(data);
+    }),
+  );
+
+  if (!liveRuns.value.some((run) => isRunActive(run.status))) {
+    stopPolling();
+  }
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  if (!hasActiveRuns.value) return;
+  pollActiveRuns();
+  pollTimer = setInterval(pollActiveRuns, 2000);
+}
+
+onMounted(() => {
+  startPolling();
+});
+
+onUnmounted(() => {
+  stopPolling();
+});
+
+watch(hasActiveRuns, (active) => {
+  if (active) startPolling();
+  else stopPolling();
+});
 </script>
 
 <style scoped>

@@ -15,10 +15,10 @@ Panel SaaS: http://127.0.0.1:8000/control/companies
 
 ## Empresas (panel + silos)
 
-| Puerto | Slug | Operador en el silo |
-|--------|------|---------------------|
-| 8001 | acme-retail | `admin@local` |
-| 8002 | pruebas-retail | `prueba@prueba` |
+| Puerto | Slug | Operador en el silo | Contraseña |
+|--------|------|---------------------|------------|
+| 8001 | acme-retail | `admin@local` | `client-local-dev` |
+| 8002 | pruebas-retail | `prueba@prueba` | `client-local-dev` |
 | 8003 | retail-norte | `admin@retail-norte` |
 | 8004 | retail-sur | `admin@retail-sur` |
 

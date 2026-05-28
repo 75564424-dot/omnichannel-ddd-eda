@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use App\Control\Application\Services\TenantModuleCatalogService;
 use Database\Seeders\InstanceTenantSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +58,12 @@ final class BootstrapClientInstanceCommand extends Command
         }
 
         $this->info("Instance tenant: {$tenant->name} ({$tenant->id})");
+
+        $moduleCatalog = $this->laravel->make(TenantModuleCatalogService::class);
+        if ($moduleCatalog->canApplyToCurrentInstance($tenant)) {
+            $moduleCatalog->applyToCurrentInstance($tenant);
+            $this->info('Catálogo de módulos escrito en MODULES_CONFIG_PATH para esta instancia.');
+        }
 
         if (! $this->option('skip-admin')) {
             $this->seedAdminForTenant($tenant);

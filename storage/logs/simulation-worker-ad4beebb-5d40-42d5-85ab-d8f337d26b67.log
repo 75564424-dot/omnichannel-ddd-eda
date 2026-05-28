@@ -1,0 +1,4 @@
+[2026-05-28 23:11:37] Starting: C:\xampp\php\php.exe D:\omnichannel-ddd-eda\artisan platform:simulation:execute-run ad4beebb-5d40-42d5-85ab-d8f337d26b67 --env=client-pruebas-retail --no-ansi
+  APP_ENV=client-pruebas-retail PLATFORM_CONTROL_PLANE=false
+Using local handoff spec for run ad4beebb-5d40-42d5-85ab-d8f337d26b67.
+Tenant slug «pruebas-retail» no coincide con esta instancia «platform».

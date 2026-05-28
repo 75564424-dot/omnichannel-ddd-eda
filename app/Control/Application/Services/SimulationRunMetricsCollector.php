@@ -139,8 +139,10 @@ final class SimulationRunMetricsCollector
             'started_at'        => $run->started_at?->format('d/m/Y H:i:s'),
             'finished_at'       => $run->finished_at?->format('d/m/Y H:i:s'),
             'error_message'     => $run->error_message,
-            'can_view_report'   => $run->status === SimulationRunModel::STATUS_COMPLETED
-                && is_array($run->metrics) && $run->metrics !== [],
+            'can_view_report'   => in_array($run->status, [
+                SimulationRunModel::STATUS_COMPLETED,
+                SimulationRunModel::STATUS_FAILED,
+            ], true) && is_array($run->metrics) && $run->metrics !== [],
         ];
     }
 

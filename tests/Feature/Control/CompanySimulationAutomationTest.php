@@ -76,6 +76,47 @@ final class CompanySimulationAutomationTest extends TestCase
     }
 
     #[Test]
+    public function control_plane_lists_all_active_tenants_as_simulatable(): void
+    {
+        config([
+            'platform.client_slug'     => 'platform',
+            'platform.control_plane'   => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
+
+        TenantModel::query()->create([
+            'id'     => '11111111-1111-1111-1111-111111111111',
+            'name'   => 'Acme',
+            'slug'   => 'acme-retail',
+            'status' => 'active',
+            'settings' => [],
+        ]);
+
+        TenantModel::query()->create([
+            'id'     => '22222222-2222-2222-2222-222222222222',
+            'name'   => 'Pruebas',
+            'slug'   => 'pruebas-retail',
+            'status' => 'active',
+            'settings' => [],
+        ]);
+
+        User::query()->create([
+            'name'          => 'SaaS',
+            'email'         => 'saas@local',
+            'password'      => Hash::make('secret'),
+            'platform_role' => 'saas_admin',
+        ]);
+
+        $this->actingAs(User::query()->where('email', 'saas@local')->first())
+            ->get('/control/companies')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Control/Companies/Index')
+                ->where('tenants.0.can_simulate', true)
+                ->where('tenants.1.can_simulate', true));
+    }
+
+    #[Test]
     public function companies_index_includes_simulation_panel_props(): void
     {
         config([

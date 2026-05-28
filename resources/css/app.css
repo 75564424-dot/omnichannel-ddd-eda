@@ -49,3 +49,46 @@
     stroke-dasharray: 5;
     animation: flow-dash 1s linear infinite;
 }
+
+.middleware-flow-active .flow-connector-line {
+    background: linear-gradient(180deg, transparent, rgba(16, 185, 129, 0.55), transparent);
+    animation: connector-glow 1.4s ease-in-out infinite;
+}
+
+.flow-packet {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: rgb(16 185 129);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.75);
+    position: absolute;
+    left: 50%;
+    margin-left: -5px;
+}
+
+.flow-packet-in {
+    animation: flow-packet-in 1.15s ease-in-out infinite;
+}
+
+.flow-packet-out {
+    animation: flow-packet-out 1.15s ease-in-out infinite 0.35s;
+}
+
+@keyframes connector-glow {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+@keyframes flow-packet-in {
+    0% { transform: translateY(48px); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(-48px); opacity: 0; }
+}
+
+@keyframes flow-packet-out {
+    0% { transform: translateY(-48px); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(48px); opacity: 0; }
+}

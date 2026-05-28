@@ -414,6 +414,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue';
 import { parseSystemNode } from '@/lib/systemModules';
+import { dispatchNodesChanged } from '@/platform-node-events';
 
 export default {
   name: 'AppLayout',
@@ -549,11 +550,18 @@ export default {
 
     async function refreshModule(moduleKey) {
       rowRefreshing[moduleKey] = true;
+      panelToggleError.value = '';
       try {
         const { data } = await window.axios.post(`${nodePath(moduleKey)}/refresh`);
         applyNodesPayload(data);
+        dispatchNodesChanged(data);
       } catch (err) {
         console.error(err);
+        const status = err.response?.status;
+        panelToggleError.value = err.response?.data?.message
+          || (status === 419
+            ? 'Sesión expirada. Recargue la página e intente de nuevo.'
+            : 'No se pudo refrescar el módulo. Intente de nuevo.');
       } finally {
         rowRefreshing[moduleKey] = false;
       }
@@ -571,6 +579,7 @@ export default {
           middleware_events_enabled: enabled,
         });
         applyNodesPayload(data);
+        dispatchNodesChanged(data);
       } catch (err) {
         console.error(err);
         panelNodes.value = previous;

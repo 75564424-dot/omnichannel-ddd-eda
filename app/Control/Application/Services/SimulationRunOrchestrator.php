@@ -15,6 +15,8 @@ final class SimulationRunOrchestrator
 {
     public function __construct(
         private readonly TenantSimulationAutomationService $automation,
+        private readonly LocalFleetSimulationRunner $localFleetRunner,
+        private readonly SimulationRunFailureHandler $failureHandler,
     ) {}
 
     /**
@@ -32,8 +34,12 @@ final class SimulationRunOrchestrator
             throw new RuntimeException($reason);
         }
 
+        $this->failStaleRunsForTenant($tenant->id);
+
         $plannedTotal = $eventsPerMinute * $durationMinutes;
-        $fixtureSlug  = $this->automation->resolveFixtureSlug($tenant);
+        $fixtureSlug  = $this->localFleetRunner->shouldRunOnClientSilo($tenant)
+            ? 'tenant-catalog'
+            : $this->automation->resolveFixtureSlug($tenant);
 
         $run = SimulationRunModel::query()->create([
             'id'                  => Uuid::uuid4()->toString(),
@@ -47,7 +53,11 @@ final class SimulationRunOrchestrator
             'prepare_first'       => $prepareFirst,
         ]);
 
-        RunTenantSimulationJob::dispatch($run->id)->afterResponse();
+        if ($this->localFleetRunner->shouldRunOnClientSilo($tenant)) {
+            $this->localFleetRunner->dispatchToClientSilo($run->id);
+        } else {
+            RunTenantSimulationJob::dispatch($run->id)->afterResponse();
+        }
 
         return [
             'run_id' => $run->id,
@@ -67,6 +77,10 @@ final class SimulationRunOrchestrator
         }
 
         $tenant = $run->tenant;
+        if ($tenant !== null && $this->localFleetRunner->shouldRunOnClientSilo($tenant)
+            && $this->localFleetRunner->isClientSiloProcess() === false) {
+            return;
+        }
         if ($tenant === null) {
             $this->markFailed($run, 'Tenant no encontrado.');
 
@@ -91,11 +105,12 @@ final class SimulationRunOrchestrator
                 durationMinutes: $run->duration_minutes,
                 totalEvents: $run->planned_total,
                 skipPrepare: ! $run->prepare_first,
-                onProgress: function (int $current, int $total, array $eventIds) use ($run): void {
+                onProgress: function (int $current, int $total) use ($run): void {
                     SimulationRunModel::query()->where('id', $run->id)->update([
+                        'status'           => SimulationRunModel::STATUS_RUNNING,
                         'progress_current' => $current,
                         'published'        => $current,
-                        'event_ids'        => $eventIds,
+                        'started_at'       => $run->started_at ?? now(),
                     ]);
                 },
             );
@@ -134,30 +149,27 @@ final class SimulationRunOrchestrator
         ?array $baselineBefore = null,
         ?SimulationRunMetricsCollector $collector = null,
     ): void {
-        $metrics = null;
-        if ($baselineBefore !== null && $collector !== null) {
-            $metrics = [
-                'summary' => [
-                    'status'       => SimulationRunModel::STATUS_FAILED,
-                    'error'        => $message,
-                    'started_at'   => $run->started_at?->toDateTimeString(),
-                    'finished_at'  => now()->toDateTimeString(),
-                ],
-                'resources' => [
-                    'baseline_before' => $baselineBefore,
-                ],
-            ];
+        $context = [];
+        if ($baselineBefore !== null) {
+            $context['baseline_before'] = $baselineBefore;
         }
 
-        $run->update([
-            'status'        => SimulationRunModel::STATUS_FAILED,
-            'finished_at'   => now(),
-            'error_message' => Str::limit($message, 2000),
-            'metrics'       => $metrics,
-        ]);
+        $this->failureHandler->handle($run, $message, $context);
     }
 
     /** @param array<string, mixed> $result */
+    private function failStaleRunsForTenant(string $tenantId): void
+    {
+        SimulationRunModel::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', [SimulationRunModel::STATUS_PENDING, SimulationRunModel::STATUS_RUNNING])
+            ->update([
+                'status'        => SimulationRunModel::STATUS_FAILED,
+                'finished_at'   => now(),
+                'error_message' => 'Reemplazada por una nueva simulación (proceso anterior colgado).',
+            ]);
+    }
+
     private function syncTenantLastSimulation(TenantModel $tenant, SimulationRunModel $run, array $result): void
     {
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
