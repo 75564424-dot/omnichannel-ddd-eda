@@ -17,6 +17,7 @@ use App\Control\Application\Services\TenantAdminService;
 use App\Models\User;
 
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
 use App\Shared\Platform\Services\InstanceDeploymentService;
 
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,7 @@ final class ProvisioningController
 
         private readonly ControlCatalogService $catalog,
         private readonly InstanceDeploymentService $deployment,
+        private readonly LocalFleetInstanceProvisioner $localFleet,
     ) {}
 
 
@@ -174,21 +176,6 @@ final class ProvisioningController
 
 
 
-        $settings = is_array($tenant->settings) ? $tenant->settings : [];
-
-        $settings['primary_admin_email'] = $validated['admin_email'];
-        $settings['app_url'] = $this->deployment->presentationForTenant($tenant)['recommended_app_url'];
-        $settings['deployment'] = [
-            'mode'                 => 'instance_per_client',
-            'status'               => 'pending_dedicated_instance',
-            'required_client_slug' => $tenant->slug,
-            'provisioned_at'       => now()->toIso8601String(),
-        ];
-
-        $tenant->update(['settings' => $settings]);
-
-
-
         User::query()->create([
             'tenant_id'     => $tenant->id,
             'name'          => $validated['admin_name'],
@@ -197,12 +184,33 @@ final class ProvisioningController
             'platform_role' => 'platform_admin',
         ]);
 
+        $fleetResult = $this->localFleet->provision($tenant->fresh(), [
+            'name'     => $validated['admin_name'],
+            'email'    => $validated['admin_email'],
+            'password' => $validated['admin_password'],
+        ]);
 
+        if (! $fleetResult->provisioned) {
+            $settings = is_array($tenant->settings) ? $tenant->settings : [];
+            $settings['primary_admin_email'] = $validated['admin_email'];
+            $settings['app_url'] = $this->deployment->presentationForTenant($tenant)['recommended_app_url'];
+            $settings['deployment'] = [
+                'mode'                 => 'instance_per_client',
+                'status'               => 'pending_dedicated_instance',
+                'required_client_slug' => $tenant->slug,
+                'provisioned_at'       => now()->toIso8601String(),
+            ];
+            $tenant->update(['settings' => $settings]);
+        }
+
+        $message = $fleetResult->provisioned
+            ? 'Registro completado. Tenant e instancia aislada en '.$fleetResult->appUrl().' (login operador en esa URL).'
+            : 'Registro SaaS completado. Despliegue la instancia dedicada con PLATFORM_CLIENT_SLUG='.$tenant->slug.'.';
 
         return redirect()
             ->route('control.companies.show', $tenant)
-            ->with('message', 'Registro SaaS completado. Despliegue la instancia dedicada con PLATFORM_CLIENT_SLUG='.$tenant->slug.'.')
-            ->with('show_deployment_guide', true);
+            ->with('message', $message)
+            ->with('show_deployment_guide', ! $fleetResult->provisioned);
 
     }
 
@@ -232,10 +240,30 @@ final class ProvisioningController
 
             ['key' => 'api_keys', 'label' => 'API keys M2M', 'done' => (string) config('security.api_keys') !== '', 'detail' => 'PLATFORM_API_KEYS o artisan platform:issue-api-token'],
 
-            ['key' => 'infra', 'label' => 'Desplegar infraestructura', 'done' => env('DOCKER_APP_ROLE') !== null, 'detail' => env('DOCKER_APP_ROLE') ? 'Docker role: '.env('DOCKER_APP_ROLE') : 'Entorno local artisan'],
+            ['key' => 'infra', 'label' => 'Instancia aislada local', 'done' => $this->localFleetInfraDone(), 'detail' => $this->localFleetInfraDetail()],
 
         ];
 
+    }
+
+    private function localFleetInfraDone(): bool
+    {
+        if ($this->localFleet->isEnabled()) {
+            return $this->localFleet->allClientTenantsProvisioned();
+        }
+
+        return env('DOCKER_APP_ROLE') !== null;
+    }
+
+    private function localFleetInfraDetail(): string
+    {
+        if ($this->localFleet->isEnabled()) {
+            return $this->localFleet->allClientTenantsProvisioned()
+                ? 'Fleet local: todos los tenants con silo'
+                : 'Pendiente: php artisan platform:fleet:sync-local';
+        }
+
+        return env('DOCKER_APP_ROLE') ? 'Docker role: '.env('DOCKER_APP_ROLE') : 'Entorno local artisan';
     }
 
 }

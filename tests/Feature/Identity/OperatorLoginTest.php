@@ -140,6 +140,48 @@ final class OperatorLoginTest extends TestCase
     }
 
     #[Test]
+    public function saas_admin_cannot_login_on_client_silo(): void
+    {
+        config([
+            'platform.client_slug'     => 'acme-retail',
+            'platform.control_plane'   => false,
+            'platform.multi_tenant_portal_login' => false,
+        ]);
+
+        TenantModel::query()->create([
+            'id'     => '11111111-1111-1111-1111-111111111111',
+            'name'   => 'Acme',
+            'slug'   => 'acme-retail',
+            'status' => 'active',
+            'settings' => [],
+        ]);
+
+        User::query()->create([
+            'tenant_id'     => null,
+            'name'          => 'SaaS Admin',
+            'email'         => 'saas@local',
+            'password'      => Hash::make('password'),
+            'platform_role' => 'saas_admin',
+        ]);
+
+        $this->from('/login')->post('/login', [
+            'email'    => 'saas@local',
+            'password' => 'password',
+        ])->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    #[Test]
+    public function control_routes_return_not_found_on_client_silo(): void
+    {
+        config(['platform.control_plane' => false]);
+
+        $this->get('/control/companies')->assertNotFound();
+    }
+
+    #[Test]
     public function platform_operator_seeder_creates_admin_user(): void
     {
         config()->set('platform_auth.seed_admin_operator', true);

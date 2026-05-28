@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Health\ReadinessController;
 use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\EnsureAuthenticatedInstanceBinding;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Observability\Interfaces\Providers\ObservabilityServiceProvider;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,
+            EnsureAuthenticatedInstanceBinding::class,
         ]);
 
         $middleware->api(prepend: [

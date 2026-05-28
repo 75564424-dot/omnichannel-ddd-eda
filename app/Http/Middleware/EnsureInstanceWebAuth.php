@@ -28,7 +28,17 @@ final class EnsureInstanceWebAuth
 
         $role = PlatformRole::tryFromString((string) $user->getAttribute('platform_role'));
         if ($role !== null && $role->isSaasAdmin()) {
-            return redirect()->route('control.overview');
+            if (config('platform.control_plane', false)) {
+                return redirect()->route('control.overview');
+            }
+
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors(['email' => 'Use la URL del panel SaaS para iniciar sesión como administrador SaaS.']);
         }
 
         return $next($request);

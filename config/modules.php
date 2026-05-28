@@ -8,7 +8,13 @@ declare(strict_types=1);
  * Edición: config/modules/modules_config.json — la UI no modifica este archivo.
  */
 
-$path = __DIR__.'/modules/modules_config.json';
+$path = env('MODULES_CONFIG_PATH');
+
+if (! is_string($path) || trim($path) === '') {
+    $path = __DIR__.'/modules/modules_config.json';
+} elseif (! str_starts_with($path, DIRECTORY_SEPARATOR) && ! preg_match('#^[A-Za-z]:[/\\\\]#', $path)) {
+    $path = base_path($path);
+}
 
 $defaults = [
     'middleware' => [

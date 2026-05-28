@@ -28,7 +28,7 @@
         · Empresa: <span class="font-mono">{{ deployment.tenant_slug }}</span>
       </p>
 
-      <template v-if="!deployment.is_bound_to_instance">
+      <template v-if="!deployment.is_bound_to_instance && !deployment.local_instance">
         <p class="mt-3 text-xs text-[#849495]">
           Cada cliente comercial requiere su propio despliegue (BD + URL + <span class="font-mono">PLATFORM_CLIENT_SLUG</span>).
           El registro SaaS no sustituye el despliegue; los operadores inician sesión solo en la URL de su instancia.
@@ -44,6 +44,18 @@
           · Runbook: {{ deployment.runbook_path }}
         </p>
       </template>
+
+      <div v-else-if="deployment.local_instance" class="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
+        <p class="text-emerald-200">
+          Instancia aislada local — operadores inician sesión solo en:
+          <a :href="deployment.local_instance.app_url + '/login'" class="font-mono text-[#00f2ff] hover:underline" target="_blank" rel="noopener">
+            {{ deployment.local_instance.app_url }}
+          </a>
+        </p>
+        <p class="mt-2 font-mono text-[11px] text-[#849495]">
+          Puerto {{ deployment.local_instance.port }} · {{ deployment.local_instance.env_file }} · {{ deployment.local_instance.db_path }}
+        </p>
+      </div>
 
       <p v-else class="mt-2 text-xs text-emerald-300/90">
         Esta empresa está vinculada a la instancia actual. Los operadores pueden usar el portal en {{ deployment.recommended_app_url || $page.props.deployment_context?.app_url }}.

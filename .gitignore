@@ -9,6 +9,12 @@
 .env
 .env.backup
 .env.production
+.env.control-plane
+.env.client-*
+database/instances/*.sqlite
+database/instances/*.sqlite-journal
+database/instances/*.sqlite-wal
+database/instances/*.sqlite-shm
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -22,5 +28,6 @@ yarn-error.log
 /.vscode
 /.zed
 /config/eventbus_client_overlay.json
+/config/modules/instances/
 /playwright-report/
 /test-results/

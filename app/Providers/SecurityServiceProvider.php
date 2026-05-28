@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Http\Middleware\AuditControlPlaneMiddleware;
 use App\Http\Middleware\AuthenticatePlatformApi;
 use App\Http\Middleware\EnsureControlWebAuth;
+use App\Http\Middleware\EnsureControlPlaneHost;
 use App\Http\Middleware\EnsureInstancePortalAccess;
 use App\Http\Middleware\EnsureInstanceWebAuth;
 use App\Http\Middleware\EnsurePlatformWebAuth;
@@ -70,6 +71,7 @@ final class SecurityServiceProvider extends ServiceProvider
         return [
             'auth.platform'      => AuthenticatePlatformApi::class,
             'auth.platform.web'  => EnsurePlatformWebAuth::class,
+            'control.plane'      => EnsureControlPlaneHost::class,
             'control.web'        => EnsureControlWebAuth::class,
             'instance.web'       => EnsureInstanceWebAuth::class,
             'instance.portal'    => EnsureInstancePortalAccess::class,

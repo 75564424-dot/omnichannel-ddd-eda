@@ -32,6 +32,18 @@ final class AuthenticateOperatorUseCase
         $user = Auth::user();
         $role = PlatformRole::tryFromString((string) $user->getAttribute('platform_role'));
 
+        if ($role !== null && $role->isSaasAdmin()) {
+            if (! config('platform.control_plane', false)) {
+                Auth::logout();
+
+                return [
+                    'success' => false,
+                    'user'    => null,
+                    'error'   => 'El panel SaaS solo está disponible en la URL del control plane.',
+                ];
+            }
+        }
+
         if ($role !== null && $role->isInstanceOperator()) {
             $userTenantId = $user->getAttribute('tenant_id');
 

@@ -74,6 +74,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Local fleet (dev) — auto isolated instance per tenant on control plane
+    |--------------------------------------------------------------------------
+    */
+    'local_fleet' => [
+        'auto_provision'           => (bool) env('PLATFORM_LOCAL_FLEET_AUTO_PROVISION', false),
+        'registry_path'            => env('PLATFORM_LOCAL_FLEET_REGISTRY', 'deploy/local-instances/fleet-registry.json'),
+        'port_range_start'         => (int) env('PLATFORM_LOCAL_FLEET_PORT_START', 8001),
+        'default_admin_password'   => env('PLATFORM_LOCAL_FLEET_DEFAULT_ADMIN_PASSWORD', 'client-local-dev'),
+        'control_plane_slug'       => env('PLATFORM_LOCAL_FLEET_CONTROL_SLUG', 'platform'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Client simulation (prepare / run — see platform:simulation:prepare)
     |--------------------------------------------------------------------------
     */

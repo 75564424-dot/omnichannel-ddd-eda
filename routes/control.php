@@ -15,7 +15,7 @@ Route::redirect('/control', '/control/overview');
 Route::redirect('/control/tenants', '/control/companies');
 Route::redirect('/control/users', '/control/companies');
 
-Route::middleware(['auth.platform.web', 'control.web'])->prefix('control')->group(function (): void {
+Route::middleware(['control.plane', 'auth.platform.web', 'control.web'])->prefix('control')->group(function (): void {
     Route::get('/overview', [OverviewController::class, 'index'])->name('control.overview');
 
     Route::prefix('simulations')->name('control.simulations.')->group(function (): void {

@@ -8,6 +8,7 @@ use App\Control\Application\Services\TenantAdminService;
 use App\Control\Application\Services\TenantModuleCatalogService;
 use App\Control\Application\Services\TenantPresentationService;
 use App\Control\Application\Services\TenantSimulationAutomationService;
+use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
 use App\Shared\Platform\Services\InstanceDeploymentService;
 use App\Dashboard\Application\UseCases\GetSystemNodeStatusUseCase;
 use App\Models\User;
@@ -30,6 +31,7 @@ final class CompanyController
         private readonly GetSystemNodeStatusUseCase $nodeStatus,
         private readonly TenantSimulationAutomationService $simulationAutomation,
         private readonly InstanceDeploymentService $deployment,
+        private readonly LocalFleetInstanceProvisioner $localFleet,
     ) {}
 
     public function index(): Response
@@ -95,9 +97,15 @@ final class CompanyController
             'plan' => ['required', 'string', Rule::in($this->presentation->availablePlans())],
         ]);
 
-        $this->admin->create($validated['name'], $validated['slug'], $validated['plan']);
+        $tenant = $this->admin->create($validated['name'], $validated['slug'], $validated['plan']);
 
-        return redirect()->route('control.companies.index')->with('message', 'Empresa (tenant) creada.');
+        $fleetResult = $this->localFleet->provision($tenant);
+
+        $message = $fleetResult->provisioned
+            ? 'Empresa creada con instancia aislada en '.$fleetResult->appUrl()
+            : 'Empresa (tenant) creada.';
+
+        return redirect()->route('control.companies.index')->with('message', $message);
     }
 
     public function suspend(TenantModel $tenant): RedirectResponse
