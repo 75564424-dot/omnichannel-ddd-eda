@@ -9,6 +9,7 @@ use App\Control\Application\Services\SimulationMessages;
 use App\Control\Application\Services\SimulationProgressReporter;
 use App\Control\Application\Services\SimulationRunControlPlaneClient;
 use App\Control\Application\Services\SimulationRunHandoffStore;
+use App\Control\Application\Services\SimulationWorkerTenantBootstrap;
 use App\Control\Application\Services\TenantSimulationAutomationService;
 use App\Middleware\Application\Services\SimulationPulseService;
 use Illuminate\Console\Command;
@@ -28,6 +29,7 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
         SimulationPulseService $simulationPulse,
         SimulationRunHandoffStore $handoffStore,
         SimulationDiagnosticsReader $diagnosticsReader,
+        SimulationWorkerTenantBootstrap $tenantBootstrap,
     ): int {
         $runId = (string) $this->argument('runId');
 
@@ -57,6 +59,11 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
 
         $tenantSlug = (string) ($spec['tenant_slug'] ?? '');
         $instanceSlug = (string) config('platform.client_slug', '');
+        $tenantBootstrap->bindForTenantSlug($tenantSlug);
+
+        $dbPath = (string) config('database.connections.'.config('database.default').'.database', '');
+        $this->line("Worker silo DB: {$dbPath} (tenant «{$tenantSlug}»)");
+
         if ($tenantSlug === '') {
             return $this->failEarly($controlPlane, $handoffStore, $simulationPulse, $diagnosticsReader, $runId, 'Handoff sin tenant_slug.', $usedHandoff);
         }

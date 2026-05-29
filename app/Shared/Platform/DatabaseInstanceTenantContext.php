@@ -101,6 +101,11 @@ final class DatabaseInstanceTenantContext implements InstanceTenantContextInterf
         $this->refreshTenantCache();
     }
 
+    public function bindInstanceTenantId(string $tenantId): void
+    {
+        $this->resolvedTenantId = $tenantId;
+    }
+
     /** @return array<string, mixed> */
     public function logContext(): array
     {

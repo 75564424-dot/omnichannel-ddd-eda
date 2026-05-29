@@ -64,7 +64,9 @@ final class EloquentQueueEntryRepository implements QueueEntryRepositoryInterfac
 
     public function getRecent(int $limit = 50): array
     {
-        return QueueEntryModel::orderByDesc('published_at')
+        return QueueEntryModel::query()
+            ->orderByDesc('id')
+            ->orderByDesc('published_at')
             ->limit($limit)
             ->get()
             ->map(fn($m) => $this->toDomain($m))

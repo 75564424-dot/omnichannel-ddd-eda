@@ -80,21 +80,26 @@ final class SimulationWorkerLauncher
         $quotedArtisan = '"'.str_replace('"', '""', $basePath.DIRECTORY_SEPARATOR.'artisan').'"';
         $quotedLog = '"'.str_replace('"', '""', $workerLog).'"';
 
-        $cpUrl = $workerEnv['PLATFORM_CONTROL_PLANE_URL'] ?? '';
-        $internalToken = $workerEnv['PLATFORM_SIMULATION_INTERNAL_TOKEN'] ?? '';
-
-        $bat = implode("\r\n", [
+        $envLines = [
             '@echo off',
             'set APP_ENV='.$envId,
-            'set PLATFORM_CONTROL_PLANE=false',
-            'set PLATFORM_CLIENT_SLUG='.$clientSlug,
-            'set PLATFORM_CONTROL_PLANE_URL='.$cpUrl,
-            'set PLATFORM_SIMULATION_INTERNAL_TOKEN='.$internalToken,
-            'cd /d "'.str_replace('/', '\\', $basePath).'"',
+        ];
+
+        foreach ($workerEnv as $key => $value) {
+            if ($key === 'APP_ENV') {
+                continue;
+            }
+            $envLines[] = 'set '.$key.'='.$this->escapeBatEnvValue($value);
+        }
+
+        $envLines[] = 'cd /d "'.str_replace('/', '\\', $basePath).'"';
+
+        $bat = implode("\r\n", array_merge($envLines, [
             'echo [%DATE% %TIME%] Worker start >>'.$quotedLog.' 2>&1',
+            'echo DB_DATABASE=%DB_DATABASE% >>'.$quotedLog.' 2>&1',
             $quotedPhp.' '.$quotedArtisan.' platform:simulation:execute-run '.$runId
                 .' --env='.$envId.' --no-ansi >>'.$quotedLog.' 2>&1',
-        ])."\r\n";
+        ]))."\r\n";
 
         file_put_contents($batPath, $bat);
 
@@ -113,5 +118,18 @@ final class SimulationWorkerLauncher
     private function appendWorkerLog(string $path, string $chunk): void
     {
         @file_put_contents($path, $chunk, FILE_APPEND | LOCK_EX);
+    }
+
+    private function escapeBatEnvValue(string $value): string
+    {
+        if ($value === '') {
+            return '""';
+        }
+
+        if (preg_match('/[\s"&|<>^]/', $value) === 1) {
+            return '"'.str_replace('"', '""', $value).'"';
+        }
+
+        return $value;
     }
 }

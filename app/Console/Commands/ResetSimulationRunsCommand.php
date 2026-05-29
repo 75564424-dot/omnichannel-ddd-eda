@@ -26,7 +26,7 @@ final class ResetSimulationRunsCommand extends Command
         SimulationRunHandoffStore $handoffStore,
         SimulationStaleRunReplacer $staleRunReplacer,
     ): int {
-        if (! config('platform.control_plane', false)) {
+        if (! $this->isControlPlaneHost()) {
             $this->error('Run on control plane (--env=control-plane).');
 
             return self::FAILURE;
@@ -57,5 +57,11 @@ final class ResetSimulationRunsCommand extends Command
         $this->info("Historial de simulaciones eliminado: {$deleted} fila(s).");
 
         return self::SUCCESS;
+    }
+
+    private function isControlPlaneHost(): bool
+    {
+        return config('platform.control_plane', false)
+            || $this->laravel->environment('control-plane');
     }
 }

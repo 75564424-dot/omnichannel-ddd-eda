@@ -19,7 +19,7 @@ final class SimulationPulseService
     private const FILE_NAME = 'simulation-pulse.json';
 
     /** After this many seconds without a tick, the pulse is treated as inactive (avoids stuck UI loops). */
-    private const STALE_SECONDS = 90;
+    private const STALE_SECONDS = 25;
 
     public function tick(string $phase, ?string $eventType = null): void
     {

@@ -11,6 +11,8 @@ use App\Control\Application\Services\SimulationRunHandoffSync;
 use App\Control\Application\Services\SimulationStaleRunReplacer;
 use App\Control\Application\Services\SimulationTenantSettingsSync;
 use App\Control\Application\Services\SimulationWorkerEnvironmentFactory;
+use App\Control\Application\Services\SimulationWorkerTenantBootstrap;
+use App\Shared\Platform\LocalInstanceEnvironmentLoader;
 use App\Control\Application\Services\SimulationWorkerLauncher;
 use App\Middleware\Application\Services\SimulationPublishScope;
 use Illuminate\Support\ServiceProvider;
@@ -21,7 +23,9 @@ final class SimulationServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SimulationPublishScope::class);
         $this->app->singleton(SimulationWorkerLauncher::class);
+        $this->app->singleton(LocalInstanceEnvironmentLoader::class);
         $this->app->singleton(SimulationWorkerEnvironmentFactory::class);
+        $this->app->singleton(SimulationWorkerTenantBootstrap::class);
         $this->app->singleton(SimulationDiagnosticsReader::class);
         $this->app->singleton(SimulationTenantSettingsSync::class);
         $this->app->singleton(SimulationStaleRunReplacer::class);

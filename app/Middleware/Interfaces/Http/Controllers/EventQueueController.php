@@ -52,11 +52,13 @@ final class EventQueueController
         $limit   = max(1, min($limit, 200));
         $entries = $this->getEventQueue->execute($limit);
 
-        return response()->json([
-            'success' => true,
-            'data'    => array_map(fn ($e) => $e->toArray(), $entries),
-            'count'   => count($entries),
-        ]);
+        return response()
+            ->json([
+                'success' => true,
+                'data'    => array_map(fn ($e) => $e->toArray(), $entries),
+                'count'   => count($entries),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**

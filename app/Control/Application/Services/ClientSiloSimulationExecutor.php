@@ -15,8 +15,6 @@ use RuntimeException;
  */
 final class ClientSiloSimulationExecutor
 {
-    private const DRAIN_CHUNK_SIZE = 5;
-
     public function __construct(
         private readonly ClientSimulationService $simulation,
         private readonly SimulationPulseService $simulationPulse,
@@ -67,6 +65,9 @@ final class ClientSiloSimulationExecutor
                     if ($onProgress !== null) {
                         $onProgress($current, $total);
                     }
+                    // Process each event right after publish so the client queue/topology update live.
+                    $this->simulationDrainer->drain([$eventId]);
+                    $this->simulationPulse->tick('simulating', $eventType);
                 },
             );
 
@@ -79,8 +80,6 @@ final class ClientSiloSimulationExecutor
                 ];
             }
 
-            $this->drainPublishedEvents($result['event_ids']);
-
             return [
                 'published'         => $result['published'],
                 'queue_matches'     => $this->simulation->countQueueMatchesForEventIds($result['event_ids']),
@@ -89,23 +88,6 @@ final class ClientSiloSimulationExecutor
             ];
         } finally {
             $this->simulationScope->endDeferring();
-        }
-    }
-
-    /**
-     * @param list<string> $eventIds
-     */
-    private function drainPublishedEvents(array $eventIds): void
-    {
-        if ($eventIds === []) {
-            return;
-        }
-
-        $this->simulationPulse->tick('processing');
-
-        foreach (array_chunk($eventIds, self::DRAIN_CHUNK_SIZE) as $chunk) {
-            $this->simulationDrainer->drain($chunk);
-            $this->simulationPulse->tick('processing');
         }
     }
 }

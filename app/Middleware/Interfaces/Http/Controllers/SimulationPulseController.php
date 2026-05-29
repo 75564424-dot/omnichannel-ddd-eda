@@ -15,6 +15,8 @@ final class SimulationPulseController
 
     public function index(): JsonResponse
     {
-        return response()->json(['data' => $this->pulse->snapshot()]);
+        return response()
+            ->json(['data' => $this->pulse->snapshot()])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 }

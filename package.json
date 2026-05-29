@@ -14,6 +14,7 @@
     "serve": "npm run clear-hot && php artisan serve --host=127.0.0.1 --port=8000",
     "instances:bootstrap": "node scripts/local-instances/bootstrap.mjs",
     "instances:serve": "node scripts/local-instances/serve.mjs",
+    "instances:reset-operational": "node scripts/local-instances/reset-operational.mjs",
     "instances:sync": "php artisan platform:fleet:sync-local --env=control-plane",
     "instances:fleet-bootstrap": "php artisan platform:fleet:bootstrap-control-plane --env=control-plane --provision",
     "instances:verify": "node scripts/local-instances/verify-isolation.mjs",

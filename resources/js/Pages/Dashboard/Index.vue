@@ -296,7 +296,7 @@ export default {
     const middlewareFlowActive = computed(() => simulationPulse.value.active === true);
     let refreshTimer = null;
     const POLL_IDLE_MS = 30000;
-    const POLL_ACTIVE_MS = 5000;
+    const POLL_ACTIVE_MS = 2000;
 
     watch(() => props.feed, (v) => { liveFeed.value = [...(v ?? [])]; }, { deep: true });
     watch(() => props.nodes, (v) => { liveNodes.value = v ?? {}; }, { deep: true });
@@ -533,6 +533,15 @@ export default {
     }
 
     watch(selectedMetricId, () => { fetchMetricSeries(); });
+
+    watch(
+      () => simulationPulse.value?.sequence,
+      (seq, prev) => {
+        if (seq != null && seq !== prev && middlewareFlowActive.value) {
+          refreshData();
+        }
+      },
+    );
 
     async function fetchSimulationPulse() {
       try {
