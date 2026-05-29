@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Control\Application\Services;
 
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
 use Illuminate\Support\Facades\Schema;

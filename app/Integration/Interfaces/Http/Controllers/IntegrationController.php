@@ -6,10 +6,8 @@ namespace App\Integration\Interfaces\Http\Controllers;
 
 use App\Integration\Application\UseCases\CreateIntegrationUseCase;
 use App\Integration\Application\UseCases\DeleteIntegrationUseCase;
-use App\Integration\Application\UseCases\DispatchOutboundConnectorUseCase;
 use App\Integration\Application\UseCases\GetIntegrationUseCase;
 use App\Integration\Application\UseCases\ListIntegrationsUseCase;
-use App\Integration\Application\UseCases\StoreIntegrationCredentialUseCase;
 use App\Integration\Application\UseCases\UpdateIntegrationUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,8 +22,6 @@ final class IntegrationController
         private readonly CreateIntegrationUseCase $createIntegration,
         private readonly UpdateIntegrationUseCase $updateIntegration,
         private readonly DeleteIntegrationUseCase $deleteIntegration,
-        private readonly StoreIntegrationCredentialUseCase $storeCredential,
-        private readonly DispatchOutboundConnectorUseCase $dispatchOutbound,
     ) {}
 
     public function index(): JsonResponse
@@ -92,46 +88,5 @@ final class IntegrationController
         $this->deleteIntegration->execute($id);
 
         return response()->json(['success' => true, 'message' => 'Integration deleted.']);
-    }
-
-    public function storeCredential(Request $request, string $id): JsonResponse
-    {
-        Gate::authorize('platform.manage-integrations');
-
-        $validated = $request->validate([
-            'credential_type' => 'required|string|max:30',
-            'value'           => 'required|string',
-        ]);
-
-        $credentialId = $this->storeCredential->execute(
-            $id,
-            $validated['credential_type'],
-            $validated['value'],
-        );
-
-        return response()->json([
-            'success'       => true,
-            'credential_id' => $credentialId,
-            'message'       => 'Credential stored (encrypted).',
-        ], 201);
-    }
-
-    public function dispatchOutbound(Request $request, string $id, string $connectorId): JsonResponse
-    {
-        Gate::authorize('platform.manage-integrations');
-
-        /** @var array<string, mixed> $payload */
-        $payload = $request->validate(['payload' => 'required|array'])['payload'];
-
-        try {
-            $result = $this->dispatchOutbound->execute($id, $connectorId, $payload);
-        } catch (RuntimeException $e) {
-            $code = $e->getCode();
-            $status = is_int($code) && $code >= 400 ? $code : 422;
-
-            return response()->json(['success' => false, 'error' => $e->getMessage()], $status);
-        }
-
-        return response()->json(['success' => true, 'data' => $result]);
     }
 }

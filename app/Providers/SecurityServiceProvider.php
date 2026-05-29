@@ -8,20 +8,18 @@ use App\Http\Middleware\AuditControlPlaneMiddleware;
 use App\Http\Middleware\AuthenticatePlatformApi;
 use App\Http\Middleware\EnsureControlWebAuth;
 use App\Http\Middleware\EnsureControlPlaneHost;
-use App\Http\Middleware\EnsureSimulationInternalRequest;
 use App\Http\Middleware\EnsureInstancePortalAccess;
 use App\Http\Middleware\EnsureInstanceWebAuth;
 use App\Http\Middleware\EnsurePlatformWebAuth;
 use App\Http\Middleware\EnsurePlatformRole;
+use App\Http\Middleware\EnsureSimulationInternalRequest;
 use App\Http\Middleware\EnforcePlatformAbility;
 use App\Http\Middleware\SecurityHeadersMiddleware;
+use App\Providers\Registrars\PlatformRateLimitConfigurator;
 use App\Shared\Security\Contracts\AuditLogWriterInterface;
 use App\Shared\Security\Contracts\PlatformApiAuthenticatorInterface;
 use App\Shared\Security\Services\AuditLogWriter;
 use App\Shared\Security\Services\PlatformApiAuthenticator;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 final class SecurityServiceProvider extends ServiceProvider
@@ -34,34 +32,7 @@ final class SecurityServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->configureRateLimiting();
-    }
-
-    private function configureRateLimiting(): void
-    {
-        RateLimiter::for('platform-publish', function (Request $request) {
-            $key = AuthenticatePlatformApi::principal($request)?->actorId ?? $request->ip();
-
-            return Limit::perMinute((int) config('security.rate_limits.publish', 100))->by((string) $key);
-        });
-
-        RateLimiter::for('platform-sync', function (Request $request) {
-            $key = AuthenticatePlatformApi::principal($request)?->actorId ?? $request->ip();
-
-            return Limit::perMinute((int) config('security.rate_limits.sync_config', 10))->by((string) $key);
-        });
-
-        RateLimiter::for('platform-stream', function (Request $request) {
-            $key = AuthenticatePlatformApi::principal($request)?->actorId ?? $request->ip();
-
-            return Limit::perMinute((int) config('security.rate_limits.stream', 60))->by((string) $key);
-        });
-
-        RateLimiter::for('platform-api', function (Request $request) {
-            $key = AuthenticatePlatformApi::principal($request)?->actorId ?? $request->ip();
-
-            return Limit::perMinute((int) config('security.rate_limits.default_api', 120))->by((string) $key);
-        });
+        PlatformRateLimitConfigurator::configure();
     }
 
     /**
@@ -70,17 +41,17 @@ final class SecurityServiceProvider extends ServiceProvider
     public static function middlewareAliases(): array
     {
         return [
-            'auth.platform'      => AuthenticatePlatformApi::class,
-            'auth.platform.web'  => EnsurePlatformWebAuth::class,
-            'control.plane'      => EnsureControlPlaneHost::class,
+            'auth.platform' => AuthenticatePlatformApi::class,
+            'auth.platform.web' => EnsurePlatformWebAuth::class,
+            'control.plane' => EnsureControlPlaneHost::class,
             'simulation.internal' => EnsureSimulationInternalRequest::class,
-            'control.web'        => EnsureControlWebAuth::class,
-            'instance.web'       => EnsureInstanceWebAuth::class,
-            'instance.portal'    => EnsureInstancePortalAccess::class,
-            'platform.role'      => EnsurePlatformRole::class,
-            'platform.ability'   => EnforcePlatformAbility::class,
-            'platform.audit'     => AuditControlPlaneMiddleware::class,
-            'security.headers'   => SecurityHeadersMiddleware::class,
+            'control.web' => EnsureControlWebAuth::class,
+            'instance.web' => EnsureInstanceWebAuth::class,
+            'instance.portal' => EnsureInstancePortalAccess::class,
+            'platform.role' => EnsurePlatformRole::class,
+            'platform.ability' => EnforcePlatformAbility::class,
+            'platform.audit' => AuditControlPlaneMiddleware::class,
+            'security.headers' => SecurityHeadersMiddleware::class,
         ];
     }
 }

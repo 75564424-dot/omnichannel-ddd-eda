@@ -44,7 +44,7 @@ final class ConfigModulesCatalogPresentationTest extends TestCase
         ]);
         config()->set('modules.service_contact_message', 'Custom vendor message.');
 
-        $provider = new ConfigModulesCatalogDataProvider();
+        $provider = $this->app->make(ConfigModulesCatalogDataProvider::class);
         $out = $provider->getPresentationCatalog();
 
         $this->assertSame('middleware', $out['middleware']['id']);
@@ -73,7 +73,7 @@ final class ConfigModulesCatalogPresentationTest extends TestCase
         ]);
         config()->set('modules.service_contact_message', '');
 
-        $out = (new ConfigModulesCatalogDataProvider())->getPresentationCatalog();
+        $out = $this->app->make(ConfigModulesCatalogDataProvider::class)->getPresentationCatalog();
 
         $this->assertStringContainsString('proveedor del servicio', $out['service_contact_message']);
     }

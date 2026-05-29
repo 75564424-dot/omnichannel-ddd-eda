@@ -6,6 +6,7 @@ namespace Tests\Feature\Control;
 
 use App\Control\Infrastructure\Jobs\RunTenantSimulationJob;
 use App\Control\Infrastructure\Models\SimulationRunModel;
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,9 +22,12 @@ final class CompanySimulationAutomationTest extends TestCase
     public function saas_admin_can_run_simulation_from_companies_index(): void
     {
         config([
+            'platform.control_plane' => true,
             'platform.client_slug' => 'acme-retail',
             'platform_auth.web_auth_enabled' => true,
         ]);
+
+        $this->withoutMiddleware(VerifyCsrfToken::class);
 
         $tenant = TenantModel::query()->create([
             'id'     => '11111111-1111-1111-1111-111111111111',
@@ -58,7 +62,7 @@ final class CompanySimulationAutomationTest extends TestCase
                 'total_events'      => 2,
                 'prepare_first'     => true,
             ])
-            ->assertRedirect(route('control.companies.index'))
+            ->assertRedirect(route('control.simulations.index', ['run' => session('active_simulation_run_id')]))
             ->assertSessionHas('message')
             ->assertSessionHas('active_simulation_run_id');
 
@@ -120,6 +124,7 @@ final class CompanySimulationAutomationTest extends TestCase
     public function companies_index_includes_simulation_panel_props(): void
     {
         config([
+            'platform.control_plane' => true,
             'platform.client_slug' => 'acme-retail',
             'platform_auth.web_auth_enabled' => true,
         ]);

@@ -19,6 +19,7 @@ use App\Integration\Application\UseCases\ReceiveWebhookUseCase;
 use App\Integration\Application\UseCases\StoreIntegrationCredentialUseCase;
 use App\Integration\Application\UseCases\UpdateChannelUseCase;
 use App\Integration\Application\UseCases\UpdateIntegrationUseCase;
+use App\Integration\Domain\Contracts\ExternalEventPublisherInterface;
 use App\Integration\Domain\Contracts\OutboundConnectorInterface;
 use App\Integration\Domain\Repositories\AdapterRepositoryInterface;
 use App\Integration\Domain\Repositories\ChannelRepositoryInterface;
@@ -31,6 +32,7 @@ use App\Integration\Infrastructure\Adapters\AdapterRegistry;
 use App\Integration\Infrastructure\Adapters\FieldMapAdapter;
 use App\Integration\Infrastructure\Adapters\JsonValidateAdapter;
 use App\Integration\Infrastructure\Connectors\HttpOutboundConnector;
+use App\Integration\Infrastructure\Middleware\BusExternalEventPublisher;
 use App\Integration\Infrastructure\Persistence\EloquentAdapterRepository;
 use App\Integration\Infrastructure\Persistence\EloquentChannelRepository;
 use App\Integration\Infrastructure\Persistence\EloquentConnectorRepository;
@@ -51,6 +53,7 @@ final class IntegrationServiceProvider extends ServiceProvider
         $this->app->bind(AdapterRepositoryInterface::class, EloquentAdapterRepository::class);
         $this->app->bind(ConnectorRepositoryInterface::class, EloquentConnectorRepository::class);
         $this->app->bind(OutboundConnectorInterface::class, HttpOutboundConnector::class);
+        $this->app->bind(ExternalEventPublisherInterface::class, BusExternalEventPublisher::class);
 
         $this->app->singleton(WebhookSignatureVerifier::class);
         $this->app->singleton(IntegrationCredentialCipher::class);

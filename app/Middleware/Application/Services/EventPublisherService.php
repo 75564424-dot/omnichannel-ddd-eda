@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Middleware\Application\Services;
 
 use App\Middleware\Application\DTOs\PublishResult;
+use App\Middleware\Application\Services\Publish\EventPublishIdempotencyGuard;
+use App\Middleware\Application\Services\Publish\PublishEnvelopeSchemaResolver;
+use App\Middleware\Application\Services\Publish\PublishEnvelopeValidator;
 use App\Middleware\Domain\Entities\QueueEntry;
 use App\Middleware\Domain\Entities\StoredEvent;
 use App\Middleware\Domain\Repositories\EventStoreRepositoryInterface;
@@ -28,7 +31,9 @@ final class EventPublisherService implements EventPublisherInterface
         private readonly EventStoreRepositoryInterface $eventStoreRepository,
         private readonly SubscriptionRegistryService $subscriptionRegistry,
         private readonly PublishPayloadSchemaValidator $schemaValidator,
-        private readonly EventSchemaRegistry $schemaRegistry,
+        private readonly PublishEnvelopeValidator $envelopeValidator,
+        private readonly PublishEnvelopeSchemaResolver $schemaResolver,
+        private readonly EventPublishIdempotencyGuard $idempotencyGuard,
         private readonly EventLogProjector $eventLogProjector,
         private readonly EventProcessingService $eventProcessing,
         private readonly PlatformStructuredLogger $logger,
@@ -44,8 +49,8 @@ final class EventPublisherService implements EventPublisherInterface
     public function publish(array $envelope): PublishResult
     {
         $started = microtime(true);
-        $this->validateStructure($envelope);
-        $envelope = $this->applySchemaDefaults($envelope);
+        $this->envelopeValidator->validateStructure($envelope);
+        $envelope = $this->schemaResolver->applyDefaults($envelope);
 
         $eventType = (string) $envelope['event_type'];
         $payload   = $envelope['payload'];
@@ -53,7 +58,7 @@ final class EventPublisherService implements EventPublisherInterface
         $eventId = (string) $envelope['event_id'];
         $origin  = (string) ($envelope['origin'] ?? 'External');
 
-        if ($this->isAlreadyPublished($eventId)) {
+        if ($this->idempotencyGuard->isAlreadyPublished($eventId)) {
             $existing = $this->queueEntryRepository->findByEventId($eventId);
 
             return new PublishResult(
@@ -112,48 +117,5 @@ final class EventPublisherService implements EventPublisherInterface
         ]);
 
         return new PublishResult(entryId: $entryId, idempotent: false);
-    }
-
-    private function isAlreadyPublished(string $eventId): bool
-    {
-        return $this->eventStoreRepository->existsByEventId($eventId)
-            || $this->queueEntryRepository->existsByEventId($eventId);
-    }
-
-    /**
-     * @param array<string, mixed> $envelope
-     * @return array<string, mixed>
-     */
-    private function applySchemaDefaults(array $envelope): array
-    {
-        $eventType = (string) $envelope['event_type'];
-        $resolved  = $this->schemaRegistry->resolve($eventType);
-
-        if ($resolved !== null) {
-            $envelope['event_version'] ??= $resolved['event_version'];
-            if ($resolved['schema_version'] !== null) {
-                $envelope['schema_version'] ??= $resolved['schema_version'];
-            }
-        }
-
-        $envelope['event_version'] ??= 1;
-
-        return $envelope;
-    }
-
-    /**
-     * @param array<string, mixed> $envelope
-     */
-    private function validateStructure(array $envelope): void
-    {
-        foreach (['event_id', 'event_type', 'payload', 'occurred_at'] as $key) {
-            if (empty($envelope[$key])) {
-                throw new InvalidArgumentException("EventBus validation failed: missing or empty '{$key}'.");
-            }
-        }
-
-        if (! is_array($envelope['payload'])) {
-            throw new InvalidArgumentException("EventBus validation failed: 'payload' must be an array.");
-        }
     }
 }

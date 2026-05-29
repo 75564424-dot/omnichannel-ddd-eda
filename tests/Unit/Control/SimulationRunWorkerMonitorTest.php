@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Control;
 
-use App\Control\Application\Services\SimulationRunWorkerMonitor;
+use App\Simulation\Application\Services\Worker\SimulationRunWorkerMonitor;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,3 +57,4 @@ final class SimulationRunWorkerMonitorTest extends TestCase
         $this->assertGreaterThanOrEqual(10, $monitor->maxWallClockMinutes($large));
     }
 }
+

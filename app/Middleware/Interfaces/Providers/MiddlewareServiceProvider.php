@@ -110,6 +110,9 @@ class MiddlewareServiceProvider extends ServiceProvider
         $this->app->singleton(EventLogService::class);
         $this->app->singleton(WorkflowEngine::class);
         $this->app->singleton(EventProcessingService::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventProcessingAttemptExecutor::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventProcessingDispatchPlanner::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventDeadLetterFinalizer::class);
 
         $this->app->bind(
             BusMetricsRepositoryInterface::class,

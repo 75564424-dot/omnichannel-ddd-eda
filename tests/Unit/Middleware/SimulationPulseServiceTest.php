@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Middleware;
 
-use App\Middleware\Application\Services\SimulationPulseService;
+use App\Simulation\Application\Services\Runtime\SimulationPulseService;
 use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

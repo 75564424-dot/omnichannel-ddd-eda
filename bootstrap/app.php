@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Control\SimulationRunInternalController;
+use App\Simulation\Interfaces\Http\Controllers\SimulationRunInternalController;
 use App\Http\Controllers\Health\ReadinessController;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureAuthenticatedInstanceBinding;

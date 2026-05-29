@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Control\Interfaces\Http\Controllers\Web\SupportNotificationsWebController;
+use App\Control\Interfaces\Http\Controllers\Web\SupportReportWebController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Web\ClientDashboardMetricsWebController;
-use App\Http\Controllers\Web\ClientDashboardModulesWebController;
-use App\Http\Controllers\Web\ClientDashboardNodesWebController;
-use App\Http\Controllers\Web\DashboardWebController;
-use App\Http\Controllers\Web\MiddlewareWebController;
-use App\Http\Controllers\Web\SupportNotificationsWebController;
-use App\Http\Controllers\Web\SupportReportWebController;
+use App\Dashboard\Interfaces\Http\Controllers\Web\ClientDashboardMetricsWebController;
+use App\Dashboard\Interfaces\Http\Controllers\Web\ClientDashboardModulesWebController;
+use App\Dashboard\Interfaces\Http\Controllers\Web\ClientDashboardNodesWebController;
+use App\Dashboard\Interfaces\Http\Controllers\Web\DashboardWebController;
+use App\Middleware\Interfaces\Http\Controllers\Web\MiddlewareWebController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])->name('login');

@@ -1,11 +1,28 @@
 {
-    "service_contact_message": "Catálogo de Mi empresa (SaaS \/ control plane) — gestionado desde control SaaS.",
+    "service_contact_message": "Catálogo de Acme Retail Middleware",
     "middleware": {
         "id": "middleware",
-        "name": "Middleware bus",
-        "description": "Catálogo para Mi empresa (SaaS \/ control plane)",
+        "name": "Bus",
+        "description": "",
         "role": "routing"
     },
-    "producers": [],
-    "subscribers": []
+    "producers": [
+        {
+            "id": "acme_pos",
+            "name": "POS",
+            "event_types_emitted": [
+                "AcmePOS.Sale.Completed"
+            ],
+            "channels": []
+        }
+    ],
+    "subscribers": [
+        {
+            "id": "acme_reporting",
+            "name": "Reporting",
+            "event_types_consumed": [
+                "AcmePOS.Sale.Completed"
+            ]
+        }
+    ]
 }

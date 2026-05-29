@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Dashboard\Interfaces\Providers;
 
 use App\Dashboard\Application\Contracts\ModulesCatalogDataProviderInterface;
+use App\Dashboard\Application\Services\DynamicMetricSeriesBuilder;
 use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
 use App\Dashboard\Application\UseCases\GetConfiguredDailySeriesUseCase;
 use App\Dashboard\Application\UseCases\GetDashboardMetricCatalogUseCase;
@@ -81,9 +82,8 @@ final class DashboardServiceProvider extends ServiceProvider
         $this->app->bind(
             GetDynamicMetricSeriesUseCase::class,
             fn ($app) => new GetDynamicMetricSeriesUseCase(
-                $app->make(EventFeedRepositoryInterface::class),
-                $app->make(BusQueueAnalyticsRepositoryInterface::class),
                 $app->make(ClientDashboardMetricsCatalogService::class),
+                $app->make(DynamicMetricSeriesBuilder::class),
             ),
         );
 

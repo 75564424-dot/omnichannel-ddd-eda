@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Control;
 
 use App\Control\Application\Services\ClientDashboardModulesService;
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Dashboard\Infrastructure\Modules\ConfigModulesCatalogDataProvider;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
@@ -46,7 +46,7 @@ final class ClientDashboardModulesServiceTest extends TestCase
         $service = new ClientDashboardModulesService(
             app(InstanceTenantContextInterface::class),
             app(TenantModuleCatalogService::class),
-            new ConfigModulesCatalogDataProvider(),
+            app(ConfigModulesCatalogDataProvider::class),
         );
 
         $catalog = $service->presentationCatalog();
@@ -80,7 +80,7 @@ final class ClientDashboardModulesServiceTest extends TestCase
         $service = new ClientDashboardModulesService(
             app(InstanceTenantContextInterface::class),
             app(TenantModuleCatalogService::class),
-            new ConfigModulesCatalogDataProvider(),
+            app(ConfigModulesCatalogDataProvider::class),
         );
 
         $service->updateVisibleModules(['acme_pos'], []);
@@ -90,3 +90,4 @@ final class ClientDashboardModulesServiceTest extends TestCase
         $this->assertSame(['acme_pos'], $visible['producers'] ?? []);
     }
 }
+

@@ -6,7 +6,7 @@ namespace Tests\Unit\Middleware;
 
 use App\Middleware\Application\Services\EventProcessingService;
 use App\Middleware\Application\Services\EventPublisherService;
-use App\Middleware\Application\Services\SimulationPublishScope;
+use App\Simulation\Application\Services\Runtime\SimulationPublishScope;
 use App\Middleware\Domain\Repositories\QueueEntryRepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;

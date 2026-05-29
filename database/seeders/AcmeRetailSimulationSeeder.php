@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -97,3 +97,4 @@ final class AcmeRetailSimulationSeeder extends Seeder
         return $producers !== [] || $subscribers !== [];
     }
 }
+

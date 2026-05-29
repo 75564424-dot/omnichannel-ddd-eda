@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Control\CompanyController;
-use App\Http\Controllers\Control\SimulationRunController;
-use App\Http\Controllers\Control\IncidentsController;
-use App\Http\Controllers\Control\InfrastructureController;
-use App\Http\Controllers\Control\MiddlewareGlobalController;
-use App\Http\Controllers\Control\OverviewController;
-use App\Http\Controllers\Control\ProvisioningController;
+use App\Control\Interfaces\Http\Controllers\CompanyController;
+use App\Simulation\Interfaces\Http\Controllers\SimulationRunController;
+use App\Control\Interfaces\Http\Controllers\IncidentsController;
+use App\Control\Interfaces\Http\Controllers\InfrastructureController;
+use App\Control\Interfaces\Http\Controllers\MiddlewareGlobalController;
+use App\Control\Interfaces\Http\Controllers\OverviewController;
+use App\Control\Interfaces\Http\Controllers\ProvisioningController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/control', '/control/overview');

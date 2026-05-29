@@ -4,16 +4,10 @@ declare(strict_types=1);
 
 namespace App\Middleware\Application\Services;
 
-use App\Middleware\Domain\Entities\DeadLetterEntry;
-use App\Middleware\Domain\Repositories\DeadLetterRepositoryInterface;
-use App\Middleware\Domain\Repositories\OutboxRepositoryInterface;
+use App\Middleware\Application\Services\Processing\EventDeadLetterFinalizer;
+use App\Middleware\Application\Services\Processing\EventProcessingAttemptExecutor;
+use App\Middleware\Application\Services\Processing\EventProcessingDispatchPlanner;
 use App\Middleware\Domain\Repositories\QueueEntryRepositoryInterface;
-use App\Middleware\Domain\Repositories\RetryAttemptRepositoryInterface;
-use App\Middleware\Infrastructure\Jobs\ProcessEventJob;
-use App\Middleware\Infrastructure\Jobs\RelayOutboxJob;
-use App\Middleware\Infrastructure\Resilience\ConnectorCircuitBreaker;
-use App\Shared\Contracts\EventBus\EventBusPort;
-use App\Shared\Logging\PlatformStructuredLogger;
 use Throwable;
 
 /**
@@ -23,14 +17,9 @@ final class EventProcessingService
 {
     public function __construct(
         private readonly QueueEntryRepositoryInterface $queueEntries,
-        private readonly RetryAttemptRepositoryInterface $retries,
-        private readonly DeadLetterRepositoryInterface $deadLetters,
-        private readonly ConnectorCircuitBreaker $circuitBreaker,
-        private readonly EventBusPort $eventBus,
-        private readonly OutboxRepositoryInterface $outbox,
-        private readonly WorkflowEngine $workflowEngine,
-        private readonly EventLogService $eventLogs,
-        private readonly PlatformStructuredLogger $logger,
+        private readonly EventProcessingDispatchPlanner $dispatchPlanner,
+        private readonly EventProcessingAttemptExecutor $attemptExecutor,
+        private readonly EventDeadLetterFinalizer $deadLetterFinalizer,
     ) {}
 
     public function dispatchAfterPublish(
@@ -39,43 +28,23 @@ final class EventProcessingService
         array $payload,
         string $origin,
     ): void {
-        if ($this->shouldDeferProcessing()) {
-            return;
-        }
-
-        if ($this->isOutboxEnabled()) {
-            $this->outbox->enqueue($eventId, $eventType, $origin, $payload);
-            RelayOutboxJob::dispatch()
-                ->onQueue((string) config('eventbus.queues.middleware', 'middleware'));
-
-            return;
-        }
-
-        if ($this->isAsyncProcessing()) {
-            ProcessEventJob::dispatch($eventId, $eventType, $payload, $origin)
-                ->onQueue((string) config('eventbus.queues.middleware', 'middleware'));
-
-            return;
-        }
-
-        $this->executeAttempt($eventId, $eventType, $payload, $origin, 1);
+        $this->dispatchPlanner->dispatchAfterPublish(
+            $eventId,
+            $eventType,
+            $payload,
+            $origin,
+            $this->attemptExecutor,
+        );
     }
 
-    /**
-     * Processes a queued event after simulation publish (scope deferral ended).
-     */
     public function processQueuedEvent(string $eventId): void
     {
         $entry = $this->queueEntries->findByEventId($eventId);
-        if ($entry === null) {
+        if ($entry === null || $entry->status()->isProcessed()) {
             return;
         }
 
-        if ($entry->status()->isProcessed()) {
-            return;
-        }
-
-        $this->executeAttempt(
+        $this->attemptExecutor->executeAttempt(
             $eventId,
             $entry->eventType(),
             $entry->payload(),
@@ -85,8 +54,6 @@ final class EventProcessingService
     }
 
     /**
-     * Publishes to runtime bus without retry wrapper (outbox relay path).
-     *
      * @param array<string, mixed> $payload
      */
     public function publishToBus(
@@ -95,8 +62,7 @@ final class EventProcessingService
         array $payload,
         string $origin,
     ): void {
-        $this->eventBus->publish($eventType, $payload);
-        $this->workflowEngine->triggerForEvent($eventId, $eventType, $payload);
+        $this->attemptExecutor->publishToBus($eventId, $eventType, $payload, $origin);
     }
 
     public function executeAttempt(
@@ -106,41 +72,7 @@ final class EventProcessingService
         string $origin,
         int $attemptNumber,
     ): void {
-        $connectorKey = 'event:'.$eventType;
-        if ($this->circuitBreaker->isOpen($connectorKey)) {
-            throw new \RuntimeException("Circuit breaker open for {$eventType}");
-        }
-
-        $entry   = $this->queueEntries->findByEventId($eventId);
-        $queueId = $entry?->id() ?? 0;
-
-        try {
-            $this->retries->recordAttempt($queueId, $eventId, $attemptNumber, 'executing');
-
-            $this->publishToBus($eventId, $eventType, $payload, $origin);
-
-            $this->retries->recordAttempt($queueId, $eventId, $attemptNumber, 'completed');
-            $this->circuitBreaker->recordSuccess($connectorKey);
-        } catch (Throwable $e) {
-            $this->retries->recordAttempt($queueId, $eventId, $attemptNumber, 'failed', $e->getMessage());
-            $this->circuitBreaker->recordFailure($connectorKey);
-
-            $this->eventLogs->recordFailed(
-                eventId: $eventId,
-                eventType: $eventType,
-                origin: $origin,
-                payload: $payload,
-                reason: $e->getMessage(),
-                correlationId: $entry?->correlationId(),
-            );
-
-            if ($entry !== null) {
-                $entry->markFailed();
-                $this->queueEntries->save($entry);
-            }
-
-            throw $e;
-        }
+        $this->attemptExecutor->executeAttempt($eventId, $eventType, $payload, $origin, $attemptNumber);
     }
 
     public function finalizeDeadLetter(
@@ -150,45 +82,6 @@ final class EventProcessingService
         string $origin,
         ?Throwable $exception,
     ): void {
-        $reason = $exception?->getMessage() ?? 'Processing exhausted retries';
-
-        $this->deadLetters->save(DeadLetterEntry::fromFailedJob(
-            eventId: $eventId,
-            eventType: $eventType,
-            origin: $origin,
-            payload: $payload,
-            failureReason: $reason,
-        ));
-
-        $this->queueEntries->markDeadLettered($eventId);
-
-        $this->eventLogs->recordFailed($eventId, $eventType, $origin, $payload, $reason);
-
-        $this->logger->warning('Event moved to dead letter queue', [
-            'event_uuid' => $eventId,
-            'event_type' => $eventType,
-            'reason'     => $reason,
-        ]);
-    }
-
-    private function isAsyncProcessing(): bool
-    {
-        return filter_var(
-            config('eventbus.resilience.async_processing', false),
-            FILTER_VALIDATE_BOOLEAN,
-        );
-    }
-
-    private function isOutboxEnabled(): bool
-    {
-        return filter_var(
-            config('eventbus.outbox.enabled', false),
-            FILTER_VALIDATE_BOOLEAN,
-        );
-    }
-
-    private function shouldDeferProcessing(): bool
-    {
-        return app(SimulationPublishScope::class)->shouldDeferProcessing();
+        $this->deadLetterFinalizer->finalize($eventId, $eventType, $payload, $origin, $exception);
     }
 }

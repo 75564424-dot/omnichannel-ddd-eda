@@ -9,7 +9,7 @@ use App\Middleware\Interfaces\Http\Controllers\DeadLetterController;
 use App\Middleware\Interfaces\Http\Controllers\EventQueueController;
 use App\Middleware\Interfaces\Http\Controllers\EventSearchController;
 use App\Middleware\Interfaces\Http\Controllers\ModuleRegistrySyncController;
-use App\Middleware\Interfaces\Http\Controllers\SimulationPulseController;
+use App\Simulation\Interfaces\Http\Controllers\SimulationPulseController;
 use App\Middleware\Interfaces\Http\Controllers\TopologyController;
 use Illuminate\Support\Facades\Route;
 

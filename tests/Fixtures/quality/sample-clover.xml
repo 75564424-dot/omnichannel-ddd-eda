@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1710000000">
+  <project timestamp="1710000000">
+    <file name="app/Middleware/Application/Services/EventPublisherService.php">
+      <line type="stmt" count="1"/>
+      <line type="stmt" count="0"/>
+      <line type="stmt" count="1"/>
+    </file>
+    <file name="app/Http/Controllers/LoginController.php">
+      <line type="stmt" count="1"/>
+    </file>
+    <file name="app/Dashboard/Application/UseCases/StreamLiveEventsUseCase.php">
+      <line type="stmt" count="1"/>
+      <line type="stmt" count="1"/>
+    </file>
+  </project>
+</coverage>

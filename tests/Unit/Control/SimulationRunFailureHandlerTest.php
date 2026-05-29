@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Control;
 
-use App\Control\Application\Services\SimulationRunFailureHandler;
+use App\Simulation\Application\Services\Progress\SimulationRunFailureHandler;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\ClientIncidentReportModel;
 use App\Shared\Infrastructure\Models\TenantModel;
@@ -59,3 +59,4 @@ final class SimulationRunFailureHandlerTest extends TestCase
         $this->assertStringContainsString('Simulación fallida', $incident->subject);
     }
 }
+

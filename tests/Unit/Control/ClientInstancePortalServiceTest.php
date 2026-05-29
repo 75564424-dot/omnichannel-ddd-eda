@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Control;
 
 use App\Control\Application\Services\ClientInstancePortalService;
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,3 +70,4 @@ final class ClientInstancePortalServiceTest extends TestCase
         $this->assertSame('subscriber:crm', ClientInstancePortalService::subscriberNodeKey('crm'));
     }
 }
+

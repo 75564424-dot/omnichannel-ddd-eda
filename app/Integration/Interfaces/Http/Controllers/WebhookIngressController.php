@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Integration\Interfaces\Http\Controllers;
 
+use App\Integration\Application\Services\WebhookRequestHeadersNormalizer;
 use App\Integration\Application\UseCases\ReceiveWebhookUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ final class WebhookIngressController
 {
     public function __construct(
         private readonly ReceiveWebhookUseCase $receiveWebhook,
+        private readonly WebhookRequestHeadersNormalizer $headersNormalizer,
     ) {}
 
     /**
@@ -27,17 +29,12 @@ final class WebhookIngressController
         /** @var array<string, mixed> $body */
         $body = $request->json()->all();
 
-        $headers = [];
-        foreach ($request->headers->all() as $key => $values) {
-            $headers[strtolower((string) $key)] = is_array($values) ? ($values[0] ?? null) : $values;
-        }
-
         try {
             $result = $this->receiveWebhook->execute(
                 integrationCode: $integrationCode,
                 rawBody: $rawBody,
                 body: $body,
-                headers: $headers,
+                headers: $this->headersNormalizer->fromRequest($request),
                 httpMethod: $request->method(),
                 requestPath: $request->path(),
                 sourceIp: $request->ip(),

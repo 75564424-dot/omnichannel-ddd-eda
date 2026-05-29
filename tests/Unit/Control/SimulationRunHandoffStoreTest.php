@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Control;
 
-use App\Control\Application\Services\SimulationRunHandoffStore;
+use App\Simulation\Application\Services\Handoff\SimulationRunHandoffStore;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,3 +52,4 @@ final class SimulationRunHandoffStoreTest extends TestCase
         $this->assertNull($store->read($run->id));
     }
 }
+

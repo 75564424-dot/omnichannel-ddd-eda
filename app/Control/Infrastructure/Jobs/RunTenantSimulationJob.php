@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Control\Infrastructure\Jobs;
 
-use App\Control\Application\Services\SimulationRunOrchestrator;
+use App\Simulation\Application\Services\Orchestration\SimulationRunOrchestrator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,3 +29,4 @@ final class RunTenantSimulationJob implements ShouldQueue
         $orchestrator->executeRun($this->simulationRunId);
     }
 }
+

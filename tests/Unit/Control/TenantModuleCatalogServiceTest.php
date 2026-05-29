@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Control;
 
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -37,3 +37,4 @@ final class TenantModuleCatalogServiceTest extends TestCase
         $this->assertNotContains('AcmePOS.Sale.Completed', $types);
     }
 }
+
