@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Control\Application\Services\SimulationDiagnosticsReader;
+use App\Control\Application\Services\SimulationMessages;
 use App\Control\Application\Services\SimulationProgressReporter;
 use App\Control\Application\Services\SimulationRunControlPlaneClient;
 use App\Control\Application\Services\SimulationRunHandoffStore;
 use App\Control\Application\Services\TenantSimulationAutomationService;
 use App\Middleware\Application\Services\SimulationPulseService;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Throwable;
 
 final class ExecuteSimulationRunOnInstanceCommand extends Command
@@ -24,17 +27,20 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
         TenantSimulationAutomationService $automation,
         SimulationPulseService $simulationPulse,
         SimulationRunHandoffStore $handoffStore,
+        SimulationDiagnosticsReader $diagnosticsReader,
     ): int {
         $runId = (string) $this->argument('runId');
 
         if (config('platform.control_plane', false)) {
-            $message = 'El worker de simulación arrancó en el control plane en lugar del silo cliente '
-                .'(revise APP_ENV / PLATFORM_CONTROL_PLANE del subproceso).';
-            $this->error($message);
-            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, false));
-            $handoffStore->forget($runId);
-
-            return self::FAILURE;
+            return $this->failEarly(
+                $controlPlane,
+                $handoffStore,
+                $simulationPulse,
+                $diagnosticsReader,
+                $runId,
+                SimulationMessages::WORKER_WRONG_HOST,
+                false,
+            );
         }
 
         $spec = $handoffStore->read($runId);
@@ -43,12 +49,7 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
             try {
                 $spec = $controlPlane->fetchRun($runId);
             } catch (Throwable $e) {
-                $this->error($e->getMessage());
-                $simulationPulse->clear();
-                $controlPlane->markFailed($runId, $e->getMessage(), $this->failureContext($runId, false));
-                $handoffStore->forget($runId);
-
-                return self::FAILURE;
+                return $this->failEarly($controlPlane, $handoffStore, $simulationPulse, $diagnosticsReader, $runId, $e->getMessage(), false);
             }
         } else {
             $this->info("Using local handoff spec for run {$runId}.");
@@ -57,19 +58,21 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
         $tenantSlug = (string) ($spec['tenant_slug'] ?? '');
         $instanceSlug = (string) config('platform.client_slug', '');
         if ($tenantSlug === '') {
-            $message = 'Handoff sin tenant_slug.';
-            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, $usedHandoff));
-            $this->error($message);
-
-            return self::FAILURE;
+            return $this->failEarly($controlPlane, $handoffStore, $simulationPulse, $diagnosticsReader, $runId, 'Handoff sin tenant_slug.', $usedHandoff);
         }
 
         if (! $usedHandoff && ($instanceSlug === '' || $tenantSlug !== $instanceSlug)) {
-            $message = "Tenant slug «{$tenantSlug}» no coincide con esta instancia «{$instanceSlug}».";
-            $controlPlane->markFailed($runId, $message, $this->failureContext($runId, false, $tenantSlug, $instanceSlug));
-            $this->error($message);
-
-            return self::FAILURE;
+            return $this->failEarly(
+                $controlPlane,
+                $handoffStore,
+                $simulationPulse,
+                $diagnosticsReader,
+                $runId,
+                "Tenant slug «{$tenantSlug}» no coincide con esta instancia «{$instanceSlug}».",
+                false,
+                $tenantSlug,
+                $instanceSlug,
+            );
         }
 
         $eventsPerMinute = (int) ($spec['events_per_minute'] ?? 0);
@@ -80,7 +83,6 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
         $effectiveTotal  = $plannedTotal > 0 ? $plannedTotal : max(1, $eventsPerMinute * $durationMinutes);
 
         set_time_limit(max(600, $durationMinutes * 120 + 120));
-
         $handoffStore->updateProgress($runId, 0, $effectiveTotal, 'starting');
 
         try {
@@ -96,43 +98,79 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
                 onProgress: $progressReporter->forRun($runId, $plannedTotal),
             );
 
-            $controlPlane->markCompleted($runId, [
+            $completionPayload = [
                 'published'     => $result['published'],
                 'queue_matches' => $result['queue_matches'],
                 'event_ids'     => $result['event_ids'],
-            ]);
+            ];
+
+            $handoffStore->markTerminal($runId, 'completed', $completionPayload);
+
+            try {
+                $controlPlane->markCompleted($runId, $completionPayload);
+            } catch (ConnectionException $e) {
+                $this->warn('Control plane no alcanzable; el estado final quedó en handoff: '.$e->getMessage());
+            } catch (Throwable $e) {
+                $this->warn('No se notificó al control plane por HTTP: '.$e->getMessage());
+            }
 
             $this->info("Simulation {$runId} completed: {$result['published']} events published.");
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $controlPlane->markFailed($runId, $e->getMessage(), $this->failureContext($runId, $usedHandoff));
+            $context = $this->failureContext($diagnosticsReader, $runId, $usedHandoff);
+            $handoffStore->markTerminal($runId, 'failed', [
+                'error_message' => $e->getMessage(),
+                'context'       => $context,
+            ]);
+            $controlPlane->markFailed($runId, $e->getMessage(), $context);
+
             $this->error($e->getMessage());
 
             return self::FAILURE;
         } finally {
             $simulationPulse->clear();
-            $handoffStore->forget($runId);
         }
+    }
+
+    private function failEarly(
+        SimulationRunControlPlaneClient $controlPlane,
+        SimulationRunHandoffStore $handoffStore,
+        SimulationPulseService $simulationPulse,
+        SimulationDiagnosticsReader $diagnosticsReader,
+        string $runId,
+        string $message,
+        bool $handoffUsed,
+        ?string $expectedSlug = null,
+        ?string $instanceSlug = null,
+    ): int {
+        $this->error($message);
+        $context = $this->failureContext($diagnosticsReader, $runId, $handoffUsed, $expectedSlug, $instanceSlug);
+        $handoffStore->markTerminal($runId, 'failed', [
+            'error_message' => $message,
+            'context'       => $context,
+        ]);
+        $controlPlane->markFailed($runId, $message, $context);
+        $simulationPulse->clear();
+
+        return self::FAILURE;
     }
 
     /**
      * @return array<string, mixed>
      */
     private function failureContext(
+        SimulationDiagnosticsReader $diagnosticsReader,
         string $runId,
         bool $handoffUsed,
         ?string $expectedSlug = null,
         ?string $instanceSlug = null,
     ): array {
-        $logPath = storage_path('logs/simulation-worker-'.$runId.'.log');
-        $log = is_file($logPath) ? (string) file_get_contents($logPath) : '';
-
         return array_filter([
             'handoff_used'  => $handoffUsed,
             'expected_slug' => $expectedSlug,
             'instance_slug' => $instanceSlug ?? (string) config('platform.client_slug', ''),
-            'worker_log'    => $log !== '' ? $log : null,
+            'worker_log'    => $diagnosticsReader->excerpt($runId),
         ], static fn ($v) => $v !== null && $v !== '');
     }
 }

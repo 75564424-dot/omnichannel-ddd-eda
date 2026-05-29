@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Control\Application\Services;
 
-use App\Middleware\Application\Services\SimulationPulseService;
 use App\Middleware\Application\UseCases\SyncConfiguredModulesToRegistryUseCase;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Services\ClientFixtureLoader;
-use App\Shared\Platform\Services\ClientSimulationService;
 use App\Shared\Platform\Services\TenantCatalogRuntimeConfigurator;
 use App\Shared\Platform\Services\TenantCatalogSampleEventBuilder;
 use Illuminate\Support\Str;
@@ -21,12 +19,12 @@ final class TenantSimulationAutomationService
 {
     public function __construct(
         private readonly ClientFixtureLoader $fixtures,
-        private readonly ClientSimulationService $simulation,
         private readonly TenantModuleCatalogService $moduleCatalog,
         private readonly SyncConfiguredModulesToRegistryUseCase $syncRegistry,
         private readonly TenantCatalogSampleEventBuilder $sampleEventBuilder,
         private readonly TenantCatalogRuntimeConfigurator $catalogConfigurator,
-        private readonly SimulationPulseService $simulationPulse,
+        private readonly ClientSiloSimulationExecutor $clientSiloExecutor,
+        private readonly SimulationTenantSettingsSync $tenantSettingsSync,
     ) {}
 
     public function resolveFixtureSlug(TenantModel $tenant): string
@@ -49,19 +47,7 @@ final class TenantSimulationAutomationService
 
     public function canSimulateTenant(TenantModel $tenant): bool
     {
-        if ($tenant->status !== 'active') {
-            return false;
-        }
-
-        if (! $this->hasSimulationSource($tenant)) {
-            return false;
-        }
-
-        if ($this->restrictsSimulationToCurrentClientSilo()) {
-            return $tenant->slug === Str::slug((string) config('platform.client_slug', ''));
-        }
-
-        return true;
+        return $this->simulationBlockReason($tenant) === null;
     }
 
     public function simulationBlockReason(TenantModel $tenant): ?string
@@ -84,26 +70,8 @@ final class TenantSimulationAutomationService
         return null;
     }
 
-    private function restrictsSimulationToCurrentClientSilo(): bool
-    {
-        return config('platform.deployment_mode') === 'instance_per_client'
-            && ! config('platform.control_plane', false);
-    }
-
     /**
-     * @return array{
-     *     fixture_slug: string,
-     *     prepared: bool,
-     *     published: int,
-     *     queue_matches: int,
-     *     planned_total: int,
-     *     events_per_minute: int,
-     *     duration_minutes: int,
-     *     validation_errors: list<string>
-     * }
-     */
-    /**
-     * @param callable(int, int, list<string>): void|null $onProgress  Current, total, all event ids so far
+     * @param callable(int, int): void|null $onProgress
      *
      * @return array{
      *     fixture_slug: string,
@@ -125,25 +93,8 @@ final class TenantSimulationAutomationService
         bool $skipPrepare = false,
         ?callable $onProgress = null,
     ): array {
-        $reason = $this->simulationBlockReason($tenant);
-        if ($reason !== null) {
-            throw new RuntimeException($reason);
-        }
-
-        if ($eventsPerMinute < 1 || $eventsPerMinute > 600) {
-            throw new RuntimeException('Eventos por minuto debe estar entre 1 y 600.');
-        }
-
-        if ($durationMinutes < 1 || $durationMinutes > 120) {
-            throw new RuntimeException('Duración debe estar entre 1 y 120 minutos.');
-        }
-
-        $plannedTotal = $eventsPerMinute * $durationMinutes;
-        if ($totalEvents !== null && $totalEvents > 0 && $totalEvents !== $plannedTotal) {
-            throw new RuntimeException(
-                "Total de eventos ({$totalEvents}) debe coincidir con {$eventsPerMinute}/min × {$durationMinutes} min (= {$plannedTotal}).",
-            );
-        }
+        $this->assertRates($eventsPerMinute, $durationMinutes);
+        $plannedTotal = $this->resolvePlannedTotal($eventsPerMinute, $durationMinutes, $totalEvents);
 
         $fixtureSlug = $this->resolveFixtureSlug($tenant);
         $catalog = $this->moduleCatalog->getCatalog($tenant);
@@ -153,70 +104,25 @@ final class TenantSimulationAutomationService
             $this->prepare($tenant, $fixtureSlug, $catalog);
         }
 
-        set_time_limit(max(120, $durationMinutes * 70));
-
-        $eventIdsAccumulator = [];
-        $this->simulationPulse->tick('publish');
-
-        $result = $this->simulation->simulate(
-            slug: $fixtureSlug,
-            events: 0,
-            applyFixture: false,
-            skipValidate: false,
-            skipSync: false,
+        $result = $this->clientSiloExecutor->execute(
+            fixtureSlug: $fixtureSlug,
+            templates: $templates,
             eventsPerMinute: $eventsPerMinute,
             durationMinutes: $durationMinutes,
-            sampleTemplates: $templates,
-            onPublished: function (int $current, int $total, string $eventId, string $eventType) use (
-                $onProgress,
-                &$eventIdsAccumulator
-            ): void {
-                $eventIdsAccumulator[] = $eventId;
-                $this->simulationPulse->tick($this->pulsePhaseForSequence($current), $eventType);
-                if ($onProgress !== null) {
-                    $onProgress($current, $total, $eventIdsAccumulator);
-                }
-            },
+            skipSync: false,
+            onProgress: $onProgress,
         );
 
-        $this->simulationPulse->clear();
-
-        if ($result['validation_errors'] !== []) {
-            throw new RuntimeException('Validación de catálogo: '.implode('; ', $result['validation_errors']));
-        }
-
-        $settings = is_array($tenant->settings) ? $tenant->settings : [];
         if ($onProgress === null) {
-            $settings = is_array($tenant->settings) ? $tenant->settings : [];
-            $settings['last_simulation'] = [
-                'ran_at'            => now()->toDateTimeString(),
-                'fixture_slug'      => $fixtureSlug,
-                'events_per_minute' => $eventsPerMinute,
-                'duration_minutes'  => $durationMinutes,
-                'planned_total'     => $plannedTotal,
-                'published'         => $result['published'],
-                'queue_matches'     => $result['queue_matches'],
-            ];
-            $settings['simulation_prepared_at'] = now()->toIso8601String();
-            $settings['simulation_fixture_slug'] = $fixtureSlug;
-            $tenant->update(['settings' => $settings]);
+            $this->persistLastSimulation($tenant, $fixtureSlug, $eventsPerMinute, $durationMinutes, $plannedTotal, $result);
         }
 
-        return [
-            'fixture_slug'      => $fixtureSlug,
-            'prepared'          => ! $skipPrepare,
-            'published'         => $result['published'],
-            'queue_matches'     => $result['queue_matches'],
-            'planned_total'     => $plannedTotal,
-            'events_per_minute' => $eventsPerMinute,
-            'duration_minutes'  => $durationMinutes,
-            'validation_errors' => [],
-            'event_ids'         => $result['event_ids'],
-        ];
+        return $this->buildResult($fixtureSlug, ! $skipPrepare, $eventsPerMinute, $durationMinutes, $plannedTotal, $result);
     }
 
     /**
      * @param array<string, mixed> $modulesCatalog
+     * @param callable(int, int): void|null $onProgress
      *
      * @return array{
      *     fixture_slug: string,
@@ -244,20 +150,8 @@ final class TenantSimulationAutomationService
             throw new RuntimeException('El silo cliente no coincide con el tenant de la simulación.');
         }
 
-        if ($eventsPerMinute < 1 || $eventsPerMinute > 600) {
-            throw new RuntimeException('Eventos por minuto debe estar entre 1 y 600.');
-        }
-
-        if ($durationMinutes < 1 || $durationMinutes > 120) {
-            throw new RuntimeException('Duración debe estar entre 1 y 120 minutos.');
-        }
-
-        $plannedTotal = $eventsPerMinute * $durationMinutes;
-        if ($totalEvents !== null && $totalEvents > 0 && $totalEvents !== $plannedTotal) {
-            throw new RuntimeException(
-                "Total de eventos ({$totalEvents}) debe coincidir con {$eventsPerMinute}/min × {$durationMinutes} min (= {$plannedTotal}).",
-            );
-        }
+        $this->assertRates($eventsPerMinute, $durationMinutes);
+        $plannedTotal = $this->resolvePlannedTotal($eventsPerMinute, $durationMinutes, $totalEvents);
 
         $templates = $this->sampleEventBuilder->fromCatalog($modulesCatalog);
         if ($templates === []) {
@@ -269,48 +163,39 @@ final class TenantSimulationAutomationService
             $this->syncRegistry->execute();
         }
 
-        set_time_limit(max(600, $durationMinutes * 120 + 120));
-        $this->simulationPulse->tick('publish');
-
-        $eventIdsAccumulator = [];
-        $result = $this->simulation->simulate(
-            slug: 'tenant-catalog',
-            events: 0,
-            applyFixture: false,
-            skipValidate: false,
-            skipSync: $skipPrepare,
+        $result = $this->clientSiloExecutor->execute(
+            fixtureSlug: 'tenant-catalog',
+            templates: $templates,
             eventsPerMinute: $eventsPerMinute,
             durationMinutes: $durationMinutes,
-            sampleTemplates: $templates,
-            onPublished: function (int $current, int $total, string $eventId, string $eventType) use (
-                $onProgress,
-                &$eventIdsAccumulator
-            ): void {
-                $eventIdsAccumulator[] = $eventId;
-                $this->simulationPulse->tick($this->pulsePhaseForSequence($current), $eventType);
-                if ($onProgress !== null) {
-                    $onProgress($current, $total);
-                }
-            },
+            skipSync: $skipPrepare,
+            onProgress: $onProgress,
         );
 
-        $this->simulationPulse->clear();
+        return $this->buildResult('tenant-catalog', ! $skipPrepare, $eventsPerMinute, $durationMinutes, $plannedTotal, $result);
+    }
 
-        if ($result['validation_errors'] !== []) {
-            throw new RuntimeException('Validación de catálogo: '.implode('; ', $result['validation_errors']));
+    private function assertRates(int $eventsPerMinute, int $durationMinutes): void
+    {
+        if ($eventsPerMinute < 1 || $eventsPerMinute > 600) {
+            throw new RuntimeException('Eventos por minuto debe estar entre 1 y 600.');
         }
 
-        return [
-            'fixture_slug'      => 'tenant-catalog',
-            'prepared'          => ! $skipPrepare,
-            'published'         => $result['published'],
-            'queue_matches'     => $result['queue_matches'],
-            'planned_total'     => $plannedTotal,
-            'events_per_minute' => $eventsPerMinute,
-            'duration_minutes'  => $durationMinutes,
-            'validation_errors' => [],
-            'event_ids'         => $result['event_ids'],
-        ];
+        if ($durationMinutes < 1 || $durationMinutes > 120) {
+            throw new RuntimeException('Duración debe estar entre 1 y 120 minutos.');
+        }
+    }
+
+    private function resolvePlannedTotal(int $eventsPerMinute, int $durationMinutes, ?int $totalEvents): int
+    {
+        $plannedTotal = $eventsPerMinute * $durationMinutes;
+        if ($totalEvents !== null && $totalEvents > 0 && $totalEvents !== $plannedTotal) {
+            throw new RuntimeException(
+                "Total de eventos ({$totalEvents}) debe coincidir con {$eventsPerMinute}/min × {$durationMinutes} min (= {$plannedTotal}).",
+            );
+        }
+
+        return $plannedTotal;
     }
 
     private function hasSimulationSource(TenantModel $tenant): bool
@@ -319,9 +204,7 @@ final class TenantSimulationAutomationService
             return true;
         }
 
-        $catalog = $this->moduleCatalog->getCatalog($tenant);
-
-        return $this->sampleEventBuilder->fromCatalog($catalog) !== [];
+        return $this->sampleEventBuilder->fromCatalog($this->moduleCatalog->getCatalog($tenant)) !== [];
     }
 
     /**
@@ -361,12 +244,70 @@ final class TenantSimulationAutomationService
         $this->syncRegistry->execute();
     }
 
-    private function pulsePhaseForSequence(int $sequence): string
+    /**
+     * @param array{published: int, queue_matches: int, event_ids: list<string>} $result
+     */
+    private function persistLastSimulation(
+        TenantModel $tenant,
+        string $fixtureSlug,
+        int $eventsPerMinute,
+        int $durationMinutes,
+        int $plannedTotal,
+        array $result,
+    ): void {
+        $this->tenantSettingsSync->recordInlineSummary(
+            $tenant,
+            $fixtureSlug,
+            $eventsPerMinute,
+            $durationMinutes,
+            $plannedTotal,
+            [
+                'published'     => $result['published'],
+                'queue_matches' => $result['queue_matches'],
+            ],
+        );
+        $this->tenantSettingsSync->recordPrepared($tenant, $fixtureSlug);
+    }
+
+    /**
+     * @param array{published: int, queue_matches: int, event_ids: list<string>, validation_errors: list<string>} $result
+     *
+     * @return array{
+     *     fixture_slug: string,
+     *     prepared: bool,
+     *     published: int,
+     *     queue_matches: int,
+     *     planned_total: int,
+     *     events_per_minute: int,
+     *     duration_minutes: int,
+     *     validation_errors: list<string>,
+     *     event_ids: list<string>
+     * }
+     */
+    private function buildResult(
+        string $fixtureSlug,
+        bool $prepared,
+        int $eventsPerMinute,
+        int $durationMinutes,
+        int $plannedTotal,
+        array $result,
+    ): array {
+        return [
+            'fixture_slug'      => $fixtureSlug,
+            'prepared'          => $prepared,
+            'published'         => $result['published'],
+            'queue_matches'     => $result['queue_matches'],
+            'planned_total'     => $plannedTotal,
+            'events_per_minute' => $eventsPerMinute,
+            'duration_minutes'  => $durationMinutes,
+            'validation_errors' => $result['validation_errors'],
+            'event_ids'         => $result['event_ids'],
+        ];
+    }
+
+    private function restrictsSimulationToCurrentClientSilo(): bool
     {
-        return match ($sequence % 3) {
-            0       => 'publish',
-            1       => 'dispatch',
-            default => 'consume',
-        };
+        return config('platform.deployment_mode') === 'instance_per_client'
+            && ! config('platform.control_plane', false);
     }
 }

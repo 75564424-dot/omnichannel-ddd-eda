@@ -13,11 +13,17 @@ final class SimulationRunWorkerMonitor
 {
     public function __construct(
         private readonly SimulationRunHandoffStore $handoffStore,
+        private readonly SimulationWorkerLauncher $workerLauncher,
     ) {}
 
     public function logPath(string $runId): string
     {
-        return storage_path('logs/simulation-worker-'.$runId.'.log');
+        return $this->workerLauncher->workerLogPath($runId);
+    }
+
+    public function dispatchLogPath(string $runId): string
+    {
+        return $this->workerLauncher->dispatchLogPath($runId);
     }
 
     public function logRecentlyUpdated(string $runId, int $withinSeconds = 90): bool
@@ -55,8 +61,13 @@ final class SimulationRunWorkerMonitor
             return true;
         }
 
-        $handoff = $this->handoffStore->read($run->id);
+        $handoff = $this->handoffStore->readForSync($run->id);
         if ($handoff === null) {
+            return false;
+        }
+
+        $terminal = (string) ($handoff['terminal_status'] ?? '');
+        if ($terminal === 'completed' || $terminal === 'failed') {
             return false;
         }
 

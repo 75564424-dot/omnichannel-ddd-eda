@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace App\Control\Application\Services;
 
-use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Control\Infrastructure\Jobs\RunTenantSimulationJob;
+use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\TenantModel;
-use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
+/**
+ * Starts simulation runs (fleet worker or in-process job) and executes CP-hosted runs.
+ */
 final class SimulationRunOrchestrator
 {
     public function __construct(
         private readonly TenantSimulationAutomationService $automation,
         private readonly LocalFleetSimulationRunner $localFleetRunner,
         private readonly SimulationRunFailureHandler $failureHandler,
+        private readonly SimulationRunMetricsCollector $metricsCollector,
+        private readonly SimulationRunCompletionService $completionService,
+        private readonly SimulationStaleRunReplacer $staleRunReplacer,
     ) {}
 
     /**
@@ -34,7 +39,7 @@ final class SimulationRunOrchestrator
             throw new RuntimeException($reason);
         }
 
-        $this->failStaleRunsForTenant($tenant->id);
+        $this->staleRunReplacer->replaceActiveForTenant($tenant->id);
 
         $plannedTotal = $eventsPerMinute * $durationMinutes;
         $fixtureSlug  = $this->localFleetRunner->shouldRunOnClientSilo($tenant)
@@ -42,15 +47,15 @@ final class SimulationRunOrchestrator
             : $this->automation->resolveFixtureSlug($tenant);
 
         $run = SimulationRunModel::query()->create([
-            'id'                  => Uuid::uuid4()->toString(),
-            'tenant_id'           => $tenant->id,
-            'started_by_user_id'  => $userId,
-            'status'              => SimulationRunModel::STATUS_PENDING,
-            'fixture_slug'        => $fixtureSlug,
-            'events_per_minute'   => $eventsPerMinute,
-            'duration_minutes'    => $durationMinutes,
-            'planned_total'       => $plannedTotal,
-            'prepare_first'       => $prepareFirst,
+            'id'                 => Uuid::uuid4()->toString(),
+            'tenant_id'          => $tenant->id,
+            'started_by_user_id' => $userId,
+            'status'             => SimulationRunModel::STATUS_PENDING,
+            'fixture_slug'       => $fixtureSlug,
+            'events_per_minute'  => $eventsPerMinute,
+            'duration_minutes'   => $durationMinutes,
+            'planned_total'      => $plannedTotal,
+            'prepare_first'      => $prepareFirst,
         ]);
 
         if ($this->localFleetRunner->shouldRunOnClientSilo($tenant)) {
@@ -65,6 +70,9 @@ final class SimulationRunOrchestrator
         ];
     }
 
+    /**
+     * In-process execution when simulation is not delegated to a client silo worker.
+     */
     public function executeRun(string $runId): void
     {
         $run = SimulationRunModel::query()->with('tenant')->find($runId);
@@ -78,23 +86,22 @@ final class SimulationRunOrchestrator
 
         $tenant = $run->tenant;
         if ($tenant !== null && $this->localFleetRunner->shouldRunOnClientSilo($tenant)
-            && $this->localFleetRunner->isClientSiloProcess() === false) {
+            && ! $this->localFleetRunner->isClientSiloProcess()) {
             return;
         }
+
         if ($tenant === null) {
-            $this->markFailed($run, 'Tenant no encontrado.');
+            $this->failureHandler->handle($run, SimulationMessages::TENANT_NOT_FOUND);
 
             return;
         }
-
-        $metricsCollector = app(SimulationRunMetricsCollector::class);
 
         $run->update([
             'status'     => SimulationRunModel::STATUS_RUNNING,
             'started_at' => now(),
         ]);
 
-        $baselineBefore = $metricsCollector->captureEnvironmentBaseline();
+        $baselineBefore = $this->metricsCollector->captureEnvironmentBaseline();
 
         try {
             set_time_limit(max(300, $run->duration_minutes * 90));
@@ -105,85 +112,31 @@ final class SimulationRunOrchestrator
                 durationMinutes: $run->duration_minutes,
                 totalEvents: $run->planned_total,
                 skipPrepare: ! $run->prepare_first,
-                onProgress: function (int $current, int $total) use ($run): void {
-                    SimulationRunModel::query()->where('id', $run->id)->update([
-                        'status'           => SimulationRunModel::STATUS_RUNNING,
-                        'progress_current' => $current,
-                        'published'        => $current,
-                        'started_at'       => $run->started_at ?? now(),
-                    ]);
-                },
+                onProgress: fn (int $current, int $total) => $this->updateProgress($run, $current),
             );
 
-            $baselineAfter = $metricsCollector->captureEnvironmentBaseline();
-            $eventIds = $result['event_ids'];
-
-            $report = $metricsCollector->buildReport(
+            $this->completionService->complete(
                 $run,
-                $eventIds,
-                $run->started_at,
-                now(),
+                $tenant,
+                $result['event_ids'],
+                $result['published'],
+                $result['queue_matches'],
                 $baselineBefore,
-                $baselineAfter,
             );
-
-            $run->update([
-                'status'        => SimulationRunModel::STATUS_COMPLETED,
-                'finished_at'   => now(),
-                'published'     => $result['published'],
-                'queue_matches' => $result['queue_matches'],
-                'progress_current' => $result['published'],
-                'metrics'       => $report,
-                'event_ids'     => $eventIds,
-            ]);
-
-            $this->syncTenantLastSimulation($tenant, $run, $result);
         } catch (\Throwable $e) {
-            $this->markFailed($run, $e->getMessage(), $baselineBefore, $metricsCollector);
-        }
-    }
-
-    private function markFailed(
-        SimulationRunModel $run,
-        string $message,
-        ?array $baselineBefore = null,
-        ?SimulationRunMetricsCollector $collector = null,
-    ): void {
-        $context = [];
-        if ($baselineBefore !== null) {
-            $context['baseline_before'] = $baselineBefore;
-        }
-
-        $this->failureHandler->handle($run, $message, $context);
-    }
-
-    /** @param array<string, mixed> $result */
-    private function failStaleRunsForTenant(string $tenantId): void
-    {
-        SimulationRunModel::query()
-            ->where('tenant_id', $tenantId)
-            ->whereIn('status', [SimulationRunModel::STATUS_PENDING, SimulationRunModel::STATUS_RUNNING])
-            ->update([
-                'status'        => SimulationRunModel::STATUS_FAILED,
-                'finished_at'   => now(),
-                'error_message' => 'Reemplazada por una nueva simulación (proceso anterior colgado).',
+            $this->failureHandler->handle($run, $e->getMessage(), [
+                'baseline_before' => $baselineBefore,
             ]);
+        }
     }
 
-    private function syncTenantLastSimulation(TenantModel $tenant, SimulationRunModel $run, array $result): void
+    private function updateProgress(SimulationRunModel $run, int $current): void
     {
-        $settings = is_array($tenant->settings) ? $tenant->settings : [];
-        $settings['last_simulation'] = [
-            'run_id'            => $run->id,
-            'ran_at'            => now()->toDateTimeString(),
-            'fixture_slug'      => $run->fixture_slug,
-            'events_per_minute' => $run->events_per_minute,
-            'duration_minutes'  => $run->duration_minutes,
-            'planned_total'     => $run->planned_total,
-            'published'         => $result['published'],
-            'queue_matches'     => $result['queue_matches'],
-            'has_report'        => true,
-        ];
-        $tenant->update(['settings' => $settings]);
+        SimulationRunModel::query()->where('id', $run->id)->update([
+            'status'           => SimulationRunModel::STATUS_RUNNING,
+            'progress_current' => $current,
+            'published'        => $current,
+            'started_at'       => $run->started_at ?? now(),
+        ]);
     }
 }

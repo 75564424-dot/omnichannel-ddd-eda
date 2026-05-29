@@ -242,7 +242,7 @@
                 <td class="py-4 px-6 font-medium">{{ event.event_type ?? event.type }}</td>
                 <td class="py-4 px-6 text-on-surface-variant">{{ event.origin ?? event.source ?? '—' }}</td>
                 <td class="py-4 px-6 text-on-surface-variant">{{ formatConsumers(event.consumers) }}</td>
-                <td class="py-4 px-6 text-on-surface-variant font-mono text-xs">{{ formatTimestamp(event.created_at ?? event.timestamp) }}</td>
+                <td class="py-4 px-6 text-on-surface-variant font-mono text-xs">{{ formatTimestamp(event.published_at ?? event.publishedAt ?? event.dispatched_at ?? event.dispatchedAt ?? event.created_at ?? event.timestamp) }}</td>
                 <td class="py-4 px-6 text-right">
                   <span :class="statusBadgeClass(event.status)">
                     <span v-if="event.status === 'Pendiente' || event.status === 'PENDING'" class="w-1.5 h-1.5 rounded-full bg-primary mr-1.5 inline-block"></span>

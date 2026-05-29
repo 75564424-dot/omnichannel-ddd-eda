@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Control\Application\Services;
 
 use App\Control\Infrastructure\Models\SimulationRunModel;
-use Illuminate\Support\Str;
 
 /**
  * Marks simulation runs that exceeded their configured window or never reported progress.
@@ -15,8 +14,9 @@ final class SimulationRunStaleGuard
     public function __construct(
         private readonly SimulationRunFailureHandler $failureHandler,
         private readonly SimulationRunHandoffStore $handoffStore,
-        private readonly SimulationRunHandoffProgressSync $handoffProgressSync,
+        private readonly SimulationRunHandoffSync $handoffSync,
         private readonly SimulationRunWorkerMonitor $workerMonitor,
+        private readonly SimulationDiagnosticsReader $diagnosticsReader,
     ) {}
 
     public function failExpiredRuns(): int
@@ -25,7 +25,7 @@ final class SimulationRunStaleGuard
             return 0;
         }
 
-        $this->handoffProgressSync->syncActiveRuns();
+        $this->handoffSync->syncActiveRuns();
 
         $failed = 0;
         $runs = SimulationRunModel::query()
@@ -38,7 +38,10 @@ final class SimulationRunStaleGuard
                 continue;
             }
 
-            $this->failureHandler->handle($run, $reason, $this->failureContext($run));
+            $this->failureHandler->handle($run, $reason, [
+                'source'     => 'stale_guard',
+                'worker_log' => $this->diagnosticsReader->excerpt($run->id),
+            ]);
             $failed++;
         }
 
@@ -57,13 +60,17 @@ final class SimulationRunStaleGuard
         $maxWallMinutes = $this->workerMonitor->maxWallClockMinutes($run);
         $elapsedMinutes = $startedAt->diffInMinutes(now(), absolute: true);
 
+        if ($this->handoffHasTerminal($run->id)) {
+            return null;
+        }
+
         if ($this->workerMonitor->isLikelyAlive($run)) {
             if ($elapsedMinutes <= $maxWallMinutes) {
                 return null;
             }
 
             return 'Tiempo máximo de ejecución del worker superado (~'.$maxWallMinutes
-                .' min para '.$run->planned_total.' eventos). Revise el log del worker.';
+                .' min para '.$run->planned_total.' eventos). Revise storage/logs/simulation-*-'.$run->id.'.log';
         }
 
         if ($run->status === SimulationRunModel::STATUS_RUNNING
@@ -81,7 +88,7 @@ final class SimulationRunStaleGuard
             $phase = is_string($handoff['phase'] ?? null) ? $handoff['phase'] : 'sin handoff';
 
             return 'El worker del silo cliente no arrancó o murió al inicio (fase: '.$phase.'). '
-                .'Log: storage/logs/simulation-worker-'.$run->id.'.log';
+                .'Revise storage/logs/simulation-dispatch-'.$run->id.'.log y simulation-worker-'.$run->id.'.log';
         }
 
         if ($run->status === SimulationRunModel::STATUS_RUNNING
@@ -100,19 +107,15 @@ final class SimulationRunStaleGuard
         return null;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function failureContext(SimulationRunModel $run): array
+    private function handoffHasTerminal(string $runId): bool
     {
-        $logPath = $this->workerMonitor->logPath($run->id);
-        $excerpt = is_file($logPath)
-            ? \Illuminate\Support\Str::limit((string) file_get_contents($logPath), 4000)
-            : null;
+        $handoff = $this->handoffStore->readForSync($runId);
+        if ($handoff === null) {
+            return false;
+        }
 
-        return [
-            'source'     => 'stale_guard',
-            'worker_log' => $excerpt,
-        ];
+        $terminal = (string) ($handoff['terminal_status'] ?? '');
+
+        return $terminal === 'completed' || $terminal === 'failed';
     }
 }

@@ -76,12 +76,21 @@ final class SimulationRunControlPlaneClient
      */
     public function markCompleted(string $runId, array $payload): void
     {
-        $response = $this->request('POST', "simulation-runs/{$runId}/complete", $payload);
+        try {
+            $response = $this->request('POST', "simulation-runs/{$runId}/complete", $payload);
 
-        if (! $response->successful()) {
-            throw new RuntimeException(
-                'No se pudo marcar simulación completada: HTTP '.$response->status().' '.$response->body(),
-            );
+            if (! $response->successful()) {
+                throw new RuntimeException(
+                    'No se pudo marcar simulación completada: HTTP '.$response->status().' '.$response->body(),
+                );
+            }
+        } catch (ConnectionException $e) {
+            Log::warning('simulation.complete_unreachable', [
+                'run_id'  => $runId,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
     }
 

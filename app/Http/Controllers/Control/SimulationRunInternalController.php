@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Control;
 
+use App\Control\Application\Services\SimulationRunCompletionService;
 use App\Control\Application\Services\SimulationRunFailureHandler;
 use App\Control\Application\Services\SimulationRunMetricsCollector;
 use App\Control\Application\Services\TenantModuleCatalogService;
 use App\Control\Infrastructure\Models\SimulationRunModel;
-use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -19,6 +19,7 @@ final class SimulationRunInternalController
         private readonly TenantModuleCatalogService $moduleCatalog,
         private readonly SimulationRunMetricsCollector $metricsCollector,
         private readonly SimulationRunFailureHandler $failureHandler,
+        private readonly SimulationRunCompletionService $completionService,
     ) {}
 
     public function show(string $run): JsonResponse
@@ -89,29 +90,14 @@ final class SimulationRunInternalController
             ? $model->metrics['resources']['baseline_before']
             : $this->metricsCollector->captureEnvironmentBaseline();
 
-        $baselineAfter = $this->metricsCollector->captureEnvironmentBaseline();
-
-        $report = $this->metricsCollector->buildReport(
+        $model = $this->completionService->complete(
             $model,
+            $tenant,
             $eventIds,
-            $model->started_at ?? now(),
-            now(),
+            $published,
+            $queueMatches,
             $baselineBefore,
-            $baselineAfter,
         );
-
-        $model->update([
-            'status'             => SimulationRunModel::STATUS_COMPLETED,
-            'finished_at'        => now(),
-            'published'          => $published,
-            'queue_matches'      => $queueMatches,
-            'progress_current'   => $published,
-            'event_ids'          => $eventIds,
-            'metrics'            => $report,
-            'error_message'      => null,
-        ]);
-
-        $this->syncTenantLastSimulation($tenant, $model, $published, $queueMatches);
 
         return response()->json(['data' => ['status' => $model->status]]);
     }
@@ -139,26 +125,5 @@ final class SimulationRunInternalController
         }
 
         return $model;
-    }
-
-    private function syncTenantLastSimulation(
-        TenantModel $tenant,
-        SimulationRunModel $run,
-        int $published,
-        int $queueMatches,
-    ): void {
-        $settings = is_array($tenant->settings) ? $tenant->settings : [];
-        $settings['last_simulation'] = [
-            'run_id'            => $run->id,
-            'ran_at'            => now()->toDateTimeString(),
-            'fixture_slug'      => $run->fixture_slug,
-            'events_per_minute' => $run->events_per_minute,
-            'duration_minutes'  => $run->duration_minutes,
-            'planned_total'     => $run->planned_total,
-            'published'         => $published,
-            'queue_matches'     => $queueMatches,
-            'has_report'        => true,
-        ];
-        $tenant->update(['settings' => $settings]);
     }
 }

@@ -39,6 +39,10 @@ final class EventProcessingService
         array $payload,
         string $origin,
     ): void {
+        if ($this->shouldDeferProcessing()) {
+            return;
+        }
+
         if ($this->isOutboxEnabled()) {
             $this->outbox->enqueue($eventId, $eventType, $origin, $payload);
             RelayOutboxJob::dispatch()
@@ -55,6 +59,29 @@ final class EventProcessingService
         }
 
         $this->executeAttempt($eventId, $eventType, $payload, $origin, 1);
+    }
+
+    /**
+     * Processes a queued event after simulation publish (scope deferral ended).
+     */
+    public function processQueuedEvent(string $eventId): void
+    {
+        $entry = $this->queueEntries->findByEventId($eventId);
+        if ($entry === null) {
+            return;
+        }
+
+        if ($entry->status()->isProcessed()) {
+            return;
+        }
+
+        $this->executeAttempt(
+            $eventId,
+            $entry->eventType(),
+            $entry->payload(),
+            $entry->origin(),
+            1,
+        );
     }
 
     /**
@@ -158,5 +185,10 @@ final class EventProcessingService
             config('eventbus.outbox.enabled', false),
             FILTER_VALIDATE_BOOLEAN,
         );
+    }
+
+    private function shouldDeferProcessing(): bool
+    {
+        return app(SimulationPublishScope::class)->shouldDeferProcessing();
     }
 }

@@ -209,7 +209,7 @@ final class TenantModuleCatalogService
             return [];
         }
 
-        $out = [];
+        $byId = [];
         foreach ($rows as $row) {
             if (! is_array($row)) {
                 continue;
@@ -219,14 +219,23 @@ final class TenantModuleCatalogService
             if ($id === '' || $name === '') {
                 continue;
             }
-            $out[] = [
+            $types = $this->stringList($row['event_types_consumed'] ?? []);
+            if (isset($byId[$id])) {
+                $byId[$id]['event_types_consumed'] = array_values(array_unique([
+                    ...$byId[$id]['event_types_consumed'],
+                    ...$types,
+                ]));
+
+                continue;
+            }
+            $byId[$id] = [
                 'id'                   => $id,
                 'name'                 => $name,
-                'event_types_consumed' => $this->stringList($row['event_types_consumed'] ?? []),
+                'event_types_consumed' => $types,
             ];
         }
 
-        return $out;
+        return array_values($byId);
     }
 
     /** @return list<string> */

@@ -37,7 +37,7 @@ final class SimulationRunHandoffStore
     ): void {
         $durationMinutes = max(1, (int) $run->duration_minutes);
 
-        $payload = [
+        $this->persist($run->id, [
             'run_id'            => $run->id,
             'tenant_slug'       => $tenant->slug,
             'events_per_minute' => (int) $run->events_per_minute,
@@ -50,13 +50,7 @@ final class SimulationRunHandoffStore
             'written_at'        => now()->toIso8601String(),
             'phase'             => 'dispatched',
             'progress_current'  => 0,
-            'planned_total'     => (int) $run->planned_total,
-        ];
-
-        file_put_contents(
-            $this->path($run->id),
-            json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-        );
+        ]);
     }
 
     /**
@@ -64,14 +58,31 @@ final class SimulationRunHandoffStore
      */
     public function read(string $runId): ?array
     {
-        $path = $this->path($runId);
-        if (! is_file($path)) {
-            return null;
-        }
+        return $this->decodeFile($this->path($runId), useSharedLock: true);
+    }
 
-        $decoded = json_decode((string) file_get_contents($path), true);
+    /**
+     * Fast read for control-plane polling (atomic rename writes on the worker side).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function readForSync(string $runId): ?array
+    {
+        return $this->decodeFile($this->path($runId), useSharedLock: false);
+    }
 
-        return is_array($decoded) ? $decoded : null;
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function markTerminal(string $runId, string $status, array $payload): void
+    {
+        $data = $this->read($runId) ?? ['run_id' => $runId];
+        $data['terminal_status']  = $status;
+        $data['terminal_payload'] = $payload;
+        $data['terminal_at']      = now()->toIso8601String();
+        $data['phase']            = $status;
+
+        $this->persist($runId, $data);
     }
 
     public function updateProgress(string $runId, int $current, int $total, string $phase = 'publishing'): void
@@ -87,10 +98,7 @@ final class SimulationRunHandoffStore
         $payload['phase']            = $phase;
         $payload['progress_at']      = now()->toIso8601String();
 
-        file_put_contents(
-            $this->path($runId),
-            json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-        );
+        $this->persist($runId, $payload);
     }
 
     public function forget(string $runId): void
@@ -111,5 +119,59 @@ final class SimulationRunHandoffStore
         }
 
         return $count;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function persist(string $runId, array $payload): void
+    {
+        $path = $this->path($runId);
+        $tmp  = $path.'.tmp';
+        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        file_put_contents($tmp, $json, LOCK_EX);
+        rename($tmp, $path);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeFile(string $path, bool $useSharedLock): ?array
+    {
+        if (! is_file($path)) {
+            return null;
+        }
+
+        if (! $useSharedLock) {
+            $contents = @file_get_contents($path);
+            if ($contents === false || $contents === '') {
+                return null;
+            }
+
+            $decoded = json_decode($contents, true);
+
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return null;
+        }
+
+        try {
+            if (flock($handle, LOCK_SH)) {
+                $contents = (string) stream_get_contents($handle);
+                flock($handle, LOCK_UN);
+            } else {
+                $contents = (string) stream_get_contents($handle);
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        $decoded = json_decode($contents, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }

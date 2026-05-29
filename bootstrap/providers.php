@@ -2,6 +2,7 @@
 
 return [
     App\Providers\PlatformServiceProvider::class,
+    App\Providers\SimulationServiceProvider::class,
     App\Providers\LoggingServiceProvider::class,
     App\Observability\Interfaces\Providers\ObservabilityServiceProvider::class,
     App\Monitoring\Interfaces\Providers\MonitoringServiceProvider::class,

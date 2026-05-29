@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Control\Application\Services\SimulationMessages;
 use App\Control\Application\Services\SimulationRunHandoffStore;
 use App\Control\Application\Services\SimulationRunStaleGuard;
+use App\Control\Application\Services\SimulationStaleRunReplacer;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ final class ResetSimulationRunsCommand extends Command
     public function handle(
         SimulationRunStaleGuard $staleGuard,
         SimulationRunHandoffStore $handoffStore,
+        SimulationStaleRunReplacer $staleRunReplacer,
     ): int {
         if (! config('platform.control_plane', false)) {
             $this->error('Run on control plane (--env=control-plane).');
@@ -37,14 +40,8 @@ final class ResetSimulationRunsCommand extends Command
 
         if ($this->option('fail-stale') || $this->option('only-stale')) {
             $stale = $staleGuard->failExpiredRuns();
-            $manual = SimulationRunModel::query()
-                ->whereIn('status', [SimulationRunModel::STATUS_PENDING, SimulationRunModel::STATUS_RUNNING])
-                ->update([
-                    'status'        => SimulationRunModel::STATUS_FAILED,
-                    'finished_at'   => now(),
-                    'error_message' => 'Marcada como fallida (reset manual / proceso colgado).',
-                ]);
-            $this->info("Simulaciones colgadas marcadas como fallidas: ".($stale + $manual));
+            $manual = $staleRunReplacer->replaceAllActive(SimulationMessages::MANUAL_RESET);
+            $this->info('Simulaciones colgadas marcadas como fallidas: '.($stale + $manual));
         }
 
         $purged = $handoffStore->purgeAll();

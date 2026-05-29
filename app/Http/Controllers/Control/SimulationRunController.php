@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Control;
 
-use App\Control\Application\Services\SimulationRunHandoffProgressSync;
+use App\Control\Application\Services\SimulationRunHandoffSync;
 use App\Control\Application\Services\SimulationRunMetricsCollector;
 use App\Control\Application\Services\SimulationRunOrchestrator;
 use App\Control\Application\Services\SimulationRunStaleGuard;
@@ -24,14 +24,14 @@ final class SimulationRunController
         private readonly SimulationRunOrchestrator $orchestrator,
         private readonly SimulationRunMetricsCollector $metricsCollector,
         private readonly SimulationRunStaleGuard $staleGuard,
-        private readonly SimulationRunHandoffProgressSync $handoffProgressSync,
+        private readonly SimulationRunHandoffSync $handoffSync,
     ) {}
 
     public function index(Request $request): Response
     {
         Gate::authorize('platform.manage-users');
 
-        $this->handoffProgressSync->syncActiveRuns();
+        $this->handoffSync->syncActiveRuns();
         $this->staleGuard->failExpiredRuns();
 
         $tenantId = $request->string('tenant_id')->toString();
@@ -117,8 +117,7 @@ final class SimulationRunController
     {
         Gate::authorize('platform.manage-users');
 
-        $this->handoffProgressSync->syncRun($run);
-        $this->staleGuard->failExpiredRuns();
+        $this->handoffSync->syncRun($run);
 
         $payload = $this->metricsCollector->presentationForRun($run->fresh(['tenant']));
 
