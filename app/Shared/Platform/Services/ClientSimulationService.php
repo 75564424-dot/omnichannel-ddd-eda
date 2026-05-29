@@ -121,7 +121,11 @@ final class ClientSimulationService
         }
 
         $eventIds = [];
-        $deadlineNs = ($durationMinutes !== null && $durationMinutes > 0)
+        // When total is fixed (rate × duration), honor the event count — not a wall-clock cap.
+        // Per-event drain/sync can exceed duration_minutes; cutting early caused 5/10 style partial runs.
+        $hasFixedEventCount = $events > 0 && $eventsPerMinute !== null && $eventsPerMinute > 0
+            && $durationMinutes !== null && $durationMinutes > 0;
+        $deadlineNs = (! $hasFixedEventCount && $durationMinutes !== null && $durationMinutes > 0)
             ? hrtime(true) + ($durationMinutes * 60 * 1_000_000_000)
             : null;
 
@@ -162,7 +166,7 @@ final class ClientSimulationService
             }
         }
 
-        $queueMatches = $this->countQueueMatches($eventIds);
+        $queueMatches = $this->countQueueMatchesForEventIds($eventIds);
 
         return [
             'slug'                   => $slug,
@@ -210,7 +214,7 @@ final class ClientSimulationService
     /**
      * @param list<string> $eventIds
      */
-    private function countQueueMatches(array $eventIds): int
+    public function countQueueMatchesForEventIds(array $eventIds): int
     {
         if ($eventIds === []) {
             return 0;

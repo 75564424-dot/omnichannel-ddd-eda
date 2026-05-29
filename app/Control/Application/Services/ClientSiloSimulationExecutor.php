@@ -15,6 +15,8 @@ use RuntimeException;
  */
 final class ClientSiloSimulationExecutor
 {
+    private const DRAIN_CHUNK_SIZE = 5;
+
     public function __construct(
         private readonly ClientSimulationService $simulation,
         private readonly SimulationPulseService $simulationPulse,
@@ -62,26 +64,48 @@ final class ClientSiloSimulationExecutor
                 sampleTemplates: $templates,
                 onPublished: function (int $current, int $total, string $eventId, string $eventType) use ($onProgress): void {
                     $this->simulationPulse->tick('simulating', $eventType);
-                    $this->simulationDrainer->drain([$eventId]);
                     if ($onProgress !== null) {
                         $onProgress($current, $total);
                     }
                 },
             );
+
+            if ($result['validation_errors'] !== []) {
+                return [
+                    'published'         => 0,
+                    'queue_matches'     => 0,
+                    'event_ids'         => [],
+                    'validation_errors' => $result['validation_errors'],
+                ];
+            }
+
+            $this->drainPublishedEvents($result['event_ids']);
+
+            return [
+                'published'         => $result['published'],
+                'queue_matches'     => $this->simulation->countQueueMatchesForEventIds($result['event_ids']),
+                'event_ids'         => $result['event_ids'],
+                'validation_errors' => [],
+            ];
         } finally {
             $this->simulationScope->endDeferring();
-            $this->simulationPulse->clear();
+        }
+    }
+
+    /**
+     * @param list<string> $eventIds
+     */
+    private function drainPublishedEvents(array $eventIds): void
+    {
+        if ($eventIds === []) {
+            return;
         }
 
-        if ($result['validation_errors'] !== []) {
-            throw new RuntimeException('Validación de catálogo: '.implode('; ', $result['validation_errors']));
-        }
+        $this->simulationPulse->tick('processing');
 
-        return [
-            'published'         => $result['published'],
-            'queue_matches'     => $result['queue_matches'],
-            'event_ids'         => $result['event_ids'],
-            'validation_errors' => [],
-        ];
+        foreach (array_chunk($eventIds, self::DRAIN_CHUNK_SIZE) as $chunk) {
+            $this->simulationDrainer->drain($chunk);
+            $this->simulationPulse->tick('processing');
+        }
     }
 }

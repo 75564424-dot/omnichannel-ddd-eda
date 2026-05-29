@@ -98,8 +98,15 @@ final class ExecuteSimulationRunOnInstanceCommand extends Command
                 onProgress: $progressReporter->forRun($runId, $plannedTotal),
             );
 
+            $published = (int) $result['published'];
+            if ($published < $effectiveTotal) {
+                throw new \RuntimeException(
+                    "Solo se publicaron {$published} de {$effectiveTotal} eventos planificados.",
+                );
+            }
+
             $completionPayload = [
-                'published'     => $result['published'],
+                'published'     => $published,
                 'queue_matches' => $result['queue_matches'],
                 'event_ids'     => $result['event_ids'],
             ];

@@ -315,7 +315,8 @@ export default {
   },
   setup(props) {
     const POLL_SECONDS_IDLE = 45;
-    const POLL_SECONDS_ACTIVE = 3;
+    const POLL_SECONDS_ACTIVE = 1;
+    const POLL_QUEUE_ACTIVE = 1;
 
     const syncingRegistry = ref(false);
     const simulationPulse = ref({ active: false });
@@ -325,6 +326,7 @@ export default {
     const pollSeconds = ref(POLL_SECONDS_IDLE);
     const countdown = ref(POLL_SECONDS_IDLE);
     let refreshTimer = null;
+    let queueTimer = null;
     let countdownTimer = null;
 
     watch(() => props.queue, (q) => { liveQueue.value = [...(q ?? [])]; }, { deep: true });
@@ -588,13 +590,32 @@ export default {
       }
     }
 
+    async function refreshQueueOnly() {
+      try {
+        const [queueRes, pulseRes] = await Promise.all([
+          window.axios.get('/api/middleware/queue', { params: { limit: 100 } }),
+          window.axios.get('/api/middleware/simulation-pulse'),
+        ]);
+        liveQueue.value = queueRes.data?.data ?? queueRes.data ?? [];
+        simulationPulse.value = pulseRes.data?.data ?? pulseRes.data ?? { active: false };
+      } catch (e) {
+        console.error('Middleware queue refresh failed:', e);
+      }
+    }
+
     function applyPollCadence() {
-      const next = middlewareFlowActive.value ? POLL_SECONDS_ACTIVE : POLL_SECONDS_IDLE;
-      if (pollSeconds.value === next) return;
-      pollSeconds.value = next;
-      countdown.value = next;
+      const active = middlewareFlowActive.value;
+      const next = active ? POLL_SECONDS_ACTIVE : POLL_SECONDS_IDLE;
+      if (pollSeconds.value !== next) {
+        pollSeconds.value = next;
+        countdown.value = next;
+      }
       clearInterval(refreshTimer);
       refreshTimer = setInterval(refreshData, next * 1000);
+      clearInterval(queueTimer);
+      if (active) {
+        queueTimer = setInterval(refreshQueueOnly, POLL_QUEUE_ACTIVE * 1000);
+      }
     }
 
     async function refreshData() {
@@ -645,6 +666,7 @@ export default {
     });
     onUnmounted(() => {
       clearInterval(refreshTimer);
+      clearInterval(queueTimer);
       clearInterval(countdownTimer);
       stopNodesListener?.();
     });

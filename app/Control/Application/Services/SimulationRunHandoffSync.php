@@ -72,6 +72,18 @@ final class SimulationRunHandoffSync
             : [];
         $published = (int) ($payload['published'] ?? count($eventIds));
         $queueMatches = (int) ($payload['queue_matches'] ?? 0);
+        $planned = max(1, (int) $run->planned_total);
+
+        if ($published < $planned) {
+            $this->failureHandler->handle(
+                $run,
+                "Solo se publicaron {$published} de {$planned} eventos en el silo cliente.",
+                ['source' => 'handoff_terminal', 'published' => $published, 'planned_total' => $planned],
+            );
+            $this->handoffStore->forget($run->id);
+
+            return $run->fresh(['tenant']) ?? $run;
+        }
 
         $baselineBefore = is_array($run->metrics['resources']['baseline_before'] ?? null)
             ? $run->metrics['resources']['baseline_before']
