@@ -257,6 +257,7 @@ final class LocalFleetInstanceProvisioner
         $settings['deployment'] = [
             'mode'                 => 'instance_per_client',
             'status'               => 'active_on_instance',
+            'lifecycle'            => 'provisioned',
             'required_client_slug' => $tenant->slug,
             'local_instance'       => $localInstance,
             'provisioned_at'       => now()->toIso8601String(),

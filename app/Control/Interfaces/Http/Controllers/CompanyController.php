@@ -33,6 +33,7 @@ final class CompanyController
         private readonly TenantOperatorService $operators,
         private readonly InstanceDeploymentService $deployment,
         private readonly LocalFleetInstanceProvisioner $localFleet,
+        private readonly \App\Control\Application\Services\Tenants\TenantLifecycleOrchestrator $orchestrator,
     ) {}
 
     public function index(): Response
@@ -69,18 +70,37 @@ final class CompanyController
         return redirect()->route('control.companies.index')->with('message', $message);
     }
 
+    public function start(TenantModel $tenant): RedirectResponse
+    {
+        $this->orchestrator->start($tenant);
+
+        return back()->with('message', 'Instancia de empresa levantada correctamente.');
+    }
+
     public function suspend(TenantModel $tenant): RedirectResponse
     {
-        $this->admin->suspend($tenant);
+        $this->orchestrator->suspend($tenant);
 
-        return back()->with('message', 'Tenant suspendido.');
+        return back()->with('message', 'Servicio de empresa suspendido.');
     }
 
     public function activate(TenantModel $tenant): RedirectResponse
     {
-        $this->admin->activate($tenant);
+        $this->orchestrator->restore($tenant);
 
-        return back()->with('message', 'Tenant activado.');
+        return back()->with('message', 'Servicio de empresa restaurado.');
+    }
+
+    public function restore(TenantModel $tenant): RedirectResponse
+    {
+        $this->orchestrator->restore($tenant);
+
+        return back()->with('message', 'Servicio de empresa restaurado.');
+    }
+
+    public function lifecycleStatus(TenantModel $tenant): \Illuminate\Http\JsonResponse
+    {
+        return response()->json($this->orchestrator->lifecycleStatus($tenant));
     }
 
     public function updatePlan(Request $request, TenantModel $tenant): RedirectResponse

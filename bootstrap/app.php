@@ -50,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ValidateCsrfToken::class => VerifyCsrfToken::class,
         ]);
 
+        $middleware->web(prepend: [
+            \App\Http\Middleware\EnsureTenantOperationalStatus::class,
+        ]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,
@@ -57,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(prepend: [
+            \App\Http\Middleware\EnsureTenantOperationalStatus::class,
             EnsureFrontendRequestsAreStateful::class,
             CorrelationIdMiddleware::class,
             SecurityHeadersMiddleware::class,

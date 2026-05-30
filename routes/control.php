@@ -34,6 +34,10 @@ Route::middleware(['control.plane', 'auth.platform.web', 'control.web'])->prefix
         Route::get('/{tenant}', [CompanyController::class, 'show'])->name('show');
         Route::post('/{tenant}/suspend', [CompanyController::class, 'suspend'])->name('suspend');
         Route::post('/{tenant}/activate', [CompanyController::class, 'activate'])->name('activate');
+        Route::post('/{tenant}/lifecycle/start', [CompanyController::class, 'start'])->name('lifecycle.start');
+        Route::post('/{tenant}/lifecycle/suspend', [CompanyController::class, 'suspend'])->name('lifecycle.suspend');
+        Route::post('/{tenant}/lifecycle/restore', [CompanyController::class, 'restore'])->name('lifecycle.restore');
+        Route::get('/{tenant}/lifecycle/status', [CompanyController::class, 'lifecycleStatus'])->name('lifecycle.status');
         Route::patch('/{tenant}/plan', [CompanyController::class, 'updatePlan'])->name('update-plan');
         Route::patch('/{tenant}/modules', [CompanyController::class, 'updateModules'])->name('update-modules');
         Route::post('/{tenant}/operators', [CompanyController::class, 'storeOperator'])->name('operators.store');

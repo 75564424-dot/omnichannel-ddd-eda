@@ -53,6 +53,8 @@ return [
     */
     'control_plane' => (bool) env('PLATFORM_CONTROL_PLANE', false),
 
+    'lifecycle_v15' => (bool) env('PLATFORM_TENANT_LIFECYCLE_V15', true),
+
     /*
     |--------------------------------------------------------------------------
     | Dedicated instance URL template (SaaS UI hints)
@@ -83,6 +85,7 @@ return [
         'port_range_start'         => (int) env('PLATFORM_LOCAL_FLEET_PORT_START', 8001),
         'default_admin_password'   => env('PLATFORM_LOCAL_FLEET_DEFAULT_ADMIN_PASSWORD', 'client-local-dev'),
         'control_plane_slug'       => env('PLATFORM_LOCAL_FLEET_CONTROL_SLUG', 'platform'),
+        'stop_on_suspend'          => (bool) env('PLATFORM_LOCAL_FLEET_STOP_ON_SUSPEND', false),
     ],
 
     /*

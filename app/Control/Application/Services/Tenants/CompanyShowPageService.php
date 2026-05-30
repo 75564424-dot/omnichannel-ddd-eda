@@ -15,6 +15,7 @@ final class CompanyShowPageService
         private readonly TenantPresentationService $presentation,
         private readonly GetSystemNodeStatusUseCase $nodeStatus,
         private readonly InstanceDeploymentService $deployment,
+        private readonly TenantLifecycleOrchestrator $orchestrator,
     ) {}
 
     /** @return array<string, mixed> */
@@ -24,6 +25,13 @@ final class CompanyShowPageService
         if ($detail === null) {
             abort(404);
         }
+
+        $lifecycleDetails = $this->orchestrator->lifecycleStatus($tenant);
+        $detail = array_merge($detail, [
+            'lifecycle'         => $lifecycleDetails['lifecycle'],
+            'status'            => $lifecycleDetails['status'],
+            'actions_available' => $lifecycleDetails['actions_available'],
+        ]);
 
         $nodes = $this->nodeStatus->execute()->toArray();
 

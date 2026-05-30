@@ -65,12 +65,14 @@ final class TenantPresentationService
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
 
         $catalog = is_array($settings['modules_catalog'] ?? null) ? $settings['modules_catalog'] : [];
+        $lifecycle = \App\Control\Domain\Policies\TenantLifecyclePolicy::inferLifecycle($tenant);
 
         return [
             'id'         => $tenant->id,
             'slug'       => $tenant->slug,
             'name'       => $tenant->name,
             'status'     => $tenant->status,
+            'lifecycle'  => $lifecycle,
             'app_url'    => $settings['app_url'] ?? null,
             'plan'       => (string) ($settings['plan'] ?? 'unconfigured'),
             'modules_catalog' => [
