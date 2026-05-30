@@ -123,6 +123,11 @@ final class TenantModuleCatalogService
         }
 
         $path = ModulesConfigPath::resolve();
+        $directory = dirname($path);
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
         $catalog = $this->getCatalog($tenant);
 
         File::put(

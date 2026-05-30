@@ -91,7 +91,11 @@ final class ControlPlaneFleetBootstrapService
             $settings = [];
         }
 
-        $existing = TenantModel::query()->where('slug', $slug)->first();
+        $existing = TenantModel::query()->withTrashed()->where('slug', $slug)->first();
+        if ($existing?->trashed()) {
+            $existing->restore();
+        }
+
         $tenant = TenantModel::query()->updateOrCreate(
             ['slug' => $slug],
             [
