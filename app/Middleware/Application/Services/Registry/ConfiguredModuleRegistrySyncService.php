@@ -55,9 +55,11 @@ final class ConfiguredModuleRegistrySyncService
             }
         }
 
-        [$p, $c] = $this->syncDeclarativeCatalogFromConfig($producerSeen, $consumerSeen);
-        $producerBindings += $p;
-        $consumerBindings += $c;
+        if ($producerBindings === 0 && $consumerBindings === 0) {
+            [$p, $c] = $this->syncDeclarativeCatalogFromConfig($producerSeen, $consumerSeen);
+            $producerBindings += $p;
+            $consumerBindings += $c;
+        }
 
         return [
             'producer_bindings' => $producerBindings,

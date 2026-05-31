@@ -60,6 +60,8 @@ final class TenantLifecycleTest extends TestCase
 
     public function test_middleware_blocks_suspended_tenant_in_silo(): void
     {
+        config(['platform.control_plane' => false]);
+
         // Mock the InstanceTenantContextInterface
         $context = $this->createMock(InstanceTenantContextInterface::class);
         $context->method('tenantId')->willReturn('1234-5678');
@@ -87,11 +89,14 @@ final class TenantLifecycleTest extends TestCase
         });
 
         $this->assertEquals(503, $response->getStatusCode());
-        $this->assertStringContainsString('Servicio Suspendido', $response->getContent());
+        $this->assertStringContainsString('Tenant\/Suspended', $response->getContent());
+        $this->assertStringContainsString('temporalmente suspendido', $response->getContent());
     }
 
     public function test_middleware_allows_active_tenant_in_silo(): void
     {
+        config(['platform.control_plane' => false]);
+
         // Mock the InstanceTenantContextInterface
         $context = $this->createMock(InstanceTenantContextInterface::class);
         $context->method('tenantId')->willReturn('1234-5678');

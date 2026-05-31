@@ -283,6 +283,7 @@
             <th class="px-6 py-3">Slug</th>
 
             <th class="px-6 py-3">Estado</th>
+            <th class="px-6 py-3">Servicio</th>
 
             <th class="px-6 py-3">Módulos</th>
 
@@ -300,7 +301,16 @@
 
             <td class="px-6 py-3 font-mono text-xs">{{ t.slug }}</td>
 
-            <td class="px-6 py-3 uppercase text-xs">{{ t.status }}</td>
+            <td class="px-6 py-3">
+              <span class="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase text-[#b9cacb]">
+                {{ statusLabel(t.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-3">
+              <span class="rounded px-2 py-1 text-[10px] font-bold uppercase" :class="lifecycleClass(t.lifecycle)">
+                {{ lifecycleLabel(t.lifecycle) }}
+              </span>
+            </td>
 
             <td class="px-6 py-3 font-mono text-xs text-[#b9cacb]">
 
@@ -320,7 +330,7 @@
 
           <tr v-if="tenants.length === 0">
 
-            <td colspan="5" class="px-6 py-10 text-center text-[#849495]">
+            <td colspan="6" class="px-6 py-10 text-center text-[#849495]">
 
               Sin empresas. Cree una en <Link href="/control/provisioning" class="text-[#00dbe7]">Provisioning</Link>.
 
@@ -437,6 +447,32 @@ const canSubmitSimulation = computed(
 
 
 const estimatedMinutes = computed(() => Number(simForm.duration_minutes) || 1);
+
+function statusLabel(status) {
+  return status === 'suspended' ? 'Suspendido' : 'Activo';
+}
+
+function lifecycleLabel(lifecycle) {
+  const map = {
+    provisioned: 'Provisionado',
+    running: 'En ejecucion',
+    stopped: 'Detenido',
+  };
+
+  return map[lifecycle] || lifecycle || 'Sin estado';
+}
+
+function lifecycleClass(lifecycle) {
+  if (lifecycle === 'running') {
+    return 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
+  }
+
+  if (lifecycle === 'stopped') {
+    return 'border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 text-[#ffb4ab]';
+  }
+
+  return 'border border-amber-500/30 bg-amber-500/10 text-amber-200';
+}
 
 
 

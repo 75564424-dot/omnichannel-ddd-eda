@@ -111,8 +111,8 @@ final class DashboardEndpointsTest extends TestCase
                 'middleware' => ['id', 'name', 'description', 'role'],
                 'service_contact_message',
             ])
-            ->assertJsonPath('producers', [])
-            ->assertJsonPath('subscribers', [])
+            ->assertJsonPath('producers.0.id', 'acme_pos')
+            ->assertJsonPath('subscribers.0.id', 'acme_reporting')
             ->assertJsonPath('middleware.id', 'middleware');
     }
 

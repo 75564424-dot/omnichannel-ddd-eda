@@ -1,0 +1,30 @@
+{
+  "service_contact_message": "Catalogo tecnico de Pruebas Retail.",
+  "middleware": {
+    "id": "middleware",
+    "name": "Middleware bus",
+    "description": "Catalogo aislado para pruebas de cliente.",
+    "role": "routing"
+  },
+  "producers": [
+    {
+      "id": "prueba01_pos",
+      "name": "Prueba 01 POS",
+      "event_types_emitted": [
+        "prueba01.sale.complete"
+      ],
+      "channels": [
+        "POS"
+      ]
+    }
+  ],
+  "subscribers": [
+    {
+      "id": "prueba01_reporting",
+      "name": "Prueba 01 Reporting",
+      "event_types_consumed": [
+        "prueba01.sale.complete"
+      ]
+    }
+  ]
+}

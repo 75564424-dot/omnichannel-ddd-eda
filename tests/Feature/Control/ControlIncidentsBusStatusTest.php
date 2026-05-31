@@ -19,6 +19,7 @@ final class ControlIncidentsBusStatusTest extends TestCase
     public function incidents_page_shows_active_bus_without_bus_stopped_alert_when_idle(): void
     {
         config([
+            'platform.control_plane' => true,
             'platform_monitoring.enabled' => true,
             'platform_auth.web_auth_enabled' => true,
         ]);

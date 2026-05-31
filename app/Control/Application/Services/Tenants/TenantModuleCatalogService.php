@@ -58,6 +58,11 @@ final class TenantModuleCatalogService
             return $fromInstance;
         }
 
+        $fromFixture = $this->catalogFromVersionedFixture($tenant->slug);
+        if ($fromFixture !== null) {
+            return $fromFixture;
+        }
+
         return $this->defaultCatalogForTenant($tenant);
     }
 
@@ -70,6 +75,26 @@ final class TenantModuleCatalogService
         }
 
         $path = base_path('config/modules/instances/'.$slug.'/modules_config.json');
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded)
+            ? $this->normalizeCatalog($decoded, $slug)
+            : null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function catalogFromVersionedFixture(string $tenantSlug): ?array
+    {
+        $slug = Str::slug($tenantSlug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $path = base_path('tests/Fixtures/clients/'.$slug.'/modules_config.json');
         if (! is_file($path)) {
             return null;
         }

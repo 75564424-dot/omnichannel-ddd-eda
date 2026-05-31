@@ -68,7 +68,7 @@ final class RoleBasedAuthorizationTest extends TestCase
     #[Test]
     public function saas_admin_can_access_control_user_management(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config(['platform.control_plane' => true, 'platform_auth.web_auth_enabled' => true]);
 
         $saas = User::query()->create([
             'name'          => 'SaaS',
@@ -85,7 +85,7 @@ final class RoleBasedAuthorizationTest extends TestCase
     #[Test]
     public function platform_admin_cannot_access_control_user_management(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config(['platform.control_plane' => true, 'platform_auth.web_auth_enabled' => true]);
 
         $admin = User::query()->create([
             'name'          => 'Admin',
@@ -102,7 +102,7 @@ final class RoleBasedAuthorizationTest extends TestCase
     #[Test]
     public function bus_operator_cannot_access_control_companies(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config(['platform.control_plane' => true, 'platform_auth.web_auth_enabled' => true]);
 
         $user = User::query()->create([
             'name'          => 'Operator',

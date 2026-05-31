@@ -29,7 +29,7 @@ final class ClientDashboardModulesService
     public function presentationCatalog(): array
     {
         $saas = $this->saasCatalog();
-        $visible = $this->visibleModuleIds();
+        $visible = $this->visibleModuleIds($saas);
 
         return [
             'middleware'              => $saas['middleware'],
@@ -72,17 +72,23 @@ final class ClientDashboardModulesService
     }
 
     /** @return array{producers: list<string>, subscribers: list<string>} */
-    private function visibleModuleIds(): array
+    private function visibleModuleIds(array $saasCatalog): array
     {
         $tenant = $this->resolveTenant();
         if ($tenant === null) {
-            return ['producers' => [], 'subscribers' => []];
+            return [
+                'producers' => $this->moduleIds($saasCatalog['producers'] ?? []),
+                'subscribers' => $this->moduleIds($saasCatalog['subscribers'] ?? []),
+            ];
         }
 
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
         $stored = $settings[self::SETTINGS_KEY] ?? null;
         if (! is_array($stored)) {
-            return ['producers' => [], 'subscribers' => []];
+            return [
+                'producers' => $this->moduleIds($saasCatalog['producers'] ?? []),
+                'subscribers' => $this->moduleIds($saasCatalog['subscribers'] ?? []),
+            ];
         }
 
         return [
@@ -164,6 +170,12 @@ final class ClientDashboardModulesService
         }
 
         return $set;
+    }
+
+    /** @param list<array<string, mixed>> $modules */
+    private function moduleIds(array $modules): array
+    {
+        return array_keys($this->moduleIdSet($modules));
     }
 
     /**

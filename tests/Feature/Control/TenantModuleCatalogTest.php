@@ -18,7 +18,10 @@ final class TenantModuleCatalogTest extends TestCase
     #[Test]
     public function saas_admin_can_save_tenant_module_catalog(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config([
+            'platform.control_plane' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $tenant = TenantModel::query()->create([
             'id'       => '33333333-3333-3333-3333-333333333333',

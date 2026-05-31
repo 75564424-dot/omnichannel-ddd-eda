@@ -18,7 +18,11 @@ final class TenantOperatorsScopedTest extends TestCase
     #[Test]
     public function company_show_lists_only_operators_for_that_tenant(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config([
+            'platform.control_plane' => true,
+            'platform.multi_tenant_portal_login' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $acme = TenantModel::query()->create([
             'id'     => '11111111-1111-1111-1111-111111111111',
@@ -73,7 +77,11 @@ final class TenantOperatorsScopedTest extends TestCase
     #[Test]
     public function created_operator_is_bound_to_tenant(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config([
+            'platform.control_plane' => true,
+            'platform.multi_tenant_portal_login' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $tenant = TenantModel::query()->create([
             'id'     => '33333333-3333-3333-3333-333333333333',
@@ -138,7 +146,7 @@ final class TenantOperatorsScopedTest extends TestCase
     #[Test]
     public function saas_admin_can_reset_operator_password_for_tenant(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config(['platform.control_plane' => true, 'platform_auth.web_auth_enabled' => true]);
 
         $tenant = TenantModel::query()->create([
             'id'     => '66666666-6666-6666-6666-666666666666',
@@ -178,7 +186,7 @@ final class TenantOperatorsScopedTest extends TestCase
     #[Test]
     public function cannot_reset_password_for_operator_of_another_tenant(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config(['platform.control_plane' => true, 'platform_auth.web_auth_enabled' => true]);
 
         $tenantA = TenantModel::query()->create([
             'id'     => '77777777-7777-7777-7777-777777777777',

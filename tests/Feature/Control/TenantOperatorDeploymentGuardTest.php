@@ -20,7 +20,7 @@ final class TenantOperatorDeploymentGuardTest extends TestCase
     {
         config([
             'platform.client_slug' => 'acme-retail',
-            'platform.control_plane' => false,
+            'platform.control_plane' => true,
             'platform.multi_tenant_portal_login' => false,
             'platform_auth.web_auth_enabled' => true,
         ]);
