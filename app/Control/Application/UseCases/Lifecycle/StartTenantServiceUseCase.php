@@ -7,8 +7,8 @@ namespace App\Control\Application\UseCases\Lifecycle;
 use App\Control\Domain\Events\TenantLifecycleStarted;
 use App\Control\Domain\Policies\TenantLifecyclePolicy;
 use App\Shared\Infrastructure\Models\TenantModel;
-use App\Shared\Platform\LocalFleet\LocalFleetProcessSupervisor;
-use App\Shared\Platform\LocalFleet\LocalFleetTenantMirror;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetProcessSupervisorInterface;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
@@ -16,8 +16,8 @@ use RuntimeException;
 final class StartTenantServiceUseCase
 {
     public function __construct(
-        private readonly LocalFleetProcessSupervisor $supervisor,
-        private readonly LocalFleetTenantMirror $mirror,
+        private readonly LocalFleetProcessSupervisorInterface $supervisor,
+        private readonly LocalFleetTenantMirrorInterface $mirror,
     ) {}
 
     public function execute(TenantModel $tenant): void

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Shared\Platform\LocalFleet;
 
 use Illuminate\Support\Facades\Log;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetProcessSupervisorInterface;
 
-final class LocalFleetProcessSupervisor
+final class LocalFleetProcessSupervisor implements LocalFleetProcessSupervisorInterface
 {
     /**
      * Checks if the instance process is currently listening on its port.

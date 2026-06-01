@@ -11,8 +11,9 @@ Cumple.
 - UI control plane usa acciones contextuales de lifecycle.
 - Pagina `Tenant/Suspended` creada y compilada.
 - Registry sync, EventBus, Dashboard, Middleware, Simulacion, Roles, Operadores, Login, Tenant Resolution y Control Plane pasan suite completa.
-- `vendor/bin/phpunit`: OK, 263 tests, 912 assertions.
+- `vendor/bin/phpunit`: OK, 275 tests, 972 assertions.
 - `npm.cmd run build`: OK.
+- `npm.cmd run test:ui`: OK (Playwright).
 
 ## Correcciones realizadas
 
@@ -56,6 +57,7 @@ Cumple.
 
 - Suite completa verde.
 - Build frontend verde.
+- Playwright UI suite verde.
 - Flujo lifecycle completo cubierto por endpoints, middleware, login, dashboard, API y pruebas de integracion.
 - No hay regresiones criticas detectadas en Provisioning, Login, Operadores, Roles, Fleet, Registry, EventBus, Dashboard, Middleware, Simulacion, Tenant Resolution ni Control Plane.
 
@@ -80,4 +82,4 @@ Cumple.
 
 ## Certificacion final
 
-READY FOR PHASE 6
+READY FOR PHASE 7

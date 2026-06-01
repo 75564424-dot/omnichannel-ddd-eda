@@ -11,6 +11,8 @@ use App\Shared\Platform\LocalFleet\LocalFleetRegistry;
 use App\Shared\Platform\LocalFleet\LocalFleetSyncService;
 use App\Shared\Platform\LocalFleet\LocalFleetTenantMirror;
 use App\Shared\Platform\LocalFleet\LocalFleetProcessSupervisor;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetProcessSupervisorInterface;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
 use Illuminate\Contracts\Foundation\Application;
 
 final class LocalFleetBindingsRegistrar
@@ -32,9 +34,12 @@ final class LocalFleetBindingsRegistrar
             $app->make(LocalFleetEnvBuilder::class),
         ));
 
+        $app->singleton(LocalFleetTenantMirrorInterface::class, fn ($app) => $app->make(LocalFleetTenantMirror::class));
+
         $app->singleton(LocalFleetSyncService::class);
         $app->singleton(LocalFleetOrphanPruner::class);
         $app->singleton(LocalFleetProcessSupervisor::class, fn () => new LocalFleetProcessSupervisor());
+        $app->singleton(LocalFleetProcessSupervisorInterface::class, fn ($app) => $app->make(LocalFleetProcessSupervisor::class));
 
         $app->singleton(LocalFleetInstanceProvisioner::class, function ($app) {
             $config = config('platform.local_fleet', []);

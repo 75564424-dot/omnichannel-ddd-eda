@@ -6,6 +6,7 @@ namespace App\Shared\Platform\LocalFleet;
 
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ use Illuminate\Support\Str;
 /**
  * Mirrors control-plane tenant settings and operators into a client silo SQLite DB.
  */
-final class LocalFleetTenantMirror
+final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
 {
     public function __construct(
         private readonly LocalFleetEnvBuilder $envBuilder,
