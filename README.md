@@ -2,6 +2,12 @@
 
 Plataforma middleware con **control plane SaaS** (`:8000`) y **un silo Laravel por cliente** (`:8001+`), cada uno con su propia base SQLite, `.env` y catálogo de módulos.
 
+## Puertos base (v1.6)
+
+- **Puerto del control plane:** 8000 (definido en `deploy/local-instances/instances.json`).
+- **Base de puertos de tenants:** `PLATFORM_LOCAL_FLEET_PORT_START` (alias conceptual: `BASE_TENANT_PORT`).
+- **Convencion:** el primer tenant usa `PLATFORM_LOCAL_FLEET_PORT_START`, el siguiente incrementa en 1.
+
 ## Requisitos
 
 - PHP 8.2+
@@ -61,6 +67,25 @@ Levanta en paralelo:
 | http://127.0.0.1:8002 | Pruebas Retail | `prueba@prueba` / `client-local-dev` |
 
 Panel de empresas: http://127.0.0.1:8000/control/companies
+
+## Routing amigable (v1.6)
+
+Con `PLATFORM_FRIENDLY_ROUTING=true` en `.env.control-plane`, el control plane expone URLs de ruta amigable que redirigen (HTTP 302) al silo por puerto:
+
+```
+http://127.0.0.1:8000/{slug}/login  →  http://127.0.0.1:800X/login
+http://127.0.0.1:8000/{slug}/       →  http://127.0.0.1:800X/login  (root redirige a login)
+http://127.0.0.1:8000/{slug}/{path} →  http://127.0.0.1:800X/{path}
+```
+
+Requisitos para que un tenant reciba la redirección:
+- `status = active` en la tabla `tenants` del control plane.
+- `settings.deployment.local_instance.app_url` presente (se escribe al provisionar desde `/control/provisioning`).
+- El flag `PLATFORM_FRIENDLY_ROUTING=true` en el `.env` del control plane.
+
+Los silos siguen siendo accesibles directamente por puerto. El routing amigable es un overlay aditivo.
+
+Ver [ADR-011](docs/production/ADR_011_friendly_routing_multitenant.md) para la decisión arquitectónica completa.
 
 ## Comandos útiles
 

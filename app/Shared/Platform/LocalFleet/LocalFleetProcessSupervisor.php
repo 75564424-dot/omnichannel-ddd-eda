@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Platform\LocalFleet;
 
+use App\Shared\Platform\LocalInstanceEnvironmentLoader;
 use Illuminate\Support\Facades\Log;
 use App\Shared\Platform\LocalFleet\Contracts\LocalFleetProcessSupervisorInterface;
 
@@ -35,14 +36,26 @@ final class LocalFleetProcessSupervisor implements LocalFleetProcessSupervisorIn
         }
 
         $artisan = base_path('artisan');
-        
-        // Escape paths for safety
         $php = PHP_BINARY ?: 'php';
-        
+        if (str_contains(strtolower($php), 'php-cgi')) {
+            $php = 'php';
+        }
+
+        $workerEnv = (new LocalInstanceEnvironmentLoader())->criticalForWorker($envId);
+        $workerEnv['APP_ENV'] = $envId;
+
         if (PHP_OS_FAMILY === 'Windows') {
-            // Detached process on Windows
+            $setCommands = [];
+            foreach ($workerEnv as $key => $value) {
+                if (! is_string($key) || $key === '') {
+                    continue;
+                }
+                $setCommands[] = sprintf('set "%s=%s"', $key, str_replace('"', '\"', (string) $value));
+            }
+            $setPrefix = $setCommands !== [] ? implode(' && ', $setCommands).' && ' : '';
             $command = sprintf(
-                'start /B "" "%s" "%s" --env=%s serve --host=127.0.0.1 --port=%d > NUL 2>&1',
+                '%sstart /B "" "%s" "%s" --env=%s serve --host=127.0.0.1 --port=%d > NUL 2>&1',
+                $setPrefix,
                 $php,
                 $artisan,
                 $envId,
@@ -50,9 +63,16 @@ final class LocalFleetProcessSupervisor implements LocalFleetProcessSupervisorIn
             );
             pclose(popen($command, 'r'));
         } else {
-            // Detached process on Linux/Unix
+            $prefix = '';
+            foreach ($workerEnv as $key => $value) {
+                if (! is_string($key) || $key === '') {
+                    continue;
+                }
+                $prefix .= sprintf('%s=%s ', $key, escapeshellarg((string) $value));
+            }
             $command = sprintf(
-                '"%s" "%s" --env=%s serve --host=127.0.0.1 --port=%d > /dev/null 2>&1 &',
+                '%s"%s" "%s" --env=%s serve --host=127.0.0.1 --port=%d > /dev/null 2>&1 &',
+                $prefix,
                 $php,
                 $artisan,
                 $envId,

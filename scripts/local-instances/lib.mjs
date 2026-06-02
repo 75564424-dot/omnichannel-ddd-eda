@@ -152,7 +152,10 @@ export function spawnArtisanServe(instance, onExit) {
             cwd: root,
             stdio: 'inherit',
             shell: false,
-            env: process.env,
+            env: {
+                ...process.env,
+                APP_ENV: instance.id,
+            },
         },
     );
 

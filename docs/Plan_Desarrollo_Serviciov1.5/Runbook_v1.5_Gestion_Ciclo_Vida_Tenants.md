@@ -437,10 +437,10 @@ v1.5 **no** introduce multi-tenant runtime. Refuerza lifecycle **por silo** cohe
 
 **Criterios de aceptación:**
 
-- [ ] Nuevo tenant operativo sin reiniciar CP ni otros silos.
-- [ ] Suspendido: sin login/dashboard/API operativa.
-- [ ] Restaurar desde suspendido: acceso inmediato.
-- [ ] Compatible ADR-001 y fleet local documentado.
+- [x] Nuevo tenant operativo sin reiniciar CP ni otros silos.
+- [x] Suspendido: sin login/dashboard/API operativa.
+- [x] Restaurar desde suspendido: acceso inmediato.
+- [x] Compatible ADR-001 y fleet local documentado.
 
 ---
 

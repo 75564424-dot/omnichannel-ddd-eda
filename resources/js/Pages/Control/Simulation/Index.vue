@@ -147,6 +147,8 @@ const filterForm = reactive({
 
 const liveRuns = ref([...(props.runs?.data ?? [])]);
 let pollTimer = null;
+let pollCycles = 0;
+const MAX_POLL_CYCLES = 150; // 5 min at 2 s/cycle — forces server reload (stale guard) if exceeded
 
 function mergeRunsFromServer(rows) {
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -235,6 +237,14 @@ async function pollActiveRuns() {
     return;
   }
 
+  pollCycles++;
+  if (pollCycles > MAX_POLL_CYCLES) {
+    stopPolling();
+    pollCycles = 0;
+    router.reload({ only: ['runs'] });
+    return;
+  }
+
   await Promise.all(
     active.map(async (run) => {
       const data = await fetchRunStatus(run.id);
@@ -256,6 +266,7 @@ function stopPolling() {
 
 function startPolling() {
   stopPolling();
+  pollCycles = 0;
   if (!hasActiveRuns.value) return;
   pollActiveRuns();
   pollTimer = setInterval(pollActiveRuns, 2000);

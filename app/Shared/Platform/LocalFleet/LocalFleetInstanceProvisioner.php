@@ -6,6 +6,7 @@ namespace App\Shared\Platform\LocalFleet;
 
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalInstanceEnvironmentLoader;
 use App\Shared\Platform\Services\InstanceDeploymentService;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
@@ -193,11 +194,11 @@ final class LocalFleetInstanceProvisioner
 
     private function runInstanceBootstrap(string $envId): void
     {
-        $this->runArtisanProcess($envId, 'migrate', ['--force' => true]);
-        $this->runArtisanProcess($envId, 'platform:instance:bootstrap', ['--skip-admin' => true]);
+        $this->runArtisanProcess($envId, 'migrate', ['force' => true]);
+        $this->runArtisanProcess($envId, 'platform:instance:bootstrap', ['skip-admin' => true]);
         $this->runArtisanProcess($envId, 'db:seed', [
-            '--class' => 'Database\\Seeders\\MiddlewareDatabaseSeeder',
-            '--force' => true,
+            'class' => 'Database\\Seeders\\MiddlewareDatabaseSeeder',
+            'force' => true,
         ]);
     }
 
@@ -223,7 +224,20 @@ final class LocalFleetInstanceProvisioner
      */
     private function runArtisanProcess(string $envId, string $command, array $arguments = []): void
     {
-        $params = ['php', 'artisan', $command];
+        $phpBinary = PHP_BINARY !== '' ? PHP_BINARY : 'php';
+        if (str_contains(strtolower($phpBinary), 'php-cgi')) {
+            $phpBinary = 'php';
+        }
+        $params = [
+            $phpBinary,
+            '-d',
+            'register_argc_argv=1',
+            '-d',
+            'variables_order=EGPCS',
+            'artisan',
+            '--env='.$envId,
+            $command,
+        ];
 
         foreach ($arguments as $key => $value) {
             if (is_int($key)) {
@@ -235,9 +249,10 @@ final class LocalFleetInstanceProvisioner
             }
         }
 
-        $params[] = '--env='.$envId;
-
-        $process = new Process($params, base_path());
+        $envFileVars = (new LocalInstanceEnvironmentLoader())->load($envId);
+        $env = array_merge($_SERVER, $_ENV, $envFileVars, ['APP_ENV' => $envId]);
+        $env = array_filter($env, static fn ($value) => is_scalar($value) || $value === null);
+        $process = new Process($params, base_path(), $env);
         $process->setTimeout(600);
         $process->run();
 

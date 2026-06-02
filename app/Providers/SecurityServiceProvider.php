@@ -14,6 +14,7 @@ use App\Http\Middleware\EnsurePlatformWebAuth;
 use App\Http\Middleware\EnsurePlatformRole;
 use App\Http\Middleware\EnsureSimulationInternalRequest;
 use App\Http\Middleware\EnforcePlatformAbility;
+use App\Http\Middleware\ResolveTenantFromRoutePath;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Providers\Registrars\PlatformRateLimitConfigurator;
 use App\Shared\Security\Contracts\AuditLogWriterInterface;
@@ -52,6 +53,7 @@ final class SecurityServiceProvider extends ServiceProvider
             'platform.ability' => EnforcePlatformAbility::class,
             'platform.audit' => AuditControlPlaneMiddleware::class,
             'security.headers' => SecurityHeadersMiddleware::class,
+            'tenant.path.resolver' => ResolveTenantFromRoutePath::class,
         ];
     }
 }

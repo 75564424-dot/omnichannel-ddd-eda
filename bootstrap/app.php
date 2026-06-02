@@ -43,6 +43,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Route::middleware('web')->group(base_path('routes/control.php'));
             Route::get('/health/ready', ReadinessController::class)->name('health.ready');
+            // tenant_portal MUST be last: its /{tenant_slug}/{path} wildcard must not shadow exact routes above.
+            Route::middleware('web')->group(base_path('routes/tenant_portal.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {

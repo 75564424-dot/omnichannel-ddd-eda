@@ -1,2 +1,0 @@
-[2026-05-28 22:23:50] Starting: C:\xampp\php\php.exe D:\omnichannel-ddd-eda\artisan platform:simulation:execute-run 6352d28e-dc85-4192-85b5-4bfbe8a14e8d --env=client-pruebas-retail --no-ansi
-This command must run on a client silo (--env=client-...), not the control plane.

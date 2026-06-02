@@ -88,8 +88,8 @@ final class SimulationRunReportTest extends TestCase
         $this->actingAs($saas)
             ->get("/control/simulations/{$runId}/status")
             ->assertOk()
-            ->assertJsonPath('data.run.status', SimulationRunModel::STATUS_COMPLETED)
-            ->assertJsonStructure(['data' => ['run' => ['progress_percent'], 'metrics' => ['summary']]]);
+            ->assertJsonPath('run.status', SimulationRunModel::STATUS_COMPLETED)
+            ->assertJsonStructure(['run' => ['progress_percent'], 'metrics' => ['summary']]);
 
         $this->actingAs($saas)
             ->get("/control/simulations/{$runId}/report")

@@ -66,7 +66,7 @@ final class SimulationRunController
     {
         Gate::authorize('platform.manage-users');
 
-        return response()->json(['data' => $this->runs->statusPayload($run)]);
+        return response()->json($this->runs->statusPayload($run));
     }
 
     public function report(SimulationRunModel $run): Response
