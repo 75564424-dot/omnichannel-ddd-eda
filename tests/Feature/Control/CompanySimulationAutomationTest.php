@@ -24,6 +24,7 @@ final class CompanySimulationAutomationTest extends TestCase
         config([
             'platform.control_plane' => true,
             'platform.client_slug' => 'acme-retail',
+            'platform.local_fleet.auto_provision' => false,
             'platform_auth.web_auth_enabled' => true,
         ]);
 
@@ -80,7 +81,7 @@ final class CompanySimulationAutomationTest extends TestCase
     }
 
     #[Test]
-    public function control_plane_lists_all_active_tenants_as_simulatable(): void
+    public function control_plane_marks_tenants_without_explicit_catalog_as_not_simulatable(): void
     {
         config([
             'platform.client_slug'     => 'platform',
@@ -116,8 +117,9 @@ final class CompanySimulationAutomationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Control/Companies/Index')
-                ->where('tenants.0.can_simulate', true)
-                ->where('tenants.1.can_simulate', true));
+                ->where('tenants.0.can_simulate', false)
+                ->where('tenants.1.can_simulate', false)
+                ->where('tenants.0.simulate_block_reason', 'No hay catálogo de módulos configurado explícitamente para esta empresa.'));
     }
 
     #[Test]
@@ -151,6 +153,44 @@ final class CompanySimulationAutomationTest extends TestCase
                 ->component('Control/Companies/Index')
                 ->has('simulation_defaults')
                 ->has('tenants', 1)
-                ->where('tenants.0.can_simulate', true));
+                ->where('tenants.0.can_simulate', false));
+    }
+
+    #[Test]
+    public function simulation_post_is_rejected_when_tenant_has_no_explicit_catalog(): void
+    {
+        config([
+            'platform.control_plane' => true,
+            'platform.client_slug' => 'platform',
+            'platform_auth.web_auth_enabled' => true,
+        ]);
+
+        $this->withoutMiddleware(VerifyCsrfToken::class);
+
+        $tenant = TenantModel::query()->create([
+            'id'     => '11111111-1111-1111-1111-111111111111',
+            'name'   => 'Tenant Test Branding',
+            'slug'   => 'tenant-test-branding',
+            'status' => 'active',
+            'settings' => [],
+        ]);
+
+        $saas = User::query()->create([
+            'name'          => 'SaaS',
+            'email'         => 'saas@local',
+            'password'      => Hash::make('secret'),
+            'platform_role' => 'saas_admin',
+        ]);
+
+        $this->actingAs($saas)
+            ->post('/control/companies/simulation', [
+                'tenant_id'         => $tenant->id,
+                'events_per_minute' => 2,
+                'duration_minutes'  => 1,
+                'prepare_first'     => true,
+            ])
+            ->assertSessionHasErrors('simulation');
+
+        $this->assertSame(0, SimulationRunModel::query()->count());
     }
 }

@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Simulation\Application\Services\Execution;
 
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
+use App\Shared\Platform\Services\TenantCatalogSampleEventBuilder;
 use Illuminate\Support\Str;
 
 final class SimulationTenantEligibilityChecker
 {
     public function __construct(
-        private readonly SimulationFixtureResolver $fixtureResolver,
+        private readonly TenantModuleCatalogService $moduleCatalog,
+        private readonly TenantCatalogSampleEventBuilder $sampleEventBuilder,
+        private readonly LocalFleetInstanceProvisioner $fleetProvisioner,
     ) {}
 
     public function canSimulateTenant(TenantModel $tenant): bool
@@ -24,8 +29,30 @@ final class SimulationTenantEligibilityChecker
             return 'La empresa no está activa.';
         }
 
-        if (! $this->fixtureResolver->hasSimulationSource($tenant)) {
-            return 'No hay catálogo de módulos ni fixture de simulación para esta empresa.';
+        $catalog = $this->moduleCatalog->storedCatalog($tenant);
+        if ($catalog === null) {
+            return 'No hay catálogo de módulos configurado explícitamente para esta empresa.';
+        }
+
+        $producers = $catalog['producers'] ?? [];
+        if (! is_array($producers) || $producers === []) {
+            return 'El catálogo no define productores; solo middleware no es suficiente para simular.';
+        }
+
+        if ($this->sampleEventBuilder->fromCatalog($catalog) === []) {
+            return 'Ningún productor define tipos de evento emitidos (event_types_emitted).';
+        }
+
+        if ($this->fleetProvisioner->isEnabled()) {
+            $settings = is_array($tenant->settings) ? $tenant->settings : [];
+            $localInstance = $settings['deployment']['local_instance'] ?? null;
+            if (! is_array($localInstance) || empty($localInstance['app_url'])) {
+                return 'La empresa no tiene silo moderno provisionado (sin local_instance.app_url).';
+            }
+
+            if (! $this->fleetProvisioner->isProvisioned($tenant)) {
+                return 'La empresa no está registrada en la flota local.';
+            }
         }
 
         if ($this->restrictsSimulationToCurrentClientSilo()) {

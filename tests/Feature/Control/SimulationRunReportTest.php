@@ -55,6 +55,7 @@ final class SimulationRunReportTest extends TestCase
         config([
             'platform.control_plane' => true,
             'platform.client_slug' => 'acme-retail',
+            'platform.local_fleet.auto_provision' => false,
             'platform_auth.web_auth_enabled' => true,
         ]);
 

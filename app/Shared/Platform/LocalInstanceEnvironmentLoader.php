@@ -12,11 +12,14 @@ final class LocalInstanceEnvironmentLoader
     /** @var list<string> */
     private const CRITICAL_KEYS = [
         'APP_KEY',
+        'APP_NAME',
         'APP_URL',
         'DB_CONNECTION',
         'DB_DATABASE',
         'CACHE_STORE',
         'SESSION_DRIVER',
+        'SESSION_COOKIE',
+        'SESSION_XSRF_COOKIE',
         'QUEUE_CONNECTION',
         'PLATFORM_DEPLOYMENT_MODE',
         'PLATFORM_CLIENT_SLUG',

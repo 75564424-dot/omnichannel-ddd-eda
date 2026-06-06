@@ -7,6 +7,8 @@
 /storage/pail
 /vendor
 .env
+.env.*
+!.env.example
 .env.backup
 .phpactor.json
 .phpunit.result.cache
@@ -28,4 +30,16 @@ yarn-error.log
 /database/database.sqlite
 /public/build
 /storage/logs
+/storage/framework/views/
 /storage/app/simulation-launchers/
+/storage/app/simulation-handoff/
+/database/instances/*.sqlite
+!/database/instances/.gitkeep
+/database/instances/*.sqlite-shm
+/database/instances/*.sqlite-wal
+/storage/app/simulation-pulse.json
+/database/instances/acme-retail.sqlite
+/database/instances/pruebas-retail.sqlite
+/database/instances/lifecycle-test.sqlite
+/database/instances/unaprueba.sqlite
+/database/instances/tenant-test-*.sqlite

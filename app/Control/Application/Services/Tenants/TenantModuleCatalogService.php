@@ -43,14 +43,29 @@ final class TenantModuleCatalogService
         ];
     }
 
-    /** @return array<string, mixed> */
-    public function getCatalog(TenantModel $tenant): array
+    /**
+     * Catalog persisted in tenant settings only (no instance file, fixture, or blueprint fallback).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function storedCatalog(TenantModel $tenant): ?array
     {
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
         $stored = $settings['modules_catalog'] ?? null;
 
-        if (is_array($stored) && $stored !== []) {
-            return $this->normalizeCatalog($stored, $tenant->name);
+        if (! is_array($stored) || $stored === []) {
+            return null;
+        }
+
+        return $this->normalizeCatalog($stored, $tenant->name);
+    }
+
+    /** @return array<string, mixed> */
+    public function getCatalog(TenantModel $tenant): array
+    {
+        $stored = $this->storedCatalog($tenant);
+        if ($stored !== null) {
+            return $stored;
         }
 
         $fromInstance = $this->catalogFromInstanceFiles($tenant->slug);
