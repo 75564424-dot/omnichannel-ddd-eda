@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Control\Application\Services\Tenants;
 
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
 use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
 
@@ -12,6 +13,7 @@ final class TenantAdminService
 {
     public function __construct(
         private readonly TenantPresentationService $presentation,
+        private readonly LocalFleetTenantMirrorInterface $tenantMirror,
     ) {}
 
     /**
@@ -67,6 +69,24 @@ final class TenantAdminService
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
         $settings['modules'] = array_values(array_unique($modules));
         $tenant->update(['settings' => $settings]);
+
+        if ($this->hasLocalInstanceDeployment($settings)) {
+            $this->tenantMirror->mirrorCatalog($tenant->fresh() ?? $tenant);
+        }
+    }
+
+    /** @param array<string, mixed> $settings */
+    private function hasLocalInstanceDeployment(array $settings): bool
+    {
+        $deployment = $settings['deployment'] ?? null;
+        if (! is_array($deployment)) {
+            return false;
+        }
+
+        $local = $deployment['local_instance'] ?? null;
+
+        return is_array($local)
+            && trim((string) ($local['db_path'] ?? '')) !== '';
     }
 }
 

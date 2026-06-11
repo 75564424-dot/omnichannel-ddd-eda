@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Simulation\Application\Services\Execution;
 
 use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
+use App\Dashboard\Application\Services\ModuleActivationGateService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
 use App\Shared\Platform\Services\TenantCatalogSampleEventBuilder;
@@ -16,6 +17,7 @@ final class SimulationTenantEligibilityChecker
         private readonly TenantModuleCatalogService $moduleCatalog,
         private readonly TenantCatalogSampleEventBuilder $sampleEventBuilder,
         private readonly LocalFleetInstanceProvisioner $fleetProvisioner,
+        private readonly ModuleActivationGateService $activationGate,
     ) {}
 
     public function canSimulateTenant(TenantModel $tenant): bool
@@ -41,6 +43,13 @@ final class SimulationTenantEligibilityChecker
 
         if ($this->sampleEventBuilder->fromCatalog($catalog) === []) {
             return 'Ningún productor define tipos de evento emitidos (event_types_emitted).';
+        }
+
+        if (! config('platform.control_plane', false)) {
+            $activationBlock = $this->activationGate->simulationBlockReason($catalog);
+            if ($activationBlock !== null) {
+                return $activationBlock;
+            }
         }
 
         if ($this->fleetProvisioner->isEnabled()) {

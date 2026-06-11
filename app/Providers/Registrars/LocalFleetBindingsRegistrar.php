@@ -13,6 +13,7 @@ use App\Shared\Platform\LocalFleet\LocalFleetLocalInstanceDescriptor;
 use App\Shared\Platform\LocalFleet\LocalFleetOrphanPruner;
 use App\Shared\Platform\LocalFleet\LocalFleetRegistry;
 use App\Shared\Platform\LocalFleet\LocalFleetSyncService;
+use App\Dashboard\Application\Services\ConfiguredModuleNodeRegistrar;
 use App\Shared\Platform\LocalFleet\LocalFleetTenantMirror;
 use App\Shared\Platform\LocalFleet\LocalFleetTenantProvisionMarker;
 use App\Shared\Platform\LocalFleet\LocalFleetProcessSupervisor;
@@ -43,6 +44,7 @@ final class LocalFleetBindingsRegistrar
 
         $app->singleton(LocalFleetTenantMirror::class, fn ($app) => new LocalFleetTenantMirror(
             $app->make(LocalFleetEnvBuilder::class),
+            $app->make(ConfiguredModuleNodeRegistrar::class),
         ));
 
         $app->singleton(LocalFleetTenantMirrorInterface::class, fn ($app) => $app->make(LocalFleetTenantMirror::class));

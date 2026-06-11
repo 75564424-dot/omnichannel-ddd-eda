@@ -26,20 +26,43 @@ final class ClientDashboardModulesService
         private readonly DatabaseManager $db,
     ) {}
 
+    public function hasActiveDashboardConfiguration(): bool
+    {
+        $tenant = $this->resolveTenant();
+        if ($tenant === null) {
+            return false;
+        }
+
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        $stored = $settings[self::SETTINGS_KEY] ?? null;
+
+        return is_array($stored)
+            && (
+                $this->stringIdList($stored['producers'] ?? []) !== []
+                || $this->stringIdList($stored['subscribers'] ?? []) !== []
+            );
+    }
+
     /** @return array<string, mixed> */
     public function presentationCatalog(): array
     {
         $saas = $this->saasCatalog();
         $visible = $this->visibleModuleIds($saas);
+        $configured = $this->hasActiveDashboardConfiguration();
 
         return [
             'middleware'              => $saas['middleware'],
-            'producers'               => $this->filterModules($saas['producers'], $visible['producers']),
-            'subscribers'             => $this->filterModules($saas['subscribers'], $visible['subscribers']),
+            'producers'               => $configured
+                ? $this->filterModules($saas['producers'], $visible['producers'])
+                : [],
+            'subscribers'             => $configured
+                ? $this->filterModules($saas['subscribers'], $visible['subscribers'])
+                : [],
             'available_producers'     => $saas['producers'],
             'available_subscribers'   => $saas['subscribers'],
             'visible_producer_ids'    => $visible['producers'],
             'visible_subscriber_ids'  => $visible['subscribers'],
+            'dashboard_configured'    => $configured,
             'service_contact_message' => $saas['service_contact_message'],
         ];
     }
@@ -87,8 +110,8 @@ final class ClientDashboardModulesService
         $stored = $settings[self::SETTINGS_KEY] ?? null;
         if (! is_array($stored)) {
             return [
-                'producers' => $this->moduleIds($saasCatalog['producers'] ?? []),
-                'subscribers' => $this->moduleIds($saasCatalog['subscribers'] ?? []),
+                'producers'   => [],
+                'subscribers' => [],
             ];
         }
 

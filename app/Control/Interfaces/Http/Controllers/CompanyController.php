@@ -158,7 +158,7 @@ final class CompanyController
             return back()->withErrors(['apply' => $e->getMessage()]);
         }
 
-        return back()->with('message', 'Catálogo aplicado a config/modules/modules_config.json. El cliente debe ejecutar sync-config.');
+        return back()->with('message', 'Catálogo aplicado al archivo de instancia del tenant. El cliente debe ejecutar sync-config en Middleware.');
     }
 
     public function updateModules(Request $request, TenantModel $tenant): RedirectResponse

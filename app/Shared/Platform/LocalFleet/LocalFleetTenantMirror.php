@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Platform\LocalFleet;
 
+use App\Dashboard\Application\Services\ConfiguredModuleNodeRegistrar;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
@@ -18,8 +19,14 @@ use Illuminate\Support\Str;
  */
 final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
 {
+    /** @var list<string> Settings owned by the client silo — never overwritten by CP mirror. */
+    private const SILO_OWNED_SETTINGS_KEYS = [
+        'dashboard_visible_modules',
+    ];
+
     public function __construct(
         private readonly LocalFleetEnvBuilder $envBuilder,
+        private readonly ConfiguredModuleNodeRegistrar $moduleNodeRegistrar,
     ) {}
 
     public function mirror(TenantModel $controlPlaneTenant): void
@@ -50,6 +57,7 @@ final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
                 $this->syncOperators($connection, $instanceTenantId, $controlPlaneTenant);
             }
             $this->writeModulesConfig($slug, $controlPlaneTenant);
+            $this->registerConfiguredModuleNodes($connection, $controlPlaneTenant);
         } finally {
             DB::purge('client_silo');
         }
@@ -86,12 +94,43 @@ final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
         $settings = is_array($source->settings) ? $source->settings : [];
         unset($settings['deployment']);
 
+        $existingSettings = $this->readSiloSettings($connection, $instanceTenantId);
+        foreach (self::SILO_OWNED_SETTINGS_KEYS as $key) {
+            if (isset($existingSettings[$key])) {
+                $settings[$key] = $existingSettings[$key];
+            }
+        }
+
         $connection->table('tenants')->where('id', $instanceTenantId)->update([
             'name'     => $source->name,
             'status'   => $source->status,
             'settings' => json_encode($settings, JSON_THROW_ON_ERROR),
             'updated_at' => now(),
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function readSiloSettings(Connection $connection, string $instanceTenantId): array
+    {
+        $row = $connection->table('tenants')->where('id', $instanceTenantId)->first(['settings']);
+        if ($row === null) {
+            return [];
+        }
+
+        $decoded = json_decode((string) ($row->settings ?? '{}'), true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function registerConfiguredModuleNodes(Connection $connection, TenantModel $source): void
+    {
+        $settings = is_array($source->settings) ? $source->settings : [];
+        $catalog = $settings['modules_catalog'] ?? null;
+        if (! is_array($catalog) || $catalog === []) {
+            return;
+        }
+
+        $this->moduleNodeRegistrar->registerFromCatalogOnConnection($catalog, $connection);
     }
 
     private function syncOperators(Connection $connection, string $instanceTenantId, TenantModel $source): void

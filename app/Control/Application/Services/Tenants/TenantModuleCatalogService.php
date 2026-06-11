@@ -71,14 +71,16 @@ final class TenantModuleCatalogService
             return $stored;
         }
 
-        $fromInstance = $this->catalogFromInstanceFiles($tenant->slug);
-        if ($fromInstance !== null) {
-            return $fromInstance;
-        }
+        if (! config('platform.control_plane', false)) {
+            $fromInstance = $this->catalogFromInstanceFiles($tenant->slug);
+            if ($fromInstance !== null) {
+                return $fromInstance;
+            }
 
-        $fromFixture = $this->catalogFromVersionedFixture($tenant->slug);
-        if ($fromFixture !== null) {
-            return $fromFixture;
+            $fromFixture = $this->catalogFromVersionedFixture($tenant->slug);
+            if ($fromFixture !== null) {
+                return $fromFixture;
+            }
         }
 
         return $this->defaultCatalogForTenant($tenant);

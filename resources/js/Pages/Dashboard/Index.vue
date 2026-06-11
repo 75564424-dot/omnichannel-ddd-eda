@@ -2,6 +2,15 @@
   <AppLayout title="Global Dashboard" search-placeholder="Search...">
     <div class="p-6 max-w-[1600px] mx-auto space-y-6">
 
+      <div
+        v-if="!dashboardConfigured"
+        class="rounded-sm border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900"
+      >
+        Configure qué módulos autorizados desea ver en el dashboard desde
+        <span class="font-semibold">Configuración de módulos visibles</span>
+        antes de operar la topología y métricas de su instancia.
+      </div>
+
       <!-- Configurable KPI cards (counter_cards in config/dashboard_config.json) -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div
@@ -262,6 +271,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import EventFlowTopology from '@/Components/Dashboard/EventFlowTopology.vue';
 import { SYSTEM_MODULE_ROWS, parseSystemNode } from '@/lib/systemModules';
 import { onNodesChanged } from '@/platform-node-events';
+import { useDashboardEventStream } from '@/composables/useDashboardEventStream';
 
 export default {
   name: 'DashboardIndex',
@@ -277,6 +287,7 @@ export default {
     nodes: { type: Object, default: () => ({}) },
     middlewareMetrics: { type: Object, default: () => ({}) },
     system_module_rows: { type: Array, default: () => [] },
+    dashboard_configured: { type: Boolean, default: false },
   },
   setup(props) {
     const page = usePage();
@@ -330,8 +341,22 @@ export default {
       () => simulationLive.value || hasRecentFeedActivity.value,
     );
     let refreshTimer = null;
+    let metricsRefreshTimer = null;
     const POLL_IDLE_MS = 30000;
     const POLL_ACTIVE_MS = 2000;
+    const dashboardConfigured = computed(() => props.dashboard_configured === true);
+
+    const eventStream = useDashboardEventStream({
+      onFeedEvent(entry) {
+        if (!entry || entry.id == null) return;
+        const exists = (liveFeed.value ?? []).some((row) => Number(row.id) === Number(entry.id));
+        if (exists) return;
+        liveFeed.value = [entry, ...(liveFeed.value ?? [])].slice(0, 50);
+      },
+      onActivity() {
+        refreshNodesAndMetrics();
+      },
+    });
 
     watch(() => props.feed, (v) => { liveFeed.value = [...(v ?? [])]; }, { deep: true });
     watch(() => props.nodes, (v) => { liveNodes.value = v ?? {}; }, { deep: true });
@@ -593,20 +618,27 @@ export default {
       refreshTimer = setInterval(refreshData, ms);
     }
 
-    async function refreshData() {
+    async function refreshNodesAndMetrics() {
       try {
-        const requests = [
-          window.axios.get('/api/dashboard/events/feed'),
+        const [nodesRes, metricsRes] = await Promise.all([
           window.axios.get('/api/dashboard/nodes/status'),
           window.axios.get('/api/dashboard/metrics'),
-        ];
-        const [feedRes, nodesRes, metricsRes] = await Promise.all(requests);
-        liveFeed.value = feedRes.data?.data ?? feedRes.data ?? [];
+        ]);
         liveNodes.value = nodesRes.data?.data ?? nodesRes.data ?? {};
         const metricsPayload = metricsRes.data?.data ?? metricsRes.data ?? {};
         liveMetrics.value = { ...metricsPayload };
         await fetchSimulationPulse();
         applyDashboardPollCadence();
+      } catch (e) {
+        console.error('Dashboard nodes/metrics refresh failed:', e);
+      }
+    }
+
+    async function refreshData() {
+      try {
+        const feedRes = await window.axios.get('/api/dashboard/events/feed');
+        liveFeed.value = feedRes.data?.data ?? feedRes.data ?? [];
+        await refreshNodesAndMetrics();
       } catch (e) {
         console.error('Dashboard refresh failed:', e);
       }
@@ -629,20 +661,32 @@ export default {
       }
       refreshData();
       applyDashboardPollCadence();
+      eventStream.connect();
+      metricsRefreshTimer = setInterval(() => {
+        if (middlewareFlowActive.value) {
+          refreshNodesAndMetrics();
+          if (selectedMetricId.value) {
+            fetchMetricSeries();
+          }
+        }
+      }, POLL_ACTIVE_MS);
       stopNodesListener = onNodesChanged((payload) => {
         if (payload) {
           applyNodesPayload(payload);
         } else {
-          refreshData();
+          refreshNodesAndMetrics();
         }
       });
     });
     onUnmounted(() => {
       clearInterval(refreshTimer);
+      clearInterval(metricsRefreshTimer);
+      eventStream.disconnect();
       stopNodesListener?.();
     });
 
     return {
+      dashboardConfigured,
       middlewareFlowActive,
       liveFeed,
       liveNodes,

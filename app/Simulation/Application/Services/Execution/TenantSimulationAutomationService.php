@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Simulation\Application\Services\Execution;
 
 use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
+use App\Dashboard\Application\Services\ModuleActivationGateService;
 use App\Middleware\Application\UseCases\SyncConfiguredModulesToRegistryUseCase;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Services\ClientFixtureLoader;
@@ -29,6 +30,7 @@ final class TenantSimulationAutomationService
         private readonly SimulationTenantSettingsSync $tenantSettingsSync,
         private readonly SimulationFixtureResolver $fixtureResolver,
         private readonly SimulationTenantEligibilityChecker $eligibilityChecker,
+        private readonly ModuleActivationGateService $activationGate,
     ) {}
 
     public function resolveFixtureSlug(TenantModel $tenant): string
@@ -132,6 +134,11 @@ final class TenantSimulationAutomationService
         $templates = $this->sampleEventBuilder->fromCatalog($modulesCatalog);
         if ($templates === []) {
             throw new RuntimeException('El catálogo del tenant no define tipos de evento en productores.');
+        }
+
+        $activationBlock = $this->activationGate->simulationBlockReason($modulesCatalog);
+        if ($activationBlock !== null) {
+            throw new RuntimeException($activationBlock);
         }
 
         if (! $skipPrepare) {

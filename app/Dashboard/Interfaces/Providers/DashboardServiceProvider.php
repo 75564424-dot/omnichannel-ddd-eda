@@ -127,7 +127,10 @@ final class DashboardServiceProvider extends ServiceProvider
 
         $this->app->bind(
             StreamLiveEventsUseCase::class,
-            fn ($app) => new StreamLiveEventsUseCase($app->make(EventFeedRepositoryInterface::class)),
+            fn ($app) => new StreamLiveEventsUseCase(
+                $app->make(EventFeedRepositoryInterface::class),
+                $app->make(\App\Observability\Application\Services\StreamConnectionTracker::class),
+            ),
         );
 
         $this->app->bind(

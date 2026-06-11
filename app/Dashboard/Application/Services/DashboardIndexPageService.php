@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dashboard\Application\Services;
 
+use App\Control\Application\Services\ClientDashboardModulesService;
 use App\Dashboard\Application\UseCases\GetDashboardMetricCatalogUseCase;
 use App\Dashboard\Application\UseCases\GetDynamicMetricSeriesUseCase;
 use App\Dashboard\Application\UseCases\GetGlobalMetricsUseCase;
@@ -26,6 +27,7 @@ final class DashboardIndexPageService
         private readonly GetDashboardMetricCatalogUseCase $metricCatalog,
         private readonly GetDynamicMetricSeriesUseCase $dynamicSeries,
         private readonly GetModulesCatalogUseCase $modulesCatalog,
+        private readonly ClientDashboardModulesService $dashboardModules,
     ) {}
 
     /** @return array<string, mixed> */
@@ -54,6 +56,7 @@ final class DashboardIndexPageService
             'nodes'                 => $this->getNodeStatus->execute()->toArray(),
             'middlewareMetrics'     => $this->getMiddlewareMetrics->execute()->toArray(),
             'system_module_rows'    => config('dashboard.ui.system_module_rows', []),
+            'dashboard_configured'  => $this->dashboardModules->hasActiveDashboardConfiguration(),
         ];
     }
 }
