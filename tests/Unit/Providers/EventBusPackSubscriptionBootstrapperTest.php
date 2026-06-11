@@ -16,7 +16,7 @@ final class EventBusPackSubscriptionBootstrapperTest extends TestCase
         config(['eventbus.consumer_registrars' => []]);
         $base = config('eventbus.subscriptions');
 
-        (new EventBusPackSubscriptionBootstrapper())->bootstrap();
+        $this->app->make(EventBusPackSubscriptionBootstrapper::class)->bootstrap();
 
         $this->assertSame($base, config('eventbus.subscriptions'));
     }

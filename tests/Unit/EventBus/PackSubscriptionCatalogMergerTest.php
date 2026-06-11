@@ -18,7 +18,7 @@ final class PackSubscriptionCatalogMergerTest extends TestCase
     #[Test]
     public function merges_rows_and_deduplicates_module_listener_pairs(): void
     {
-        $merger = new PackSubscriptionCatalogMerger();
+        $merger = new PackSubscriptionCatalogMerger(new \Psr\Log\NullLogger());
         $base = [
             'E1' => [
                 ['module' => 'M1'],
@@ -46,7 +46,7 @@ final class PackSubscriptionCatalogMergerTest extends TestCase
     #[Test]
     public function skips_duplicate_from_second_registrar(): void
     {
-        $merger = new PackSubscriptionCatalogMerger();
+        $merger = new PackSubscriptionCatalogMerger(new \Psr\Log\NullLogger());
         [$subs] = $merger->merge(
             [DemoPackEventConsumers::class, DemoPackEventConsumers::class],
             []
@@ -58,7 +58,7 @@ final class PackSubscriptionCatalogMergerTest extends TestCase
     #[Test]
     public function skips_missing_class_and_bad_interface(): void
     {
-        $merger = new PackSubscriptionCatalogMerger();
+        $merger = new PackSubscriptionCatalogMerger(new \Psr\Log\NullLogger());
         [$subs] = $merger->merge(
             ['\\Nonexistent\\Class', BadInterfaceRegistrar::class],
             ['Only' => [['module' => 'X']]]
@@ -70,7 +70,7 @@ final class PackSubscriptionCatalogMergerTest extends TestCase
     #[Test]
     public function skips_throw_and_malformed_catalog_without_wiping_base(): void
     {
-        $merger = new PackSubscriptionCatalogMerger();
+        $merger = new PackSubscriptionCatalogMerger(new \Psr\Log\NullLogger());
         [$subs] = $merger->merge(
             [ThrowingRegistrar::class, InvalidReturnRegistrar::class],
             ['K' => [['module' => 'Keep']]]

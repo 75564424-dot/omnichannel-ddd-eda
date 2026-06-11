@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Middleware\Interfaces\Http\Controllers;
 
+use App\Middleware\Application\Support\MiddlewarePlatformAuthorizer;
 use App\Middleware\Application\UseCases\SyncConfiguredModulesToRegistryUseCase;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * Writes catalog-defined producers/consumers into the persistent module registry.
@@ -15,6 +15,7 @@ final class ModuleRegistrySyncController
 {
     public function __construct(
         private readonly SyncConfiguredModulesToRegistryUseCase $syncConfiguredModules,
+        private readonly MiddlewarePlatformAuthorizer $authorizer,
     ) {}
 
     /**
@@ -22,7 +23,7 @@ final class ModuleRegistrySyncController
      */
     public function syncFromConfig(): JsonResponse
     {
-        Gate::authorize('platform.sync-registry');
+        $this->authorizer->authorizeSyncRegistry();
 
         $stats = $this->syncConfiguredModules->execute();
 

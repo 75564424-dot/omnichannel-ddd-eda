@@ -144,7 +144,7 @@ final class TenantSimulationAutomationService
             templates: $templates,
             eventsPerMinute: $eventsPerMinute,
             durationMinutes: $durationMinutes,
-            skipSync: $skipPrepare,
+            skipSync: ! $skipPrepare,
             onProgress: $onProgress,
         );
 

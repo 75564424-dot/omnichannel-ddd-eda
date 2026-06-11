@@ -1,116 +1,143 @@
-# Auditoría — Observability (Métricas / Trazas / SLI)
+# Auditoria - Observability
+
+## Informacion General
 
 | Campo | Valor |
-|-------|-------|
-| **Ruta** | `app/Observability/` |
-| **Namespace** | `App\Observability\` |
-| **Tipo** | Bounded Context operacional |
-| **Archivos PHP** | 13 |
-| **LOC aprox.** | 381 |
-| **Tests** | 14 (Unit 9 · Feature 4 · Integration 1) |
+| ----- | ----- |
+| Modulo | Observability |
+| Ruta | `API/Prometheus entrypoints + service provider bindings` |
+| Namespace principal | `App\Observability\` |
+| Tipo | Bounded Context de telemetria |
+| Total archivos | 13 |
+| Total clases | 23 |
+| LOC aproximado | 431 |
+| Tests asociados | 9 (Unit 6 / Feature 2 / Integration 1 / E2E 0) |
 
-> **Última refactorización:** 2026-05-28 — pipeline Prometheus dividido, feed lag ACL, unit tests SLI/trazas.
+## Responsabilidad del modulo
 
-## ¿Qué hace?
+Publica y resume metrics, trazas y texto Prometheus para SLI/SLO y diagnostico de lag.
 
-Exporta **métricas Prometheus**, registra **spans de trazas**, calcula **SLI** y rastrea conexiones de streaming. Capa técnica de observabilidad de la plataforma (no confundir con Dashboard, que es UX de observabilidad).
+- Que hace: Publica y resume metrics, trazas y texto Prometheus para SLI/SLO y diagnostico de lag.
+- Problema que resuelve: reduce friccion operativa y concentra la logica del BC en un solo lugar.
+- Bounded context: Telemetria y SLI
+- Dependencias: usa Dashboard, Middleware, Monitoring, Providers como entradas estaticas detectadas y publica hacia Dashboard, Middleware, Monitoring, Shared, Http.
 
-## ¿Para qué sirve?
+## Arquitectura actual
 
-- Endpoint `/metrics` (Prometheus scrape).
-- Persistencia de trace logs vía `EloquentTraceLogRepository`.
-- Middleware de correlación (`CorrelationIdMiddleware` alias `platform.correlation.id`).
-- Soporte a runbooks y Grafana (`docs/observability/`).
+| Area | Count |
+| ---- | ----- |
+| Controllers | 1 |
+| Services | 8 |
+| Use Cases | 0 |
+| Repositories | 3 |
+| DTOs | 0 |
+| Events | 0 |
+| Jobs | 0 |
+| Commands | 0 |
+| Policies | 0 |
+| Middleware | 0 |
 
-## Estructura DDD (post-refactor)
+## Metricas de complejidad
 
-```text
-app/Observability/
-├── Domain/
-│   ├── ValueObjects/           TraceContext
-│   └── Repositories/           TraceLogRepositoryInterface
-├── Application/Services/
-│   ├── Prometheus/             collector, renderer, feed lag ACL, snapshot VO
-│   ├── PrometheusMetricsExporter orquestador delgado
-│   ├── TraceSpanService
-│   ├── SliMetricsRecorder
-│   └── StreamConnectionTracker
-├── Infrastructure/Persistence/ EloquentTraceLogRepository
-└── Interfaces/
-    ├── Http/Controllers/       PrometheusMetricsController
-    └── Providers/              ObservabilityServiceProvider
-```
+| Metica | Valor |
+| ----- | ----- |
+| LOC total | 431 |
+| LOC promedio por archivo | 33.2 |
+| Clase mas grande | PrometheusTextRenderer (app/Observability/Application/Services/Prometheus/PrometheusTextRenderer.php, 55 LOC) |
+| Metodo mas largo | PrometheusTextRenderer::render (app/Observability/Application/Services/Prometheus/PrometheusTextRenderer.php, 47 LOC) |
+| Archivos >200 LOC | 0 |
+| Archivos >500 LOC | 0 |
+| Complejidad estimada | Baja |
 
-| Capa | Archivos | Estado |
-|------|----------|--------|
-| Domain | 2 | ✅ VO trace + port persistencia |
-| Application | 9 | ✅ Prometheus pipeline + spans + SLI |
-| Infrastructure | 1 | ✅ Repo trace_logs |
-| Interfaces | 2 | ✅ Controller + provider |
+## Metricas de deuda tecnica
 
-## Servicios extraídos en esta refactorización
+| Indicador | Valor |
+| --------- | ----- |
+| Codigo limpio | 54% |
+| Codigo aceptable | 46% |
+| Codigo sucio | 0% |
+| Codigo espagueti | 0% |
+| Riesgo tecnico | Aceptable |
+| Mantenibilidad | Media |
+| Acoplamiento | Alto |
+| Cohesion | Baja |
 
-| Servicio | Reemplaza lógica en |
-|----------|---------------------|
-| `PrometheusGaugeCollector` | Lectura multi-BC en `PrometheusMetricsExporter` |
-| `PrometheusTextRenderer` | HELP/TYPE/lines + escape labels |
-| `PrometheusGaugeSnapshot` | DTO de gauges scrapeados |
-| `FeedProjectionLagCalculator` | `computeFeedProjectionLagMs()` + acoplamiento Dashboard model |
+Heuristica aplicada: clasificacion por archivo fuente en cuatro buckets (limpio, aceptable, sucio, espagueti) segun LOC, uso de `app()/resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
 
-## Métricas de deuda (actualizadas)
+## Violaciones arquitectonicas
 
-| Indicador | Antes | **Ahora** | Detalle |
-|-----------|-------|-----------|---------|
-| **% código sucio** | 12% | **8%** | Exporter ~23 LOC; sin clases >150 LOC |
-| **% código espagueti** | 8% | **5%** | Collect → render; feed lag con dueño ACL |
-| **Ratio tests/archivos** | 33% | **~108%** | +6 unit tests (renderer, collector, SLI, lag) |
-| **Archivos >150 LOC** | 0 | **0** | Mayor: `PrometheusTextRenderer` ~56 LOC |
+- Facades indebidas o acoplamiento a Facades: 4 archivos fuente.
+- Dependencias cruzadas entre BCs: Dashboard, Middleware, Monitoring, Shared, Http.
 
-### Archivos más pesados (post-refactor)
+## Dependencias
 
-| Archivo | LOC | Notas |
-|---------|-----|-------|
-| `PrometheusTextRenderer.php` | ~56 | Formato text/plain Prometheus |
-| `TraceSpanService.php` | ~52 | Spans + correlación |
-| `PrometheusGaugeCollector.php` | ~40 | Agrega gauges de Middleware/Monitoring/Dashboard |
+### Dependencias entrantes
 
-## Resuelto en esta refactorización
+Dashboard, Middleware, Monitoring, Providers
 
-1. ~~`PrometheusMetricsExporter` monolítico (~120 LOC)~~ → collector + renderer + exporter delgado.
-2. ~~Feed lag mezclado con export~~ → `FeedProjectionLagCalculator` (ACL Dashboard).
-3. ~~Gaps SLI / stream / formato métricas~~ → unit tests dedicados.
+### Dependencias salientes
 
-## Cosas sueltas / inconsistentes (restantes)
+Dashboard, Middleware, Monitoring, Shared, Http
 
-1. **OpenTelemetry no implementado** — ADR_009 describe futuro; código actual es Prometheus + trace log propio.
-2. **Solapamiento conceptual con Dashboard** — métricas de bus en Dashboard y Prometheus; sin mapa único de source of truth.
-3. **Provider registra middleware aliases** — mezcla bootstrap HTTP con dominio observability.
-4. **`StreamConnectionTracker`** — contador estático en memoria; no cluster-safe.
+## Riesgo de refactorizacion
 
-## Acoplamientos
+| Area | Riesgo |
+| ---- | ------ |
+| Controllers | Medio |
+| Services | Medio |
+| Domain | Medio |
+| Infraestructura | Medio |
+| Tests | Bajo |
 
-| Hacia | Tipo | Riesgo |
-|-------|------|--------|
-| Middleware | `BusHealthService`, repos cola/DLQ | ✅ Lectura vía interfaces |
-| Monitoring | checkers + canary age | ✅ Bajo |
-| Dashboard | `EventFeedEntryModel` (feed lag ACL) | ⚠️ Medio |
-| Shared | logging, tenant context | ✅ Bajo |
+## Cobertura funcional
 
-## Cobertura de tests
+- Funcionalidades principales: PrometheusMetrics, FeedProjectionLagCalculator, PrometheusGaugeCollector, PrometheusGaugeSnapshot, PrometheusTextRenderer
+- Funcionalidades secundarias: contratos de ruta y flujo detectados por los controladores, use cases y servicios del modulo.
+- Funcionalidades criticas: Dashboard, Middleware, Monitoring, Shared, Http
 
-- **Verificado (2026-05-28):** 14 tests Unit + Feature + Integration — todos pasan.
-- **Presente:** endpoint `/metrics`, correlation ID, trace pipeline, renderer, collector, SLI recorder, feed lag.
-- **Gaps:** `TraceSpanService` unit test aislado, stream tracker multi-request, regression snapshot métricas completo.
+## Cobertura de pruebas
 
-## Recomendaciones de refactor (futuro)
+- Tests unitarios: 6
+- Tests feature: 2
+- Tests integracion: 1
+- Clasificacion: Media
 
-| Prioridad | Acción |
-|-----------|--------|
-| P3 | Mover registro de middleware HTTP a provider dedicado o Shared. |
-| P3 | Documentar matriz métricas: Prometheus vs Dashboard vs Middleware API. |
-| P4 | Plan migración OTel según ADR_009 (no urgente). |
-| P4 | `StreamConnectionTracker` con backend Redis para multi-instancia. |
+## Codigo muerto
 
-## Veredicto
+- No se identificaron clases muertas concluyentes en el escaneo estatico; los componentes con baja trazabilidad siguen expuestos por rutas, comandos o service providers.
 
-**BC sano** tras refactor: export Prometheus con pipeline claro, trazas/SLI acotados, tests unitarios en componentes clave. Deuda restante menor (OTel, matriz métricas, tracker cluster-safe).
+## Oportunidades de mejora
+
+### Refactorizacion segura
+
+- Extraer request/presenter para controllers y mover respuestas a DTOs o view models.
+- Separar lectura, escritura y mapeo en servicios de soporte.
+- Aislar adapters por BC y formalizar ACL o mappers.
+
+### Refactorizacion moderada
+
+- Partir controllers o services grandes manteniendo nombres de rutas y payloads.
+- Dividir los servicios mas grandes por responsabilidad.
+- Reducir lookup de contenedor y Facades en bordes del modulo.
+
+### Refactorizacion de alto riesgo
+
+- Cambiar contratos cruzados entre BCs sin plan de compatibilidad.
+
+## Plan de saneamiento
+
+| Prioridad | Accion | Impacto | Riesgo |
+| --------- | ------ | ------- | ------ |
+| P1 | Reducir el mayor punto de acoplamiento del modulo (PrometheusTextRenderer) | Baja riesgo y hace mas visible la frontera | Medio |
+| P2 | Extraer mappers/presenters y fijar contratos con tests de caracterizacion | Mejora mantenibilidad y protege payloads | Bajo-Medio |
+| P3 | Consolidar convenciones de nombres y eliminar lookups innecesarios del contenedor | Menos ruido y menor deuda acumulada | Bajo |
+
+## Compatibilidad funcional
+
+- Funcionalidades que podrian romperse: Dashboard, Middleware, Monitoring, Shared, Http y las respuestas de los endpoints publicos del modulo.
+- Dependencias que deben preservarse: Dashboard, Middleware, Monitoring, Providers, ademas de los contratos de DTOs y use cases consumidos por otros BCs.
+- Contratos publicos que no deben modificarse: nombres de rutas, payloads, eventos publicados y firmas de servicios usados desde otros modulos.
+
+## Veredicto final
+
+**Aceptable**. El modulo presenta una mezcla de logica estable y puntos de acoplamiento que siguen siendo sensibles. La frontera funcional existe y es trazable, pero la refactorizacion futura debe preservar rutas, payloads y bindings porque siguen siendo contratos publicos reales.

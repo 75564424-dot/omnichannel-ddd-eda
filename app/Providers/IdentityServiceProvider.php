@@ -14,10 +14,11 @@ final class IdentityServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PlatformAuthorizationServiceInterface::class, PlatformAuthorizationService::class);
+        $this->app->singleton(PlatformGateRegistrar::class);
     }
 
     public function boot(): void
     {
-        PlatformGateRegistrar::register();
+        $this->app->make(PlatformGateRegistrar::class)->register();
     }
 }

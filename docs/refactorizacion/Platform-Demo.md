@@ -1,45 +1,141 @@
-# Auditoría — Platform-Demo
+# Auditoria - Platform-Demo
+
+## Informacion General
 
 | Campo | Valor |
-|-------|-------|
-| **Ruta** | `app/Platform/Demo/` |
-| **Namespace** | `App\Platform\Demo\` |
-| **Tipo** | Hooks demo / sample pack |
-| **Archivos PHP** | 2 |
-| **LOC aprox.** | 42 |
-| **Tests** | 0 |
+| ----- | ----- |
+| Modulo | Platform-Demo |
+| Ruta | `No public routes; demo pack only` |
+| Namespace principal | `App\Platform\Demo\` |
+| Tipo | Modulo demo de plataforma |
+| Total archivos | 2 |
+| Total clases | 2 |
+| LOC aproximado | 42 |
+| Tests asociados | 0 (Unit 0 / Feature 0 / Integration 0 / E2E 0) |
 
-## ¿Qué hace?
+## Responsabilidad del modulo
 
-Registra **consumidores de eventos de ejemplo** para packs demo: `DemoPackListener` y `DemoPackEventConsumers` reaccionan a eventos del catálogo demo para poblar dashboards y validar el bus.
+Agrupa consumidores demo y artefactos de ejemplo para probar la capa de plataforma sin exponer un BC propio.
 
-## ¿Para qué sirve?
+- Que hace: Agrupa consumidores demo y artefactos de ejemplo para probar la capa de plataforma sin exponer un BC propio.
+- Problema que resuelve: reduce friccion operativa y concentra la logica del BC en un solo lugar.
+- Bounded context: Demo / referencia
+- Dependencias: usa Sin referencias estaticas detectadas como entradas estaticas detectadas y publica hacia Shared.
 
-- Demostraciones comerciales y entornos de prueba sin integraciones reales.
-- Validar wiring productor → bus → consumidor con payloads de fixture.
+## Arquitectura actual
 
-## Métricas de deuda
+| Area | Count |
+| ---- | ----- |
+| Controllers | 0 |
+| Services | 0 |
+| Use Cases | 0 |
+| Repositories | 0 |
+| DTOs | 0 |
+| Events | 0 |
+| Jobs | 0 |
+| Commands | 0 |
+| Policies | 0 |
+| Middleware | 0 |
 
-| Indicador | Valor | Detalle |
-|-----------|-------|---------|
-| **% código sucio** | **25%** | Sin tests; mezclado con Platform real en Shared |
-| **% código espagueti** | **10%** | Mínimo acoplamiento |
-| **Archivos >150 LOC** | 0 | — |
+## Metricas de complejidad
 
-## Cosas sueltas / inconsistentes
+| Metica | Valor |
+| ----- | ----- |
+| LOC total | 42 |
+| LOC promedio por archivo | 21.0 |
+| Clase mas grande | DemoPackEventConsumers (app/Platform/Demo/DemoPackEventConsumers.php, 14 LOC) |
+| Metodo mas largo | DemoPackEventConsumers::subscriptionCatalog (app/Platform/Demo/DemoPackEventConsumers.php, 11 LOC) |
+| Archivos >200 LOC | 0 |
+| Archivos >500 LOC | 0 |
+| Complejidad estimada | Baja |
 
-1. **Carpeta `app/Platform/Demo`** vs **`app/Shared/Platform`** — naming confuso ("Platform" en dos sitios).
-2. **Sin feature flag claro** — demo consumers pueden activarse en instancias que no deberían.
-3. **Sin tests** — regressions silentes en demos.
+## Metricas de deuda tecnica
 
-## Recomendaciones de refactor (futuro)
+| Indicador | Valor |
+| --------- | ----- |
+| Codigo limpio | 100% |
+| Codigo aceptable | 0% |
+| Codigo sucio | 0% |
+| Codigo espagueti | 0% |
+| Riesgo tecnico | Excelente |
+| Mantenibilidad | Alta |
+| Acoplamiento | Bajo |
+| Cohesion | Alta |
 
-| Prioridad | Acción |
-|-----------|--------|
-| P4 | Renombrar a `app/Demo/` o mover bajo `config/modules/demo/`. |
-| P4 | Tests smoke: evento demo → consumer registrado. |
-| P4 | Flag `PLATFORM_DEMO_PACK_ENABLED` documentado. |
+Heuristica aplicada: clasificacion por archivo fuente en cuatro buckets (limpio, aceptable, sucio, espagueti) segun LOC, uso de `app()/resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
 
-## Veredicto
+## Violaciones arquitectonicas
 
-**Trivial.** Renombrar/aislar cuando se ordene Shared/Platform.
+- Dependencias cruzadas entre BCs: Shared.
+
+## Dependencias
+
+### Dependencias entrantes
+
+Sin referencias estaticas detectadas
+
+### Dependencias salientes
+
+Shared
+
+## Riesgo de refactorizacion
+
+| Area | Riesgo |
+| ---- | ------ |
+| Controllers | Bajo |
+| Services | Bajo |
+| Domain | Bajo |
+| Infraestructura | Bajo |
+| Tests | Alto |
+
+## Cobertura funcional
+
+- Funcionalidades principales: Ninguna
+- Funcionalidades secundarias: contratos de ruta y flujo detectados por los controladores, use cases y servicios del modulo.
+- Funcionalidades criticas: Shared
+
+## Cobertura de pruebas
+
+- Tests unitarios: 0
+- Tests feature: 0
+- Tests integracion: 0
+- Clasificacion: Baja
+
+## Codigo muerto
+
+- No se confirmo codigo muerto con evidencia concluyente; los entrypoints dinamicos de Laravel dificultan cerrar trazabilidad estatica.
+- Candidato de baja trazabilidad: app/Platform/Demo/DemoPackEventConsumers.php
+- Candidato de baja trazabilidad: app/Platform/Demo/DemoPackEventConsumers.php
+
+## Oportunidades de mejora
+
+### Refactorizacion segura
+
+- Aislar adapters por BC y formalizar ACL o mappers.
+
+### Refactorizacion moderada
+
+- Separar logica de presentacion, orchestration y persistencia.
+
+### Refactorizacion de alto riesgo
+
+- Cambiar contratos cruzados entre BCs sin plan de compatibilidad.
+- Refactorizar sin ampliar cobertura contractual aumentaria el riesgo de regresion.
+
+## Plan de saneamiento
+
+| Prioridad | Accion | Impacto | Riesgo |
+| --------- | ------ | ------- | ------ |
+| P1 | Reducir el mayor punto de acoplamiento del modulo (DemoPackEventConsumers) | Baja riesgo y hace mas visible la frontera | Medio |
+| P2 | Extraer mappers/presenters y fijar contratos con tests de caracterizacion | Mejora mantenibilidad y protege payloads | Bajo-Medio |
+| P3 | Consolidar convenciones de nombres y eliminar lookups innecesarios del contenedor | Menos ruido y menor deuda acumulada | Bajo |
+
+## Compatibilidad funcional
+
+- Funcionalidades que podrian romperse: Shared y las respuestas de los endpoints publicos del modulo.
+- Dependencias que deben preservarse: Sin referencias estaticas detectadas, ademas de los contratos de DTOs y use cases consumidos por otros BCs.
+- Contratos publicos que no deben modificarse: nombres de rutas, payloads, eventos publicados y firmas de servicios usados desde otros modulos.
+
+## Veredicto final
+
+**Excelente**. El modulo presenta una mezcla de logica estable y puntos de acoplamiento que siguen siendo sensibles. La frontera funcional existe y es trazable, pero la refactorizacion futura debe preservar rutas, payloads y bindings porque siguen siendo contratos publicos reales.

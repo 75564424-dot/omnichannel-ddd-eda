@@ -95,9 +95,18 @@ final class SimulationRunQueryService
     /** @return array<string, mixed> */
     public function statusPayload(SimulationRunModel $run): array
     {
-        $this->handoffSync->syncRun($run);
+        $run = $this->handoffSync->syncRun($run);
+        $run = $this->staleGuard->failRunIfExpired($run) ?? $run->fresh(['tenant']);
 
-        return $this->metricsCollector->presentationForRun($run->fresh(['tenant']));
+        return $this->metricsCollector->presentationForRun($run);
+    }
+
+    /** @return array<string, mixed> */
+    public function cancelRun(SimulationRunModel $run, ?int $userId): array
+    {
+        $cancelled = $this->orchestrator->cancel($run, $userId);
+
+        return $this->metricsCollector->presentationForRun($cancelled);
     }
 
     /** @return array<string, mixed> */

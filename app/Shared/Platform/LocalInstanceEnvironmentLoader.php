@@ -28,6 +28,7 @@ final class LocalInstanceEnvironmentLoader
         'PLATFORM_CONTROL_PLANE_URL',
         'PLATFORM_SIMULATION_INTERNAL_TOKEN',
         'PLATFORM_SEED_INSTANCE_TENANT',
+        'MODULES_CONFIG_PATH',
     ];
 
     /**

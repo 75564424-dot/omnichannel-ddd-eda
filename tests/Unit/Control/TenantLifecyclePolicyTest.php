@@ -6,7 +6,7 @@ namespace Tests\Unit\Control;
 
 use App\Control\Domain\Policies\TenantLifecyclePolicy;
 use App\Shared\Infrastructure\Models\TenantModel;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 final class TenantLifecyclePolicyTest extends TestCase
 {

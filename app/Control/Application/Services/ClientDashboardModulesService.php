@@ -8,7 +8,7 @@ use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Dashboard\Infrastructure\Modules\ConfigModulesCatalogDataProvider;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -23,6 +23,7 @@ final class ClientDashboardModulesService
         private readonly InstanceTenantContextInterface $instanceContext,
         private readonly TenantModuleCatalogService $catalogService,
         private readonly ConfigModulesCatalogDataProvider $catalogNormalizer,
+        private readonly DatabaseManager $db,
     ) {}
 
     /** @return array<string, mixed> */
@@ -122,7 +123,7 @@ final class ClientDashboardModulesService
 
     public function resolveTenant(): ?TenantModel
     {
-        if (! Schema::hasTable('tenants')) {
+        if (! $this->db->getSchemaBuilder()->hasTable('tenants')) {
             return null;
         }
 

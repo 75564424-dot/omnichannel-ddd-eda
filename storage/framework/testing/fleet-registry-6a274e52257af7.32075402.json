@@ -1,0 +1,17 @@
+{
+    "instances": [
+        {
+            "id": "client-pruebas",
+            "label": "Pruebas Co",
+            "slug": "pruebas",
+            "port": 8001,
+            "tenantId": "09daa5bd-c212-4c11-acd0-7c62e0bf584b",
+            "adminEmail": "admin@pruebas.local",
+            "adminPassword": "password123",
+            "adminName": "Admin Pruebas",
+            "provisionedAt": "2026-06-08T23:20:50+00:00",
+            "role": "client"
+        }
+    ],
+    "updated_at": "2026-06-08T23:20:50+00:00"
+}

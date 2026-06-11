@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dashboard\Application\UseCases;
 
-use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
+use App\Dashboard\Application\Contracts\ClientDashboardMetricsPortInterface;
 
 /**
  * Enabled chart metrics for the dashboard product (dropdown + lazy-loaded series).
@@ -14,7 +14,7 @@ use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
 final class GetDashboardMetricCatalogUseCase
 {
     public function __construct(
-        private readonly ClientDashboardMetricsCatalogService $clientMetrics,
+        private readonly ClientDashboardMetricsPortInterface $clientMetrics,
     ) {}
 
     public function execute(): array

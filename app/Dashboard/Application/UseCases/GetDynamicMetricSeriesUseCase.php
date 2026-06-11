@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dashboard\Application\UseCases;
 
-use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
+use App\Dashboard\Application\Contracts\ClientDashboardMetricsPortInterface;
 use App\Dashboard\Application\Services\DynamicMetricSeriesBuilder;
 use InvalidArgumentException;
 
@@ -14,7 +14,7 @@ use InvalidArgumentException;
 final class GetDynamicMetricSeriesUseCase
 {
     public function __construct(
-        private readonly ClientDashboardMetricsCatalogService $clientMetrics,
+        private readonly ClientDashboardMetricsPortInterface $clientMetrics,
         private readonly DynamicMetricSeriesBuilder $seriesBuilder,
     ) {}
 

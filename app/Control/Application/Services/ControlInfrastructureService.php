@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Control\Application\Services;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Contracts\Redis\Factory as RedisFactory;
+use Illuminate\Database\DatabaseManager;
 use Throwable;
 
 final class ControlInfrastructureService
 {
+    public function __construct(
+        private readonly DatabaseManager $db,
+        private readonly RedisFactory $redis,
+    ) {}
     /** @return array<string, mixed> */
     public function snapshot(): array
     {
@@ -46,7 +50,7 @@ final class ControlInfrastructureService
     private function databaseStatus(): string
     {
         try {
-            DB::connection()->getPdo();
+            $this->db->connection()->getPdo();
 
             return 'ok';
         } catch (Throwable) {
@@ -61,7 +65,7 @@ final class ControlInfrastructureService
         }
 
         try {
-            $pong = Redis::connection()->ping();
+            $pong = $this->redis->connection()->ping();
 
             return ($pong === true || $pong === 'PONG' || $pong === '+PONG') ? 'ok' : 'fail';
         } catch (Throwable) {

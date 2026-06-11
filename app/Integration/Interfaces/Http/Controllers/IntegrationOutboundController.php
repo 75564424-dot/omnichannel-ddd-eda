@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Integration\Interfaces\Http\Controllers;
 
+use App\Integration\Application\Support\IntegrationManagementAuthorizer;
 use App\Integration\Application\UseCases\DispatchOutboundConnectorUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 final class IntegrationOutboundController
 {
     public function __construct(
         private readonly DispatchOutboundConnectorUseCase $dispatchOutbound,
+        private readonly IntegrationManagementAuthorizer $authorizer,
     ) {}
 
     public function dispatch(Request $request, string $id, string $connectorId): JsonResponse
     {
-        Gate::authorize('platform.manage-integrations');
+        $this->authorizer->authorizeManageIntegrations();
 
         /** @var array<string, mixed> $payload */
         $payload = $request->validate(['payload' => 'required|array'])['payload'];

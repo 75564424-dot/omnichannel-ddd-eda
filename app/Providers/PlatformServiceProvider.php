@@ -7,7 +7,7 @@ namespace App\Providers;
 use App\Providers\Registrars\LocalFleetBindingsRegistrar;
 use App\Providers\Registrars\PlatformServiceBindingsRegistrar;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Log\LogManager;
 use Illuminate\Support\ServiceProvider;
 
 final class PlatformServiceProvider extends ServiceProvider
@@ -26,6 +26,6 @@ final class PlatformServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $context = $this->app->make(InstanceTenantContextInterface::class);
-        Log::shareContext($context->logContext());
+        $this->app->make(LogManager::class)->shareContext($context->logContext());
     }
 }

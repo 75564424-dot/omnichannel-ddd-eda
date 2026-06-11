@@ -24,6 +24,16 @@ final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
 
     public function mirror(TenantModel $controlPlaneTenant): void
     {
+        $this->mirrorToSilo($controlPlaneTenant, syncOperators: true);
+    }
+
+    public function mirrorCatalog(TenantModel $controlPlaneTenant): void
+    {
+        $this->mirrorToSilo($controlPlaneTenant, syncOperators: false);
+    }
+
+    private function mirrorToSilo(TenantModel $controlPlaneTenant, bool $syncOperators): void
+    {
         $slug = Str::slug($controlPlaneTenant->slug);
         $dbPath = $this->envBuilder->ensureSqliteFile($slug);
 
@@ -36,7 +46,9 @@ final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
         try {
             $instanceTenantId = $this->resolveInstanceTenantId($connection, $slug);
             $this->syncTenantSettings($connection, $instanceTenantId, $controlPlaneTenant);
-            $this->syncOperators($connection, $instanceTenantId, $controlPlaneTenant);
+            if ($syncOperators) {
+                $this->syncOperators($connection, $instanceTenantId, $controlPlaneTenant);
+            }
             $this->writeModulesConfig($slug, $controlPlaneTenant);
         } finally {
             DB::purge('client_silo');
@@ -52,7 +64,10 @@ final class LocalFleetTenantMirror implements LocalFleetTenantMirrorInterface
             'foreign_key_constraints' => true,
         ]);
 
-        return DB::connection('client_silo');
+        $connection = DB::connection('client_silo');
+        $connection->getPdo()->exec('PRAGMA busy_timeout = 5000');
+
+        return $connection;
     }
 
     private function resolveInstanceTenantId(Connection $connection, string $slug): string

@@ -46,6 +46,14 @@
           </p>
         </div>
         <p class="font-mono text-lg text-[#00f2ff]">{{ activeRun.run?.progress_percent ?? 0 }}%</p>
+        <button
+          type="button"
+          class="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold uppercase text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+          :disabled="cancelling"
+          @click="cancelSimulation(activeRun.run.id)"
+        >
+          {{ cancelling ? 'Cancelando…' : 'Cancelar' }}
+        </button>
       </div>
       <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#191c1f]">
         <div
@@ -77,6 +85,15 @@
           Ver reporte
         </Link>
       </div>
+    </div>
+
+
+
+    <div
+      v-else-if="activeRun?.run?.status === 'cancelled'"
+      class="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+    >
+      Simulación cancelada tras {{ activeRun.run?.published ?? 0 }} eventos publicados.
     </div>
 
 
@@ -383,6 +400,7 @@ const props = defineProps({
 const activeRun = ref(null);
 
 let pollTimer = null;
+const cancelling = ref(false);
 
 
 
@@ -562,12 +580,39 @@ async function pollOnce(runId) {
 
   const status = data.run?.status;
 
-  if (status === 'completed' || status === 'failed') {
+  if (status === 'completed' || status === 'failed' || status === 'cancelled') {
 
     stopPolling();
 
   }
 
+}
+
+
+
+async function cancelSimulation(runId) {
+  if (!runId || cancelling.value) return;
+
+  cancelling.value = true;
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const res = await fetch(`/control/simulations/${runId}/cancel`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': token ?? '',
+      },
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      activeRun.value = data;
+      stopPolling();
+    }
+  } finally {
+    cancelling.value = false;
+  }
 }
 
 

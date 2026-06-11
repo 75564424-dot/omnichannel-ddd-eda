@@ -16,7 +16,7 @@ final class PlatformGateRegistrarTest extends TestCase
     {
         config(['security.api_auth_enabled' => false, 'platform_auth.web_auth_enabled' => false]);
 
-        PlatformGateRegistrar::register();
+        $this->app->make(\App\Providers\Registrars\PlatformGateRegistrar::class)->register();
 
         $this->assertTrue(Gate::allows('platform.publish'));
         $this->assertTrue(Gate::allows('platform.sync-registry'));

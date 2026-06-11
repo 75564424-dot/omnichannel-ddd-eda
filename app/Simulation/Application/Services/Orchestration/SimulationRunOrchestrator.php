@@ -10,6 +10,7 @@ use App\Simulation\Application\Services\Metrics\SimulationRunMetricsCollector;
 use App\Simulation\Application\Services\Progress\SimulationRunCompletionService;
 use App\Simulation\Application\Services\Progress\SimulationRunFailureHandler;
 use App\Simulation\Domain\ValueObjects\SimulationMessages;
+use App\Control\Infrastructure\Jobs\LaunchClientSimulationWorkerJob;
 use App\Control\Infrastructure\Jobs\RunTenantSimulationJob;
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\TenantModel;
@@ -28,6 +29,7 @@ final class SimulationRunOrchestrator
         private readonly SimulationRunMetricsCollector $metricsCollector,
         private readonly SimulationRunCompletionService $completionService,
         private readonly SimulationStaleRunReplacer $staleRunReplacer,
+        private readonly SimulationRunCancellationService $cancellationService,
     ) {}
 
     /**
@@ -65,7 +67,8 @@ final class SimulationRunOrchestrator
         ]);
 
         if ($this->localFleetRunner->shouldRunOnClientSilo($tenant)) {
-            $this->localFleetRunner->dispatchToClientSilo($run->id);
+            $this->localFleetRunner->prepareClientSiloRun($run->id);
+            LaunchClientSimulationWorkerJob::dispatch($run->id)->afterResponse();
         } else {
             RunTenantSimulationJob::dispatch($run->id)->afterResponse();
         }
@@ -74,6 +77,11 @@ final class SimulationRunOrchestrator
             'run_id' => $run->id,
             'status' => $run->status,
         ];
+    }
+
+    public function cancel(SimulationRunModel $run, ?int $userId): SimulationRunModel
+    {
+        return $this->cancellationService->cancel($run, $userId);
     }
 
     /**

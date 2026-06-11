@@ -12,6 +12,7 @@ use App\Dashboard\Infrastructure\Persistence\DbBusQueueAnalyticsRepository;
 use App\Dashboard\Infrastructure\Persistence\EloquentEventFeedRepository;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -75,6 +76,7 @@ final class ClientDashboardMetricsCatalogServiceTest extends TestCase
                 app(InstanceTenantContextInterface::class),
                 app(TenantModuleCatalogService::class),
                 app(ConfigModulesCatalogDataProvider::class),
+                app(DatabaseManager::class),
             ),
             app(EloquentEventFeedRepository::class),
             app(DbBusQueueAnalyticsRepository::class),

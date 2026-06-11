@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\EventBus;
 
 use App\Shared\Contracts\EventBus\EventConsumerRegistrationInterface;
-use Illuminate\Support\Facades\Log;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -14,6 +14,10 @@ use Throwable;
  */
 final class PackSubscriptionCatalogMerger
 {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {}
+
     /**
      * @param  iterable<int, class-string>  $registrarClasses
      * @param  array<string, mixed>  $baseSubscriptions  event_type => list of subscriber rows
@@ -30,12 +34,12 @@ final class PackSubscriptionCatalogMerger
                 continue;
             }
             if (! class_exists($class)) {
-                Log::warning('[EventBus] Pack registrar class not found — skipped.', ['class' => $class]);
+                $this->logger->warning('[EventBus] Pack registrar class not found — skipped.', ['class' => $class]);
 
                 continue;
             }
             if (! is_subclass_of($class, EventConsumerRegistrationInterface::class)) {
-                Log::warning('[EventBus] Pack registrar does not implement EventConsumerRegistrationInterface — skipped.', ['class' => $class]);
+                $this->logger->warning('[EventBus] Pack registrar does not implement EventConsumerRegistrationInterface — skipped.', ['class' => $class]);
 
                 continue;
             }
@@ -43,7 +47,7 @@ final class PackSubscriptionCatalogMerger
                 /** @var array<string, mixed> $catalog */
                 $catalog = $class::subscriptionCatalog();
             } catch (Throwable $e) {
-                Log::warning('[EventBus] Pack subscriptionCatalog() failed — skipped.', [
+                $this->logger->warning('[EventBus] Pack subscriptionCatalog() failed — skipped.', [
                     'class'      => $class,
                     'error'      => $e->getMessage(),
                     'exception'  => $e,
@@ -52,7 +56,7 @@ final class PackSubscriptionCatalogMerger
                 continue;
             }
             if (! is_array($catalog)) {
-                Log::warning('[EventBus] Pack subscriptionCatalog() must return array — skipped.', ['class' => $class]);
+                $this->logger->warning('[EventBus] Pack subscriptionCatalog() must return array — skipped.', ['class' => $class]);
 
                 continue;
             }

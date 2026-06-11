@@ -34,6 +34,10 @@ final class SimulationRunHandoffSync
             return $run;
         }
 
+        if ($this->handoffStore->isCancelRequested($run->id)) {
+            return $run;
+        }
+
         $handoff = $this->handoffStore->readForSync($run->id);
         if ($handoff === null) {
             return $run;
@@ -44,6 +48,7 @@ final class SimulationRunHandoffSync
         return match ($terminal) {
             'completed' => $this->applyCompleted($run, $handoff),
             'failed'    => $this->applyFailed($run, $handoff),
+            'cancelled' => $this->applyCancelled($run, $handoff),
             default     => $this->syncProgress($run, $handoff),
         };
     }
@@ -105,6 +110,33 @@ final class SimulationRunHandoffSync
         $this->handoffStore->forget($run->id);
 
         return $completed;
+    }
+
+    /**
+     * @param array<string, mixed> $handoff
+     */
+    private function applyCancelled(SimulationRunModel $run, array $handoff): SimulationRunModel
+    {
+        if ($run->status === SimulationRunModel::STATUS_CANCELLED) {
+            $this->handoffStore->forget($run->id);
+
+            return $run;
+        }
+
+        $payload = is_array($handoff['terminal_payload'] ?? null) ? $handoff['terminal_payload'] : [];
+        $published = max((int) ($payload['published'] ?? 0), (int) $run->progress_current);
+
+        $run->update([
+            'status'           => SimulationRunModel::STATUS_CANCELLED,
+            'finished_at'      => now(),
+            'progress_current' => $published,
+            'published'        => $published,
+            'error_message'    => null,
+        ]);
+
+        $this->handoffStore->forget($run->id);
+
+        return $run->fresh(['tenant']) ?? $run;
     }
 
     /**

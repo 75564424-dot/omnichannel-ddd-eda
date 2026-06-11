@@ -9,5 +9,8 @@ use App\Shared\Infrastructure\Models\TenantModel;
 interface LocalFleetTenantMirrorInterface
 {
     public function mirror(TenantModel $controlPlaneTenant): void;
+
+    /** Propagate modules_catalog + modules_config.json only (no operator sync). */
+    public function mirrorCatalog(TenantModel $controlPlaneTenant): void;
 }
 

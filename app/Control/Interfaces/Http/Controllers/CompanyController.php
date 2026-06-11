@@ -14,9 +14,9 @@ use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\LocalFleet\LocalFleetInstanceProvisioner;
 use App\Shared\Platform\Services\InstanceDeploymentService;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -34,6 +34,7 @@ final class CompanyController
         private readonly InstanceDeploymentService $deployment,
         private readonly LocalFleetInstanceProvisioner $localFleet,
         private readonly \App\Control\Application\Services\Tenants\TenantLifecycleOrchestrator $orchestrator,
+        private readonly Gate $gate,
     ) {}
 
     public function index(): Response
@@ -175,7 +176,7 @@ final class CompanyController
 
     public function storeOperator(Request $request, TenantModel $tenant): RedirectResponse
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         $block = $this->operators->operatorBlockReason($tenant);
         if ($block !== null) {
@@ -202,7 +203,7 @@ final class CompanyController
 
     public function updateOperatorRole(Request $request, TenantModel $tenant, User $user): RedirectResponse
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         $validated = $request->validate([
             'platform_role' => ['required', Rule::in($this->operators->instanceRoleValues())],
@@ -215,7 +216,7 @@ final class CompanyController
 
     public function updateOperatorPassword(Request $request, TenantModel $tenant, User $user): RedirectResponse
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         $validated = $request->validate([
             'password' => ['required', 'string', 'min:8', 'confirmed'],

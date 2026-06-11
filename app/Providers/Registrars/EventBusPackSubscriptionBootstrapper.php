@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Providers\Registrars;
 
 use App\Shared\EventBus\PackSubscriptionCatalogMerger;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class EventBusPackSubscriptionBootstrapper
 {
     public function __construct(
-        private readonly PackSubscriptionCatalogMerger $merger = new PackSubscriptionCatalogMerger(),
+        private readonly PackSubscriptionCatalogMerger $merger,
+        private readonly Dispatcher $events,
     ) {}
 
     public function bootstrap(): void
@@ -31,7 +32,7 @@ final class EventBusPackSubscriptionBootstrapper
         config()->set('eventbus.subscriptions', $merged);
 
         foreach ($listeners as $item) {
-            Event::listen($item['event_type'], $item['listener']);
+            $this->events->listen($item['event_type'], $item['listener']);
         }
     }
 }

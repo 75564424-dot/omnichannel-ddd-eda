@@ -18,6 +18,7 @@ final class ClientDashboardNodesWebController
         private readonly GetSystemNodeStatusUseCase $getNodeStatus,
         private readonly RefreshSystemNodeUseCase $refreshNode,
         private readonly SetNodeMiddlewareEventsUseCase $setMiddlewareEvents,
+        private readonly DashboardKnownNodes $knownNodes,
     ) {}
 
     public function status(): JsonResponse
@@ -28,7 +29,7 @@ final class ClientDashboardNodesWebController
     public function refresh(string $node): JsonResponse
     {
         $nodeKey = $this->resolveNodeKey($node);
-        abort_unless(DashboardKnownNodes::exists($nodeKey), 404);
+        abort_unless($this->knownNodes->exists($nodeKey), 404);
 
         try {
             $this->refreshNode->execute($nodeKey);
@@ -42,7 +43,7 @@ final class ClientDashboardNodesWebController
     public function patchMiddlewareEvents(Request $request, string $node): JsonResponse
     {
         $nodeKey = $this->resolveNodeKey($node);
-        abort_unless(DashboardKnownNodes::exists($nodeKey), 404);
+        abort_unless($this->knownNodes->exists($nodeKey), 404);
 
         if (! $request->has('middleware_events_enabled')) {
             return response()->json(['message' => 'middleware_events_enabled es obligatorio.'], 422);

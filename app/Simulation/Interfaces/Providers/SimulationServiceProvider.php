@@ -69,6 +69,7 @@ final class SimulationServiceProvider extends ServiceProvider
             SimulationRunHandoffSync::class,
             SimulationRunStaleGuard::class,
             SimulationStaleRunReplacer::class,
+            SimulationRunCancellationService::class,
             LocalFleetSimulationRunner::class,
             SimulationRunOrchestrator::class,
             SimulationRunQueryService::class,

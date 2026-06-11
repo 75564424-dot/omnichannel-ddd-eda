@@ -29,6 +29,7 @@ final class PlatformServiceBindingsRegistrar
         $app->singleton(LocalFleetSimulationRunner::class);
         $app->singleton(ControlPlaneFleetBootstrapService::class);
         $app->singleton(OperationalDataResetService::class);
+        $app->singleton(\App\Shared\Platform\Services\LocalEnvironmentResetService::class);
         $app->singleton(DemoIdentityResetService::class);
         $app->singleton(ClientInstanceBootstrapService::class);
         $app->singleton(DashboardDemoEventsEmitter::class);

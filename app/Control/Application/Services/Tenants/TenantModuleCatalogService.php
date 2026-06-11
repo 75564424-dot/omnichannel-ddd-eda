@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Control\Application\Services\Tenants;
 
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
 use App\Shared\Platform\Support\ModulesConfigPath;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 final class TenantModuleCatalogService
 {
+    public function __construct(
+        private readonly LocalFleetTenantMirrorInterface $tenantMirror,
+    ) {}
     /** @return array<string, mixed> */
     public function presentationForTenant(TenantModel $tenant): array
     {
@@ -147,6 +150,24 @@ final class TenantModuleCatalogService
         $settings['modules_catalog_updated_at'] = now()->toIso8601String();
 
         $tenant->update(['settings' => $settings]);
+
+        if ($this->hasLocalInstanceDeployment($settings)) {
+            $this->tenantMirror->mirrorCatalog($tenant->fresh() ?? $tenant);
+        }
+    }
+
+    /** @param array<string, mixed> $settings */
+    private function hasLocalInstanceDeployment(array $settings): bool
+    {
+        $deployment = $settings['deployment'] ?? null;
+        if (! is_array($deployment)) {
+            return false;
+        }
+
+        $local = $deployment['local_instance'] ?? null;
+
+        return is_array($local)
+            && trim((string) ($local['db_path'] ?? '')) !== '';
     }
 
     public function canApplyToCurrentInstance(TenantModel $tenant): bool
@@ -170,7 +191,7 @@ final class TenantModuleCatalogService
 
         $catalog = $this->getCatalog($tenant);
 
-        File::put(
+        file_put_contents(
             $path,
             json_encode($catalog, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n",
         );

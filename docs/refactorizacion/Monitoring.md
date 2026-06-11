@@ -1,119 +1,141 @@
-# Auditoría — Monitoring (Alertas / Canary)
+# Auditoria - Monitoring
+
+## Informacion General
 
 | Campo | Valor |
-|-------|-------|
-| **Ruta** | `app/Monitoring/` |
-| **Namespace** | `App\Monitoring\` |
-| **Tipo** | Bounded Context operacional |
-| **Archivos PHP** | 17 |
-| **LOC aprox.** | 563 |
-| **Tests** | 15 (Unit 12 · Feature 3) |
+| ----- | ----- |
+| Modulo | Monitoring |
+| Ruta | `service provider bindings + console/reporting entrypoints` |
+| Namespace principal | `App\Monitoring\` |
+| Tipo | Bounded Context de health checks |
+| Total archivos | 17 |
+| Total clases | 21 |
+| LOC aproximado | 603 |
+| Tests asociados | 8 (Unit 6 / Feature 2 / Integration 0 / E2E 0) |
 
-> **Última refactorización:** 2026-05-28 — evaluadores aislados, canary dividido, umbrales tipados, reporter de consola.
+## Responsabilidad del modulo
 
-## ¿Qué hace?
+Evalua alertas, canary checks, capacidad y estado operativo de colas, base de datos y runtime.
 
-Evalúa **condiciones de alerta** (métricas del bus, infraestructura, cola, capacidad BD), ejecuta **canary publish** al bus y expone commands Artisan para operaciones de monitoreo programado.
+- Que hace: Evalua alertas, canary checks, capacidad y estado operativo de colas, base de datos y runtime.
+- Problema que resuelve: reduce friccion operativa y concentra la logica del BC en un solo lugar.
+- Bounded context: Salud operativa y alertas
+- Dependencias: usa Control, Observability, Providers como entradas estaticas detectadas y publica hacia Middleware, Shared, Observability.
 
-## ¿Para qué sirve?
+## Arquitectura actual
 
-- `EvaluateMonitoringAlertsCommand` — chequeos periódicos / cron.
-- `CanaryPublishCommand` — verificación sintética del pipeline de eventos.
-- Alimenta UX de incidentes en Control (`ControlIncidentsService`, `IncidentDiagnosticCollector`).
-- Métricas Prometheus vía `PrometheusMetricsExporter` (error rate, canary age, checkers).
+| Area | Count |
+| ---- | ----- |
+| Controllers | 0 |
+| Services | 12 |
+| Use Cases | 0 |
+| Repositories | 0 |
+| DTOs | 0 |
+| Events | 0 |
+| Jobs | 0 |
+| Commands | 2 |
+| Policies | 0 |
+| Middleware | 0 |
 
-## Estructura DDD (post-refactor)
+## Metricas de complejidad
 
-```text
-app/Monitoring/
-├── Domain/ValueObjects/          MonitoringAlert, AlertSeverity
-├── Application/Services/
-│   ├── Evaluators/               BusMetrics, BusStopped, Infrastructure
-│   ├── Canary/                   envelope, queue verifier, success tracker
-│   ├── AlertEvaluationService    orquestador delgado
-│   ├── CanaryPublishService      orquestador canary
-│   ├── MonitoringAlertThresholds lectura tipada de config
-│   ├── MonitoringAlertsConsoleReporter
-│   ├── DatabaseCapacityChecker
-│   └── QueueDepthChecker
-└── Interfaces/
-    ├── Commands/                 evaluate + canary
-    └── Providers/                MonitoringServiceProvider
-```
+| Metica | Valor |
+| ----- | ----- |
+| LOC total | 603 |
+| LOC promedio por archivo | 35.5 |
+| Clase mas grande | MonitoringAlertsConsoleReporter (app/Monitoring/Application/Services/MonitoringAlertsConsoleReporter.php, 57 LOC) |
+| Metodo mas largo | BusMetricsAlertEvaluator::evaluate (app/Monitoring/Application/Services/Evaluators/BusMetricsAlertEvaluator.php, 38 LOC) |
+| Archivos >200 LOC | 0 |
+| Archivos >500 LOC | 0 |
+| Complejidad estimada | Baja |
 
-| Capa | Archivos | Estado |
-|------|----------|--------|
-| Domain | 2 | ✅ VOs de alerta |
-| Application | 13 | ✅ Evaluadores + canary + checkers |
-| Interfaces | 3 | ✅ Commands + provider |
+## Metricas de deuda tecnica
 
-## Servicios extraídos en esta refactorización
+| Indicador | Valor |
+| --------- | ----- |
+| Codigo limpio | 59% |
+| Codigo aceptable | 41% |
+| Codigo sucio | 0% |
+| Codigo espagueti | 0% |
+| Riesgo tecnico | Aceptable |
+| Mantenibilidad | Media |
+| Acoplamiento | Medio |
+| Cohesion | Media |
 
-| Servicio | Reemplaza lógica en |
-|----------|---------------------|
-| `MonitoringAlertThresholds` | Lectura dispersa de `platform_monitoring.alerts` |
-| `BusMetricsAlertEvaluator` | error rate, latency, DLQ en `AlertEvaluationService` |
-| `BusStoppedAlertEvaluator` | tracking cache bus STOPPED |
-| `InfrastructureAlertEvaluator` | disk + queue en orquestador |
-| `CanaryProbeEnvelopeFactory` | construcción envelope en `CanaryPublishService` |
-| `CanaryQueueCompletionVerifier` | query `message_queue` post-publish |
-| `CanarySuccessTracker` | cache último éxito canary |
-| `MonitoringAlertsConsoleReporter` | output + logging en command evaluate |
+Heuristica aplicada: clasificacion por archivo fuente en cuatro buckets (limpio, aceptable, sucio, espagueti) segun LOC, uso de `app()/resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
 
-## Métricas de deuda (actualizadas)
+## Violaciones arquitectonicas
 
-| Indicador | Antes | **Ahora** | Detalle |
-|-----------|-------|-----------|---------|
-| **% código sucio** | 20% | **9%** | Sin clases >150 LOC; evaluadores testeables |
-| **% código espagueti** | 15% | **7%** | Orquestadores delgados; reglas con dueño único |
-| **Ratio tests/archivos** | 22% | **~88%** | +10 unit tests (evaluators, canary, thresholds) |
-| **Archivos >150 LOC** | 1 | **0** | Mayor: `MonitoringAlertsConsoleReporter` ~56 LOC |
+- Facades indebidas o acoplamiento a Facades: 5 archivos fuente.
+- Dependencias cruzadas entre BCs: Middleware, Shared, Observability.
 
-### Archivos más pesados (post-refactor)
+## Dependencias
 
-| Archivo | LOC | Notas |
-|---------|-----|-------|
-| `MonitoringAlertsConsoleReporter.php` | ~56 | Output CLI + structured log |
-| `QueueDepthChecker.php` | ~52 | Redis + database drivers |
-| `DatabaseCapacityChecker.php` | ~51 | SQLite + MySQL |
-| `AlertEvaluationService.php` | ~45 | Solo orquestación |
+### Dependencias entrantes
 
-## Resuelto en esta refactorización
+Control, Observability, Providers
 
-1. ~~`AlertEvaluationService` monolítico (~138 LOC)~~ → 3 evaluadores + orquestador ~45 LOC.
-2. ~~Sin tests unitarios de checkers/evaluators~~ → 12 unit + 3 feature.
-3. ~~Umbrales mezclados con lógica~~ → `MonitoringAlertThresholds` centralizado.
-4. ~~`CanaryPublishService` con múltiples responsabilidades~~ → factory + verifier + tracker.
+### Dependencias salientes
 
-## Cosas sueltas / inconsistentes (restantes)
+Middleware, Shared, Observability
 
-1. **Acoplamiento Control** — incidentes dependen de `AlertEvaluationService` directamente; sin evento `AlertRaised`.
-2. **Canary vs simulación** — dos mecanismos de evento sintético sin guía única en runbook.
-3. **`DatabaseCapacityChecker`** — sin unit test aislado de MySQL (solo vía evaluator + sqlite en tests).
+## Riesgo de refactorizacion
 
-## Acoplamientos
+| Area | Riesgo |
+| ---- | ------ |
+| Controllers | Bajo |
+| Services | Medio |
+| Domain | Medio |
+| Infraestructura | Bajo |
+| Tests | Bajo |
 
-| Hacia | Tipo | Riesgo |
-|-------|------|--------|
-| Middleware | `BusHealthService`, `EventPublisherService` | ✅ Lectura/publicación vía servicios |
-| Control | Consumo en incidentes / overview | ⚠️ Medio (sin port) |
-| Observability | `SliMetricsRecorder`, Prometheus exporter | ✅ Bajo |
-| Shared | Logging | ✅ Bajo |
+## Cobertura funcional
 
-## Cobertura de tests
+- Funcionalidades principales: AlertEvaluation, CanaryProbeEnvelopeFactory, CanaryQueueCompletionVerifier, CanarySuccessTracker, CanaryPublish
+- Funcionalidades secundarias: contratos de ruta y flujo detectados por los controladores, use cases y servicios del modulo.
+- Funcionalidades criticas: Middleware, Shared, Observability
 
-- **Verificado (2026-05-28):** 15 tests Unit + Feature Monitoring — todos pasan.
-- **Presente:** evaluators (bus metrics, stopped, infra), thresholds, canary envelope/verifier, commands feature.
-- **Gaps:** `DatabaseCapacityChecker` MySQL path, test de reporter P1 vs P2 en CLI.
+## Cobertura de pruebas
 
-## Recomendaciones de refactor (futuro)
+- Tests unitarios: 6
+- Tests feature: 2
+- Tests integracion: 0
+- Clasificacion: Media
 
-| Prioridad | Acción |
-|-----------|--------|
-| P3 | Publicar domain events de alerta en lugar de llamadas directas desde Control. |
-| P3 | Documentar relación Canary vs Simulation en `docs/monitoring/`. |
-| P4 | Port `AlertEvaluationInterface` para desacoplar Control. |
+## Codigo muerto
 
-## Veredicto
+- No se identificaron clases muertas concluyentes en el escaneo estatico; los componentes con baja trazabilidad siguen expuestos por rutas, comandos o service providers.
 
-**BC sano** tras refactor: evaluadores aislados, canary con pipeline claro, commands delgados. Deuda restante menor (acoplamiento Control, documentación Canary vs Simulation).
+## Oportunidades de mejora
+
+### Refactorizacion segura
+
+- Separar lectura, escritura y mapeo en servicios de soporte.
+- Aislar adapters por BC y formalizar ACL o mappers.
+
+### Refactorizacion moderada
+
+- Dividir los servicios mas grandes por responsabilidad.
+- Reducir lookup de contenedor y Facades en bordes del modulo.
+
+### Refactorizacion de alto riesgo
+
+- Cambiar contratos cruzados entre BCs sin plan de compatibilidad.
+
+## Plan de saneamiento
+
+| Prioridad | Accion | Impacto | Riesgo |
+| --------- | ------ | ------- | ------ |
+| P1 | Reducir el mayor punto de acoplamiento del modulo (MonitoringAlertsConsoleReporter) | Baja riesgo y hace mas visible la frontera | Medio |
+| P2 | Extraer mappers/presenters y fijar contratos con tests de caracterizacion | Mejora mantenibilidad y protege payloads | Bajo-Medio |
+| P3 | Consolidar convenciones de nombres y eliminar lookups innecesarios del contenedor | Menos ruido y menor deuda acumulada | Bajo |
+
+## Compatibilidad funcional
+
+- Funcionalidades que podrian romperse: Middleware, Shared, Observability y las respuestas de los endpoints publicos del modulo.
+- Dependencias que deben preservarse: Control, Observability, Providers, ademas de los contratos de DTOs y use cases consumidos por otros BCs.
+- Contratos publicos que no deben modificarse: nombres de rutas, payloads, eventos publicados y firmas de servicios usados desde otros modulos.
+
+## Veredicto final
+
+**Aceptable**. El modulo presenta una mezcla de logica estable y puntos de acoplamiento que siguen siendo sensibles. La frontera funcional existe y es trazable, pero la refactorizacion futura debe preservar rutas, payloads y bindings porque siguen siendo contratos publicos reales.

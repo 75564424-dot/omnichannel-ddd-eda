@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Demo;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Contracts\Events\Dispatcher;
 use Ramsey\Uuid\Uuid;
 
 final class EmitMockPlatformEventCommand extends Command
@@ -13,14 +13,14 @@ final class EmitMockPlatformEventCommand extends Command
     protected $signature = 'platform:emit-mock
                             {--type=PlatformPing : String event name dispatched on the app event bus}';
 
-    protected $description = 'Dispatches a mock envelope (Laravel Event facade) for dashboard/middleware smoke tests';
+    protected $description = 'Dispatches a mock envelope on the app event bus for dashboard/middleware smoke tests';
 
-    public function handle(): int
+    public function handle(Dispatcher $events): int
     {
         $type = (string) $this->option('type');
         $id = Uuid::uuid4()->toString();
 
-        Event::dispatch($type, [[
+        $events->dispatch($type, [[
             'event_id' => $id,
             'event' => $type,
             'event_type' => $type,

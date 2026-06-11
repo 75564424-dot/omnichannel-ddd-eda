@@ -80,6 +80,15 @@ final class LocalFleetRegistry
         return $this->findBySlug($slug) ?? $instance;
     }
 
+    /** @param list<array<string, mixed>> $instances */
+    public function replaceInstances(array $instances): void
+    {
+        $data = $this->read();
+        $data['instances'] = array_values($instances);
+        $data['updated_at'] = now()->toIso8601String();
+        $this->write($data);
+    }
+
     public function nextAvailablePort(): int
     {
         $used = array_map(

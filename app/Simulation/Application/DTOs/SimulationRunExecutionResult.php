@@ -34,4 +34,12 @@ final readonly class SimulationRunExecutionResult
             warningMessage: $warning,
         );
     }
+
+    public static function cancelled(string $runId, int $published): self
+    {
+        return new self(
+            success: true,
+            infoMessage: "Simulation {$runId} cancelled after {$published} events.",
+        );
+    }
 }

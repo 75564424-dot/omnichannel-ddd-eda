@@ -9,31 +9,38 @@ use App\Models\User;
 use App\Shared\Identity\Contracts\PlatformAuthorizationServiceInterface;
 use App\Shared\Identity\Policies\ManageUsersPolicy;
 use App\Shared\Identity\Policies\PublishEventPolicy;
-use App\Shared\Identity\Policies\ResolveDeadLetterPolicy;
 use App\Shared\Identity\Policies\SyncRegistryPolicy;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Contracts\Auth\Access\Gate;
 
 final class PlatformGateRegistrar
 {
-    public static function register(): void
+    public function __construct(
+        private readonly Gate $gate,
+        private readonly ManageUsersPolicy $manageUsersPolicy,
+        private readonly PublishEventPolicy $publishEventPolicy,
+        private readonly SyncRegistryPolicy $syncRegistryPolicy,
+        private readonly PlatformAuthorizationServiceInterface $authorization,
+    ) {}
+
+    public function register(): void
     {
-        Gate::define('platform.publish', fn (?User $user) => self::allowsApiAbility($user, 'events:publish'));
-        Gate::define('platform.sync-registry', fn (?User $user) => self::allowsApiAbility($user, 'bus:admin'));
-        Gate::define('platform.resolve-dead-letter', fn (?User $user) => self::allowsApiAbility($user, 'bus:admin'));
-        Gate::define('platform.manage-users', fn (?User $user) => self::allowsManageUsers($user));
-        Gate::define('platform.manage-integrations', fn (?User $user) => self::allowsApiAbility($user, 'integrations:admin'));
+        $this->gate->define('platform.publish', fn (?User $user) => $this->allowsApiAbility($user, 'events:publish'));
+        $this->gate->define('platform.sync-registry', fn (?User $user) => $this->allowsApiAbility($user, 'bus:admin'));
+        $this->gate->define('platform.resolve-dead-letter', fn (?User $user) => $this->allowsApiAbility($user, 'bus:admin'));
+        $this->gate->define('platform.manage-users', fn (?User $user) => $this->allowsManageUsers($user));
+        $this->gate->define('platform.manage-integrations', fn (?User $user) => $this->allowsApiAbility($user, 'integrations:admin'));
     }
 
-    private static function allowsManageUsers(?User $user): bool
+    private function allowsManageUsers(?User $user): bool
     {
         if (! config('platform_auth.web_auth_enabled', true)) {
             return true;
         }
 
-        return app(ManageUsersPolicy::class)->manage($user);
+        return $this->manageUsersPolicy->manage($user);
     }
 
-    private static function allowsApiAbility(?User $user, string $ability): bool
+    private function allowsApiAbility(?User $user, string $ability): bool
     {
         if (! config('security.api_auth_enabled', true)) {
             return true;
@@ -45,9 +52,9 @@ final class PlatformGateRegistrar
         }
 
         return match ($ability) {
-            'events:publish' => app(PublishEventPolicy::class)->publish($user),
-            'bus:admin' => app(SyncRegistryPolicy::class)->sync($user),
-            default => $user !== null && app(PlatformAuthorizationServiceInterface::class)->userCan($user, $ability),
+            'events:publish' => $this->publishEventPolicy->publish($user),
+            'bus:admin'      => $this->syncRegistryPolicy->sync($user),
+            default          => $user !== null && $this->authorization->userCan($user, $ability),
         };
     }
 }

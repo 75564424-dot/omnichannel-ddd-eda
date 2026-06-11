@@ -8,7 +8,7 @@ use App\Http\Middleware\AuthenticatePlatformApi;
 use App\Shared\Logging\StructuredLogContext;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Log\LogManager;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,6 +17,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class CorrelationIdMiddleware
 {
+    public function __construct(
+        private readonly LogManager $log,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         StructuredLogContext::reset();
@@ -41,7 +45,7 @@ final class CorrelationIdMiddleware
             StructuredLogContext::setActorId($principal->actorId);
         }
 
-        Log::shareContext(StructuredLogContext::toArray());
+        $this->log->shareContext(StructuredLogContext::toArray());
 
         /** @var Response $response */
         $response = $next($request);

@@ -8,8 +8,7 @@ use App\Control\Application\Services\ControlCatalogService;
 use App\Models\User;
 use App\Shared\Identity\Domain\PlatformRole;
 use App\Shared\Infrastructure\Models\TenantModel;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 /**
  * Maps tenants and related DB facts for the SaaS control plane (no mock data).
@@ -18,6 +17,7 @@ final class TenantPresentationService
 {
     public function __construct(
         private readonly ControlCatalogService $catalog,
+        private readonly DatabaseManager $db,
     ) {}
     /** @return list<array<string, mixed>> */
     public function listTenants(): array
@@ -94,27 +94,27 @@ final class TenantPresentationService
             'event_logs'      => 0,
         ];
 
-        if (Schema::hasTable('message_queue')) {
-            $counts['queue_pending'] = (int) DB::table('message_queue')
+        if ($this->db->getSchemaBuilder()->hasTable('message_queue')) {
+            $counts['queue_pending'] = (int) $this->db->table('message_queue')
                 ->where('tenant_id', $tenantId)
                 ->whereIn('status', ['pending', 'processing', 'PENDING', 'PROCESSING'])
                 ->count();
 
-            $counts['events_24h'] = (int) DB::table('message_queue')
+            $counts['events_24h'] = (int) $this->db->table('message_queue')
                 ->where('tenant_id', $tenantId)
                 ->where('published_at', '>=', now()->subDay())
                 ->count();
         }
 
-        if (Schema::hasTable('dead_letter_queue')) {
-            $counts['dead_letters'] = (int) DB::table('dead_letter_queue')
+        if ($this->db->getSchemaBuilder()->hasTable('dead_letter_queue')) {
+            $counts['dead_letters'] = (int) $this->db->table('dead_letter_queue')
                 ->where('tenant_id', $tenantId)
                 ->whereNull('resolved_at')
                 ->count();
         }
 
-        if (Schema::hasTable('event_logs')) {
-            $counts['event_logs'] = (int) DB::table('event_logs')
+        if ($this->db->getSchemaBuilder()->hasTable('event_logs')) {
+            $counts['event_logs'] = (int) $this->db->table('event_logs')
                 ->where('tenant_id', $tenantId)
                 ->where('logged_at', '>=', now()->subDay())
                 ->count();

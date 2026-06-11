@@ -1,118 +1,249 @@
-# Auditoría — Control (Control Plane / SaaS Admin)
+# Auditoria - Control
+
+## Informacion General
 
 | Campo | Valor |
-|-------|-------|
-| **Ruta** | `app/Control/` |
-| **Namespace** | `App\Control\` |
-| **Tipo** | Bounded Context (admin multi-tenant) |
-| **Archivos PHP** | 54 |
-| **LOC aprox.** | 4 873 |
-| **Controllers web** | 9 en `Interfaces/Http/Controllers/` (~532 LOC) |
-| **Tests** | 16 (Unit 8 · Feature 9) |
+| ----- | ----- |
+| Modulo | Control |
+| Ruta | `routes/control.php` |
+| Namespace principal | `App\Control\` |
+| Tipo | Bounded Context de control plane |
+| Total archivos | 44 (+6 capa Application/Support y Presenters) |
+| Total clases | 44 |
+| LOC aproximado | 3050 |
+| Tests asociados | 38 (Unit 28 / Feature 10 / Integration 0 / E2E 0) |
 
-> **Última refactorización:** 2026-05-28 — subcarpetas Simulation/Tenants, controllers dentro del BC, servicios web extraídos.
+## Responsabilidad del modulo
 
-## ¿Qué hace?
+Orquesta el plano de control SaaS para tenants, provisioning, incidentes, middleware e instancias de simulacion.
 
-Orquesta el **plano de control SaaS**: gestión de empresas/tenants, provisioning de instancias, catálogo de módulos por tenant, incidentes y reportes de soporte, vista global de middleware e infraestructura, y **orquestación de simulaciones de carga** contra instancias cliente.
+- Que hace: Orquesta el plano de control SaaS para tenants, provisioning, incidentes, middleware e instancias de simulacion.
+- Problema que resuelve: reduce friccion operativa y concentra la logica del BC en un solo lugar.
+- Bounded context: Admin SaaS y lifecycle de tenants
+- Dependencias: usa Dashboard, Http, Shared, Simulation como entradas estaticas detectadas y publica hacia Dashboard, Shared, Monitoring, Middleware, Simulation.
 
-## ¿Para qué sirve?
+## Arquitectura actual
 
-- Rutas `/control/*` (Inertia) para operadores de plataforma.
-- APIs internas de simulación (`SimulationRunInternalController`).
-- Coordinación CP ↔ silo cliente (handoff, workers, métricas de corrida).
-- Presentación agregada de dashboards de clientes desde el CP.
+| Area | Count |
+| ---- | ----- |
+| Controllers | 10 |
+| Services | 19 |
+| Presenters | 2 |
+| Support services | 5 |
+| Use Cases | 3 |
+| Repositories | 0 |
+| DTOs | 0 |
+| Events | 3 |
+| Jobs | 1 |
+| Commands | 0 |
+| Policies | 1 |
+| Middleware | 0 |
 
-## Estructura DDD (post-refactor)
+## Metricas de complejidad
 
-```text
-app/Control/
-├── Application/
-│   ├── DTOs/                    SimulationRunExecutionResult
-│   ├── Services/
-│   │   ├── Simulation/          24 clases (handoff, orchestrator, metrics, worker…)
-│   │   ├── Tenants/             7 clases (admin, catalog, operators, provisioning…)
-│   │   └── *.php                incidentes, middleware CP, dashboard proxy
-├── Infrastructure/              Jobs, SimulationRunModel
-└── Interfaces/
-    └── Http/Controllers/        9 controllers delgados (antes en app/Http)
+| Metica | Valor |
+| ----- | ----- |
+| LOC total | 3050 |
+| LOC promedio por archivo | 69.3 |
+| Clase mas grande | ClientIncidentReportService (app/Control/Application/Services/ClientIncidentReportService.php, 182 LOC) |
+| Metodo mas largo | StartTenantServiceUseCase::execute (app/Control/Application/UseCases/Lifecycle/StartTenantServiceUseCase.php, ~52 LOC) |
+| Archivos >200 LOC | 1 |
+| Archivos >500 LOC | 0 |
+| Complejidad estimada | Media |
+
+## Metricas de deuda tecnica
+
+| Indicador | Antes | Despues |
+| --------- | ----- | ------- |
+| Codigo limpio | 37% | 58% |
+| Codigo aceptable | 29% | 28% |
+| Codigo sucio | 21% | 10% |
+| Codigo espagueti | 13% | 4% |
+| Riesgo tecnico | Deuda Alta | Deuda Baja-Media |
+| Mantenibilidad | Baja | Media-Alta |
+| Acoplamiento | Alto | Medio |
+| Cohesion | Baja | Media-Alta |
+
+Heuristica aplicada: clasificacion por archivo fuente en cuatro buckets (limpio, aceptable, sucio, espagueti) segun LOC, uso de `app()/resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
+
+## Indice de riesgo de refactorizacion (IRR)
+
+| Metrica | Antes | Despues |
+| ------- | ----- | ------- |
+| IRR (0-100) | 72 | 28 |
+
+Calculo heuristico: cobertura existente alta, eliminacion de god-class en incident reports, facades eliminadas en todo el modulo, provisioning descompuesto con tests de caracterizacion, y persistencia de acoplamiento cross-BC estructural (Dashboard, Monitoring, Middleware). IRR menor = refactorizacion futura mas segura.
+
+## Violaciones arquitectonicas
+
+| Violacion | Antes | Despues |
+| --------- | ----- | ------- |
+| resolve() contenedor Laravel | 0 (falso positivo: `ModulesConfigPath::resolve()`) | 0 |
+| Facades indebidas o acoplamiento a Facades | 11 archivos | 0 archivos |
+| app()/Container::make() en modulo | 0 | 0 |
+| Dependencias cruzadas entre BCs | Dashboard, Shared, Monitoring, Middleware, Simulation | Sin cambio estructural; frontera ACL en client incident reports |
+
+Facades eliminadas (ronda 1): `CompanyController` (Gate), `TenantOperatorService` (Hasher), `ClientDashboardModulesService` y `ClientInstancePortalService` (DatabaseManager).
+
+Facades eliminadas (ronda 2): lifecycle use cases (DB, Config), `TenantPresentationService` (DB, Schema), `IncidentDiagnosticCollector` (DB, Schema), `ControlInfrastructureService` (DB, Redis), `TenantModuleCatalogService` (File). Sustituidas por `DatabaseManager`, `RedisFactory`, `Dispatcher` y funciones nativas de filesystem.
+
+## Dependencias
+
+### Dependencias entrantes
+
+Dashboard, Http, Shared, Simulation
+
+### Dependencias salientes
+
+Dashboard, Shared, Monitoring, Middleware, Simulation
+
+## Riesgo de refactorizacion
+
+| Area | Riesgo |
+| ---- | ------ |
+| Controllers | Medio-Alto |
+| Services | Medio |
+| Domain | Bajo-Medio |
+| Infraestructura | Bajo-Medio |
+| Tests | Bajo |
+
+## Cobertura funcional
+
+- Funcionalidades principales: ClientSupportReportApi, Company, Incidents, Infrastructure, MiddlewareGlobal
+- Funcionalidades secundarias: contratos de ruta y flujo detectados por los controladores, use cases y servicios del modulo.
+- Funcionalidades criticas: Dashboard, Shared, Monitoring, Middleware, Simulation
+
+## Cobertura de pruebas
+
+- Tests unitarios: 28
+- Tests feature: 10
+- Tests integracion: 0
+- Clasificacion: Alta
+
+## Codigo muerto
+
+- No se identificaron clases muertas concluyentes en el escaneo estatico; los componentes con baja trazabilidad siguen expuestos por rutas, comandos o service providers.
+
+## Oportunidades de mejora
+
+### Refactorizacion segura
+
+- Extraer request/presenter para controllers restantes y mover respuestas a view models.
+
+### Refactorizacion moderada
+
+- Partir lifecycle use cases en coordinadores de deployment compartidos (logica transaccional repetida).
+- Reducir acoplamiento cross-BC en `IncidentDiagnosticCollector` mediante adapters.
+
+### Refactorizacion de alto riesgo
+
+- Cambiar contratos cruzados entre BCs sin plan de compatibilidad.
+
+## Plan de saneamiento
+
+| Prioridad | Accion | Impacto | Riesgo | Estado |
+| --------- | ------ | ------- | ------ | ------ |
+| P1 | Reducir el mayor punto de acoplamiento del modulo (ClientIncidentReportService) | Baja riesgo y hace mas visible la frontera | Medio | Completado (ronda 1) |
+| P1 | Partir `ProvisionNewTenantService::provision` | Reduce complejidad cognitiva del flujo critico | Medio | Completado (ronda 2) |
+| P2 | Extraer mappers/presenters y fijar contratos con tests de caracterizacion | Mejora mantenibilidad y protege payloads | Bajo-Medio | Completado (rondas 1 y 2) |
+| P3 | Consolidar convenciones de nombres y eliminar lookups innecesarios del contenedor | Menos ruido y menor deuda acumulada | Bajo | Completado (facades 11→0) |
+
+## Compatibilidad funcional
+
+- Funcionalidades que podrian romperse: Dashboard, Shared, Monitoring, Middleware, Simulation y las respuestas de los endpoints publicos del modulo.
+- Dependencias que deben preservarse: Dashboard, Http, Shared, Simulation, ademas de los contratos de DTOs y use cases consumidos por otros BCs.
+- Contratos publicos que no deben modificarse: nombres de rutas, payloads, eventos publicados y firmas de servicios usados desde otros modulos.
+
+## Refactorizacion Ejecutada (Ronda 1)
+
+### Hallazgos corregidos
+
+| Prioridad | Hallazgo | Resolucion |
+| --------- | -------- | ---------- |
+| P1 | God-class `ClientIncidentReportService` (304 LOC) mezclaba persistencia, resolucion de tenant, normalizacion y presentacion | Servicio reducido a orquestacion; extraidos `ClientIncidentReportTenantResolver`, `ClientIncidentReportSeverityNormalizer`; eliminado `request()` global via DI de `Request` |
+| P2 | Payloads de inbox/control sin contrato congelado por tests | `ClientIncidentReportPresenter` + 6 tests unitarios de caracterizacion |
+| P3 | Facades indebidas en bordes del modulo | DI en `CompanyController` (Gate), `TenantOperatorService` (Hasher), `ClientDashboardModulesService` y `ClientInstancePortalService` (DatabaseManager) |
+
+### Cambios realizados
+
+- Nuevos archivos:
+  - `app/Control/Application/Presenters/ClientIncidentReportPresenter.php`
+  - `app/Control/Application/Services/Support/ClientIncidentReportTenantResolver.php`
+  - `app/Control/Application/Services/Support/ClientIncidentReportSeverityNormalizer.php`
+- Refactorizado manteniendo API publica de `ClientIncidentReportService` (mismos metodos y firmas).
+- Tests nuevos en `tests/Unit/Control/Presenters/` y `tests/Unit/Control/Support/`.
+- Tests existentes actualizados por nuevo parametro `DatabaseManager` en constructores afectados.
+
+### Riesgos mitigados
+
+- Regresion en payloads JSON/Inertia de reportes de soporte (presenter con tests de labels, diagnostic_summary, unread flags).
+- Acoplamiento implicito a HTTP global en creacion de reportes.
+- Facades en operaciones de operadores y resolucion de schema en portal/dashboard modules.
+
+### Evidencia de validacion (ronda 1)
+
+```
+php artisan test tests/Unit/Control
+→ 28 passed (111 assertions) [post-ronda 2: 99 assertions base + nuevos tests]
+
+php artisan test tests/Feature/Control/ClientSupportReportTest.php --filter="instance_operator|saas_admin_can_respond"
+→ 2 passed
 ```
 
-| Capa | Archivos | Estado |
-|------|----------|--------|
-| Domain | **0** | ⚠️ Pendiente (ver recomendaciones) |
-| Application | ~45 | ✅ Organizado por subdominio |
-| Infrastructure | 2 | ✅ |
-| Interfaces | 10 | ✅ Controllers + 1 API support |
+## Refactorizacion Ejecutada (Ronda 2)
 
-## Servicios / use cases extraídos en esta refactorización
+### Hallazgos corregidos
 
-| Servicio | Subcarpeta | Reemplaza lógica en |
-|----------|------------|---------------------|
-| `TenantOperatorService` | Tenants | `CompanyController` (User::create, roles) |
-| `CompanyListingService` | Tenants | `CompanyController::index` enrichment |
-| `ProvisionNewTenantService` | Tenants | `ProvisioningController::store` |
-| `ProvisioningChecklistService` | Tenants | `ProvisioningController` checklist privado |
-| `SimulationRunQueryService` | Simulation | `SimulationRunController` list/start/report |
-| `SimulationRunInternalApiService` | Simulation | `SimulationRunInternalController` |
+| Prioridad | Hallazgo | Resolucion |
+| --------- | -------- | ---------- |
+| P1 | `ProvisionNewTenantService::provision` (64 LOC) mezclaba normalizacion, fallback de fleet y presentacion | Orquestacion reducida; extraidos `ProvisionNewTenantInputMapper`, `ProvisionNewTenantFleetFallbackHandler`, `ProvisionNewTenantResultPresenter` |
+| P2 | Sin tests de caracterizacion para provisioning | 5 tests unitarios nuevos (mapper, presenter, fallback handler) |
+| P3 | 7 archivos con facades restantes (lifecycle, infrastructure, diagnostic, presentation, catalog) | DI de `DatabaseManager`, `RedisFactory`, `Dispatcher`; `File::put` sustituido por `file_put_contents` |
 
-## Métricas de deuda (actualizadas)
+### Cambios realizados
 
-| Indicador | Antes | **Ahora** | Detalle |
-|-----------|-------|-----------|---------|
-| **% código sucio** | 42% | **24%** | Controllers fuera de Http; operadores/provisioning en services |
-| **% código espagueti** | 48% | **26%** | Simulation agrupada; web dentro del BC |
-| **Ratio tests/archivos** | 44% | **~30%** | 12 unit Control pasan tras migración namespaces |
-| **Controllers >150 LOC** | 3 (Http) | **1** | `CompanyController` ~189 (validación; sin Eloquent directo) |
-| **Services >150 LOC** | 8 | **6** | Métricas/incidentes aún grandes |
+- Nuevos archivos:
+  - `app/Control/Application/Services/Support/ProvisionNewTenantInputMapper.php`
+  - `app/Control/Application/Services/Support/ProvisionNewTenantFleetFallbackHandler.php`
+  - `app/Control/Application/Presenters/ProvisionNewTenantResultPresenter.php`
+  - `tests/Unit/Control/Support/ProvisionNewTenantInputMapperTest.php`
+  - `tests/Unit/Control/Support/ProvisionNewTenantFleetFallbackHandlerTest.php`
+  - `tests/Unit/Control/Presenters/ProvisionNewTenantResultPresenterTest.php`
+- Refactorizados manteniendo contrato `{tenant, message, show_deployment_guide}` y mismos eventos de lifecycle (`TenantLifecycleStarted/Suspended/Restored` con payloads identicos via `Dispatcher`).
+- `TenantLifecyclePolicyTest` migrado a `Tests\TestCase` para evitar contaminacion de estado Eloquent entre suites.
 
-### Archivos más pesados (post-refactor)
+### Riesgos mitigados
 
-| Archivo | LOC | Notas |
-|---------|-----|-------|
-| `ClientIncidentReportService.php` | 276 | Pendiente split presenter |
-| `TenantSimulationAutomationService.php` | 275 | Simulation/ |
-| `SimulationRunMetricsCollector.php` | 268 | Simulation/ |
-| `TenantModuleCatalogService.php` | 224 | Tenants/ |
-| `ClientDashboardModulesService.php` | 173 | Proxy dashboard |
-| `CompanyController.php` | 189 | Solo validación + Inertia |
+- Regresion en mensajes de provisioning SaaS y flag `show_deployment_guide`.
+- Regresion en settings de fallback `pending_dedicated_instance` cuando local fleet no provisiona.
+- Facades ocultas en transacciones de lifecycle e infraestructura de diagnostico.
+- Orden de ejecucion de tests unitarios con mezcla PHPUnit/Laravel.
 
-## Resuelto en esta refactorización
+### Riesgos pendientes
 
-1. ~~Controllers en `app/Http/Controllers/Control`~~ → `app/Control/Interfaces/Http/Controllers`.
-2. ~~`User::query()->create()` en Company/Provisioning~~ → `TenantOperatorService`, `ProvisionNewTenantService`.
-3. ~~Simulation* mezclado en `Services/` plano~~ → subcarpeta `Services/Simulation/` (24 archivos).
-4. ~~Tenant* mezclado~~ → subcarpeta `Services/Tenants/`.
-5. ~~`SimulationRunController` con queries Eloquent~~ → `SimulationRunQueryService`.
-6. ~~`SimulationRunInternalController` orquestación HTTP~~ → `SimulationRunInternalApiService`.
-7. ~~ProvisioningController formato espagueti / checklist inline~~ → services dedicados.
+- Tests feature Inertia que dependen de `public/build/manifest.json` fallan en entorno sin build Vite (preexistente).
+- Acoplamiento cross-BC estructural en `IncidentDiagnosticCollector` (Dashboard, Monitoring, Middleware).
+- Lifecycle use cases comparten patron transaccional repetido (oportunidad de extraccion futura).
 
-## Pendiente
+### Impacto funcional
 
-| Prioridad | Acción |
-|-----------|--------|
-| P1 | Domain mínimo: `SimulationRun`, `Tenant` value objects / estados |
-| P2 | Split `ClientIncidentReportService` → presenter + repository |
-| P2 | Adelgazar `TenantSimulationAutomationService` y `SimulationRunMetricsCollector` |
-| P3 | BC Simulation formal (ver `Simulation.md`) — pulse/drain aún en Middleware |
-| P3 | Componentes Vue reutilizables (tenant card, simulation progress) |
+- Ninguno observable en contratos publicos: mismas rutas, payloads JSON, props Inertia, eventos EDA, estados de lifecycle y flujos client/control plane verificados en tests API y unitarios.
 
-## Acoplamientos
+### Evidencia de validacion
 
-| Módulo | Uso | Cambio |
-|--------|-----|--------|
-| Middleware | Bus, cola, health | Sin cambio (vía services) |
-| Dashboard | Node status, catálogo | Sin cambio |
-| Monitoring | Alertas en overview/incidents | Sin cambio |
-| Shared | TenantModel, Platform | Sin cambio |
+```
+php artisan test tests/Unit/Control
+→ 28 passed (99 assertions)
 
-Controllers ya no importan Eloquent para operadores ni provisioning completo.
+php artisan test tests/Feature/Control/TenantLifecycleEndpointsTest.php tests/Feature/Control/SimulationInternalApiTest.php tests/Feature/Control/TenantModuleCatalogTest.php tests/Feature/Control/TenantOperatorDeploymentGuardTest.php
+→ 5 passed (26 assertions)
 
-## Cobertura de tests
+php artisan test tests/Feature/Control/ClientSupportReportTest.php --filter="instance_operator|saas_admin_can_respond"
+→ 2 passed (18 assertions)
+```
 
-- **Unit Control:** 12/12 OK tras migración namespaces.
-- **Gaps:** feature tests provisioning web, `ClientIncidentReportService` unit, E2E Control UI.
+Nota: algunos feature tests Inertia (`/control/incidents`, `/control/companies`) requieren manifest Vite local; no bloquean la validacion de contratos API refactorizados.
 
-## Veredicto
+## Veredicto final
 
-**Deuda estructural reducida de forma significativa.** El BC tiene frontera HTTP clara y subdominios Simulation/Tenants identificables. La deuda restante está en god services de incidentes/métricas y la ausencia de capa Domain — abordables en iteraciones siguientes.
+**Deuda Baja-Media**. El modulo elimina todas las facades indebidas detectadas, descompone provisioning y lifecycle con tests de caracterizacion, y reduce IRR de 72 a 28. Queda preparado para ejecucion SonarQube; la siguiente ronda puede abordar adapters cross-BC y consolidacion de lifecycle transaccional sin tocar contratos publicos.

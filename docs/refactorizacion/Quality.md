@@ -1,104 +1,138 @@
-# Auditoría — Quality (Gates / CI)
+# Auditoria - Quality
+
+## Informacion General
 
 | Campo | Valor |
-|-------|-------|
-| **Ruta** | `app/Quality/` |
-| **Namespace** | `App\Quality\` |
-| **Tipo** | Bounded Context operacional (QA gates) |
-| **Archivos PHP** | 7 |
-| **LOC aprox.** | 252 |
-| **Tests** | 7 (Unit 5 · Feature 2) |
+| ----- | ----- |
+| Modulo | Quality |
+| Ruta | `CLI/CI entrypoints, scripts and workflows` |
+| Namespace principal | `App\Quality\` |
+| Tipo | Boundary de calidad |
+| Total archivos | 32 |
+| Total clases | 12 |
+| LOC aproximado | 637 |
+| Tests asociados | 4 (Unit 3 / Feature 1 / Integration 0 / E2E 0) |
 
-> **Última refactorización:** 2026-05-28 — gate cobertura Application, settings tipados, command CI, script delegado.
+## Responsabilidad del modulo
 
-## ¿Qué hace?
+Agrupa gates de cobertura, settings y reportes de calidad para Application y la tuberia CI.
 
-Centraliza **umbrales y gates de calidad** de la plataforma: cobertura mínima en capas Application, parámetros load test / UI E2E / security scan (config), y comando Artisan enlazado a CI.
+- Que hace: Agrupa gates de cobertura, settings y reportes de calidad para Application y la tuberia CI.
+- Problema que resuelve: reduce friccion operativa y concentra la logica del BC en un solo lugar.
+- Bounded context: Calidad, cobertura y gates
+- Dependencias: usa Providers como entradas estaticas detectadas y publica hacia Sin dependencias salientes estaticas.
 
-## ¿Para qué sirve?
+## Arquitectura actual
 
-- `platform:quality-coverage` — verifica cobertura Application contra `platform_quality.coverage`.
-- `scripts/ci/check-application-coverage.php` — wrapper CI que delega al command.
-- Config `platform_quality.php` — load test k6, UI E2E Playwright, ZAP baseline (workflows `.github/workflows/quality-*.yml`).
-- Punto de extensión para futuros gates (static analysis, mutation testing).
+| Area | Count |
+| ---- | ----- |
+| Controllers | 0 |
+| Services | 4 |
+| Use Cases | 0 |
+| Repositories | 0 |
+| DTOs | 0 |
+| Events | 0 |
+| Jobs | 0 |
+| Commands | 1 |
+| Policies | 0 |
+| Middleware | 0 |
 
-## Estructura DDD (post-refactor)
+## Metricas de complejidad
 
-```text
-app/Quality/
-├── Domain/ValueObjects/           CoverageGateResult
-├── Application/Services/
-│   ├── QualitySettings            lectura tipada platform_quality
-│   ├── Coverage/
-│   │   ├── ApplicationCoverageCalculator
-│   │   └── ApplicationCoverageGateService
-│   └── QualityCoverageConsoleReporter
-└── Interfaces/
-    ├── Commands/                  CheckApplicationCoverageCommand
-    └── Providers/                 QualityServiceProvider
-```
+| Metica | Valor |
+| ----- | ----- |
+| LOC total | 637 |
+| LOC promedio por archivo | 19.9 |
+| Clase mas grande | QualitySettings (app/Quality/Application/Services/QualitySettings.php, 54 LOC) |
+| Metodo mas largo | QualityCoverageConsoleReporter::report (app/Quality/Application/Services/QualityCoverageConsoleReporter.php, 28 LOC) |
+| Archivos >200 LOC | 0 |
+| Archivos >500 LOC | 0 |
+| Complejidad estimada | Baja |
 
-| Capa | Archivos | Estado |
-|------|----------|--------|
-| Domain | 1 | ✅ VO resultado gate |
-| Application | 4 | ✅ Calculator + gate + settings + reporter |
-| Interfaces | 2 | ✅ Command + provider |
+## Metricas de deuda tecnica
 
-## Servicios extraídos en esta refactorización
+| Indicador | Valor |
+| --------- | ----- |
+| Codigo limpio | 100% |
+| Codigo aceptable | 0% |
+| Codigo sucio | 0% |
+| Codigo espagueti | 0% |
+| Riesgo tecnico | Excelente |
+| Mantenibilidad | Alta |
+| Acoplamiento | Bajo |
+| Cohesion | Alta |
 
-| Servicio | Reemplaza lógica en |
-|----------|---------------------|
-| `QualitySettings` | Lectura dispersa de `platform_quality` |
-| `ApplicationCoverageCalculator` | Parser clover en `scripts/ci/check-application-coverage.php` |
-| `ApplicationCoverageGateService` | Gate threshold + evaluación |
-| `QualityCoverageConsoleReporter` | Output CLI del script CI |
-| `CheckApplicationCoverageCommand` | Invocación manual / CI vía Artisan |
+Heuristica aplicada: clasificacion por archivo fuente en cuatro buckets (limpio, aceptable, sucio, espagueti) segun LOC, uso de `app()/resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
 
-## Métricas de deuda (actualizadas)
+## Violaciones arquitectonicas
 
-| Indicador | Antes | **Ahora** | Detalle |
-|-----------|-------|-----------|---------|
-| **% código sucio** | 5% | **6%** | Módulo pequeño; matcher clover podría extraerse |
-| **% código espagueti** | 5% | **4%** | Script CI → command; config tipada |
-| **Ratio tests/archivos** | 0% | **100%** | +7 tests (calculator, gate, settings, command) |
-| **Archivos >150 LOC** | 0 | **0** | Mayor: `ApplicationCoverageCalculator` ~61 LOC |
-| **Implementación real** | ❌ stub | **✅** | Gate cobertura operativo |
+- No se detectaron violaciones arquitectonicas estaticas con evidencia suficiente.
 
-## Resuelto en esta refactorización
+## Dependencias
 
-1. ~~Módulo fantasma (solo merge config)~~ → gate cobertura Application con command.
-2. ~~Lógica CI en script suelto~~ → servicios testeables + script delgado.
-3. ~~Sin tests~~ → 7 unit/feature con fixture clover.
-4. ~~Config sin dueño en código~~ → `QualitySettings` centralizado.
+### Dependencias entrantes
 
-## Cosas sueltas / inconsistentes (restantes)
+Providers
 
-1. **Load test / UI E2E / ZAP** — config en `platform_quality.php` pero ejecución sigue en workflows bash/k6/Playwright (no integrados al BC aún).
-2. **Prefijos Application** — lista hardcodeada en `QualitySettings`; ampliar al refactorizar Control/Shared.
-3. **Matcher clover** — paths case-insensitive; validar con clover real de CI pcov.
+### Dependencias salientes
 
-## Acoplamientos
+Sin dependencias salientes estaticas
 
-| Hacia | Tipo | Riesgo |
-|-------|------|--------|
-| CI / scripts | Wrapper → Artisan command | ✅ Bajo |
-| BC Application layers | Solo lectura clover (sin imports) | ✅ Bajo |
-| Config | `platform_quality.php` | ✅ Bajo |
+## Riesgo de refactorizacion
 
-## Cobertura de tests
+| Area | Riesgo |
+| ---- | ------ |
+| Controllers | Bajo |
+| Services | Medio |
+| Domain | Bajo |
+| Infraestructura | Bajo |
+| Tests | Medio |
 
-- **Verificado (2026-05-28):** 7 tests Unit + Feature Quality — todos pasan.
-- **Presente:** calculator, gate pass/fail, settings, command + JSON output.
-- **Gaps:** integration con clover real de CI, gates load/e2e cuando se integren al BC.
+## Cobertura funcional
 
-## Recomendaciones de refactor (futuro)
+- Funcionalidades principales: ApplicationCoverageCalculator, ApplicationCoverageGate, QualityCoverageConsoleReporter, QualitySettings, CheckApplicationCoverage
+- Funcionalidades secundarias: contratos de ruta y flujo detectados por los controladores, use cases y servicios del modulo.
+- Funcionalidades criticas: Ninguno
 
-| Prioridad | Acción |
-|-----------|--------|
-| P3 | Command `platform:quality-check` unificado (coverage + smoke config validation). |
-| P4 | Integrar lectura load_test/ui_e2e settings en scripts CI existentes. |
-| P4 | Ampliar prefijos Application cuando Control/Shared expongan servicios testeables. |
+## Cobertura de pruebas
 
-## Veredicto
+- Tests unitarios: 3
+- Tests feature: 1
+- Tests integracion: 0
+- Clasificacion: Baja
 
-**BC operativo mínimo** tras refactor: ya no es placeholder — gate de cobertura Application enlazado a CI con tests. Deuda restante en integrar otros gates QA (load, e2e) al mismo BC.
+## Codigo muerto
+
+- No se identificaron clases muertas concluyentes en el escaneo estatico; los componentes con baja trazabilidad siguen expuestos por rutas, comandos o service providers.
+
+## Oportunidades de mejora
+
+### Refactorizacion segura
+
+- Separar lectura, escritura y mapeo en servicios de soporte.
+
+### Refactorizacion moderada
+
+- Dividir los servicios mas grandes por responsabilidad.
+
+### Refactorizacion de alto riesgo
+
+- Refactorizar sin ampliar cobertura contractual aumentaria el riesgo de regresion.
+
+## Plan de saneamiento
+
+| Prioridad | Accion | Impacto | Riesgo |
+| --------- | ------ | ------- | ------ |
+| P1 | Reducir el mayor punto de acoplamiento del modulo (QualitySettings) | Baja riesgo y hace mas visible la frontera | Medio |
+| P2 | Extraer mappers/presenters y fijar contratos con tests de caracterizacion | Mejora mantenibilidad y protege payloads | Bajo-Medio |
+| P3 | Consolidar convenciones de nombres y eliminar lookups innecesarios del contenedor | Menos ruido y menor deuda acumulada | Bajo |
+
+## Compatibilidad funcional
+
+- Funcionalidades que podrian romperse: Ninguno y las respuestas de los endpoints publicos del modulo.
+- Dependencias que deben preservarse: Providers, ademas de los contratos de DTOs y use cases consumidos por otros BCs.
+- Contratos publicos que no deben modificarse: nombres de rutas, payloads, eventos publicados y firmas de servicios usados desde otros modulos.
+
+## Veredicto final
+
+**Excelente**. El modulo presenta una mezcla de logica estable y puntos de acoplamiento que siguen siendo sensibles. La frontera funcional existe y es trazable, pero la refactorizacion futura debe preservar rutas, payloads y bindings porque siguen siendo contratos publicos reales.

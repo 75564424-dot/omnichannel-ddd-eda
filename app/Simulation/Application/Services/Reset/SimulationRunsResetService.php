@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Simulation\Application\Services\Reset;
 
-
 use App\Simulation\Application\Services\Handoff\SimulationRunHandoffStore;
 use App\Simulation\Application\Services\Orchestration\SimulationRunStaleGuard;
 use App\Simulation\Application\Services\Orchestration\SimulationStaleRunReplacer;
 use App\Simulation\Domain\ValueObjects\SimulationMessages;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Database\DatabaseManager;
 
 final class SimulationRunsResetService
 {
@@ -18,6 +17,8 @@ final class SimulationRunsResetService
         private readonly SimulationRunStaleGuard $staleGuard,
         private readonly SimulationRunHandoffStore $handoffStore,
         private readonly SimulationStaleRunReplacer $staleRunReplacer,
+        private readonly DatabaseManager $db,
+        private readonly Application $application,
     ) {}
 
     /**
@@ -33,7 +34,7 @@ final class SimulationRunsResetService
 
         $handoffPurged = $this->handoffStore->purgeAll();
 
-        if ($onlyStale || ! Schema::hasTable('simulation_runs')) {
+        if ($onlyStale || ! $this->db->getSchemaBuilder()->hasTable('simulation_runs')) {
             return [
                 'stale_failed' => $staleFailed,
                 'handoff_purged' => $handoffPurged,
@@ -44,13 +45,13 @@ final class SimulationRunsResetService
         return [
             'stale_failed' => $staleFailed,
             'handoff_purged' => $handoffPurged,
-            'rows_deleted' => (int) DB::table('simulation_runs')->delete(),
+            'rows_deleted' => (int) $this->db->table('simulation_runs')->delete(),
         ];
     }
 
     public function isControlPlaneHost(): bool
     {
         return config('platform.control_plane', false)
-            || app()->environment('control-plane');
+            || $this->application->environment('control-plane');
     }
 }

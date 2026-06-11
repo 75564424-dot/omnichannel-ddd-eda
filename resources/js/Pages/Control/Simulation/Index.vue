@@ -91,6 +91,15 @@
               <p v-if="run.status === 'failed' && run.error_message" class="mt-1 max-w-xs truncate text-[10px] text-red-300">
                 {{ run.error_message }}
               </p>
+              <button
+                v-if="run.status === 'running'"
+                type="button"
+                class="mt-2 block rounded border border-amber-400/40 px-2 py-1 text-[10px] font-bold uppercase text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+                :disabled="cancellingRunId === run.id"
+                @click="cancelSimulation(run.id)"
+              >
+                {{ cancellingRunId === run.id ? 'Cancelando…' : 'Cancelar' }}
+              </button>
             </td>
             <td class="px-6 py-3 text-right">
               <Link
@@ -148,6 +157,7 @@ const filterForm = reactive({
 const liveRuns = ref([...(props.runs?.data ?? [])]);
 let pollTimer = null;
 let pollCycles = 0;
+const cancellingRunId = ref(null);
 const MAX_POLL_CYCLES = 150; // 5 min at 2 s/cycle — forces server reload (stale guard) if exceeded
 
 function mergeRunsFromServer(rows) {
@@ -192,6 +202,7 @@ function statusLabel(status) {
     running: 'En curso',
     completed: 'Completada',
     failed: 'Fallida',
+    cancelled: 'Cancelada',
   };
   return map[status] || status;
 }
@@ -200,6 +211,7 @@ function statusClass(status) {
   if (status === 'running' || status === 'pending') return 'text-[#00dbe7]';
   if (status === 'completed') return 'text-emerald-400';
   if (status === 'failed') return 'text-red-400';
+  if (status === 'cancelled') return 'text-amber-300';
   return 'text-[#849495]';
 }
 
@@ -219,6 +231,33 @@ function mergeRunFromStatus(payload) {
     error_message: updated.error_message ?? liveRuns.value[idx].error_message,
     can_view_report: updated.can_view_report ?? liveRuns.value[idx].can_view_report,
   };
+}
+
+async function cancelSimulation(runId) {
+  if (!runId || cancellingRunId.value === runId) return;
+
+  cancellingRunId.value = runId;
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const res = await fetch(`/control/simulations/${runId}/cancel`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': token ?? '',
+      },
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      mergeRunFromStatus(data);
+      if (!liveRuns.value.some((run) => isRunActive(run.status))) {
+        stopPolling();
+      }
+    }
+  } finally {
+    cancellingRunId.value = null;
+  }
 }
 
 async function fetchRunStatus(runId) {

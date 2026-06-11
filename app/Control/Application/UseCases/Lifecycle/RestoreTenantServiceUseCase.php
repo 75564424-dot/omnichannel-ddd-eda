@@ -9,7 +9,8 @@ use App\Control\Domain\Policies\TenantLifecyclePolicy;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\LocalFleet\Contracts\LocalFleetProcessSupervisorInterface;
 use App\Shared\Platform\LocalFleet\Contracts\LocalFleetTenantMirrorInterface;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\DatabaseManager;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -18,6 +19,8 @@ final class RestoreTenantServiceUseCase
     public function __construct(
         private readonly LocalFleetProcessSupervisorInterface $supervisor,
         private readonly LocalFleetTenantMirrorInterface $mirror,
+        private readonly DatabaseManager $db,
+        private readonly Dispatcher $events,
     ) {}
 
     public function execute(TenantModel $tenant): void
@@ -48,7 +51,7 @@ final class RestoreTenantServiceUseCase
         }
 
         // Database transactional update
-        DB::transaction(function () use ($tenant, $settings, $deployment, $newLifecycle): void {
+        $this->db->connection()->transaction(function () use ($tenant, $settings, $deployment, $newLifecycle): void {
             $settings['deployment'] = array_merge($deployment, [
                 'lifecycle' => $newLifecycle,
                 'lifecycle_updated_at' => now()->toIso8601String(),
@@ -64,7 +67,7 @@ final class RestoreTenantServiceUseCase
         $this->mirror->mirror($tenant->fresh());
 
         // Emit EDA domain event
-        event(new TenantLifecycleRestored(
+        $this->events->dispatch(new TenantLifecycleRestored(
             tenantId: $tenant->id,
             status: 'active',
             lifecycle: $newLifecycle,

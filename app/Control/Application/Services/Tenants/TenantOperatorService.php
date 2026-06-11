@@ -8,12 +8,13 @@ use App\Models\User;
 use App\Shared\Identity\Domain\PlatformRole;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Services\InstanceDeploymentService;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Contracts\Hashing\Hasher;
 
 final class TenantOperatorService
 {
     public function __construct(
         private readonly InstanceDeploymentService $deployment,
+        private readonly Hasher $hasher,
     ) {}
 
     public function operatorBlockReason(TenantModel $tenant): ?string
@@ -41,7 +42,7 @@ final class TenantOperatorService
             'tenant_id' => $tenant->id,
             'name' => $name,
             'email' => $email,
-            'password' => Hash::make($password),
+            'password' => $this->hasher->make($password),
             'platform_role' => $platformRole,
         ]);
 
@@ -63,7 +64,7 @@ final class TenantOperatorService
     public function updateOperatorPassword(User $user, TenantModel $tenant, string $password): void
     {
         $this->assertTenantOperator($tenant, $user);
-        $user->update(['password' => Hash::make($password)]);
+        $user->update(['password' => $this->hasher->make($password)]);
     }
 
     public function assertTenantOperator(TenantModel $tenant, User $user): void

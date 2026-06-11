@@ -6,7 +6,7 @@ namespace App\Console\Commands\Simulation;
 
 use App\Simulation\Application\Services\Reset\SimulationRunsResetService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 final class ResetSimulationRunsCommand extends Command
 {
@@ -16,7 +16,7 @@ final class ResetSimulationRunsCommand extends Command
 
     protected $description = 'Clear simulation run history (control plane) and optionally fail stuck runs.';
 
-    public function handle(SimulationRunsResetService $resetService): int
+    public function handle(SimulationRunsResetService $resetService, DatabaseManager $db): int
     {
         if (! $resetService->isControlPlaneHost()) {
             $this->error('Run on control plane (--env=control-plane).');
@@ -24,7 +24,7 @@ final class ResetSimulationRunsCommand extends Command
             return self::FAILURE;
         }
 
-        if (! Schema::hasTable('simulation_runs')) {
+        if (! $db->getSchemaBuilder()->hasTable('simulation_runs')) {
             $this->warn('Table simulation_runs does not exist.');
 
             return self::SUCCESS;
@@ -54,4 +54,3 @@ final class ResetSimulationRunsCommand extends Command
         return self::SUCCESS;
     }
 }
-

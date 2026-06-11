@@ -31,6 +31,11 @@
     <div v-if="form.errors.catalog" class="mb-4 rounded-lg border border-[#ffb4ab]/40 bg-[#ffb4ab]/10 px-4 py-3 text-sm text-[#ffb4ab]">
       {{ form.errors.catalog }}
     </div>
+    <div v-else-if="validationErrors.length" class="mb-4 rounded-lg border border-[#ffb4ab]/40 bg-[#ffb4ab]/10 px-4 py-3 text-sm text-[#ffb4ab]">
+      <ul class="list-inside list-disc space-y-1">
+        <li v-for="(message, idx) in validationErrors" :key="idx">{{ message }}</li>
+      </ul>
+    </div>
 
     <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
       <div class="rounded-xl border border-white/8 bg-[#121820]/70 p-4 text-center">
@@ -144,7 +149,7 @@
 
 <script setup>
 import ControlLayout from '@/Layouts/ControlLayout.vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const props = defineProps({
@@ -156,6 +161,7 @@ const props = defineProps({
   manual: { type: Object, default: () => ({}) },
 });
 
+const page = usePage();
 const manualOpen = ref(false);
 const applyUrl = `/control/companies/${props.tenant.id}/modules-catalog/apply`;
 
@@ -199,6 +205,21 @@ const jsonPreview = computed(() => {
   }
 });
 
+const validationErrors = computed(() => {
+  const errors = form.errors ?? {};
+  return Object.values(errors).filter((message) => typeof message === 'string' && message !== '');
+});
+
+function syncFormFromServerProps() {
+  const limits = page.props.limits ?? props.limits;
+  const catalog = page.props.catalog ?? props.catalog;
+  form.defaults({
+    limits: { ...limits },
+    catalog: buildFormCatalog(catalog),
+  });
+  form.reset();
+}
+
 function addProducer() {
   if (!canAddProducer.value) return;
   form.catalog.producers.push({ id: '', name: '', event_types_emitted: '', channels: '' });
@@ -218,7 +239,10 @@ function removeSubscriber(idx) {
 }
 
 function save() {
-  form.patch(`/control/companies/${props.tenant.id}/modules-catalog`, { preserveScroll: true });
+  form.patch(`/control/companies/${props.tenant.id}/modules-catalog`, {
+    preserveScroll: true,
+    onSuccess: () => syncFormFromServerProps(),
+  });
 }
 
 function applyToInstance() {

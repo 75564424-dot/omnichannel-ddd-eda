@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Integration\Interfaces\Http\Controllers;
 
+use App\Integration\Application\Support\IntegrationManagementAuthorizer;
 use App\Integration\Application\UseCases\StoreIntegrationCredentialUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 final class IntegrationCredentialController
 {
     public function __construct(
         private readonly StoreIntegrationCredentialUseCase $storeCredential,
+        private readonly IntegrationManagementAuthorizer $authorizer,
     ) {}
 
     public function store(Request $request, string $id): JsonResponse
     {
-        Gate::authorize('platform.manage-integrations');
+        $this->authorizer->authorizeManageIntegrations();
 
         $validated = $request->validate([
             'credential_type' => 'required|string|max:30',

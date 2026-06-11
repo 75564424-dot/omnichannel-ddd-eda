@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Models\User;
 use App\Shared\Identity\Domain\PlatformRole;
 use Closure;
@@ -15,6 +16,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class EnsureInstanceWebAuth
 {
+    public function __construct(
+        private readonly OperatorSessionTerminator $sessionTerminator,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         if (! config('platform_auth.web_auth_enabled', true)) {
@@ -32,9 +37,7 @@ final class EnsureInstanceWebAuth
                 return redirect()->route('control.overview');
             }
 
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            $this->sessionTerminator->terminate($request);
 
             return redirect()
                 ->route('login')

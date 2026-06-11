@@ -12,11 +12,12 @@ final class SetNodeMiddlewareEventsUseCase
 {
     public function __construct(
         private readonly NodeStatusRepositoryInterface $nodeStatusRepository,
+        private readonly DashboardKnownNodes $knownNodes,
     ) {}
 
     public function execute(string $nodeKey, bool $enabled): void
     {
-        if (! DashboardKnownNodes::exists($nodeKey)) {
+        if (! $this->knownNodes->exists($nodeKey)) {
             throw new InvalidArgumentException('Unknown node');
         }
 

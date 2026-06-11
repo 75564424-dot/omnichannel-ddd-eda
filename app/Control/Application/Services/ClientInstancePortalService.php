@@ -7,7 +7,7 @@ namespace App\Control\Application\Services;
 use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 /**
  * Branding and live-module rows for the client (instance) portal, derived from the deployed tenant.
@@ -17,11 +17,12 @@ final class ClientInstancePortalService
     public function __construct(
         private readonly InstanceTenantContextInterface $instanceContext,
         private readonly TenantModuleCatalogService $catalogService,
+        private readonly DatabaseManager $db,
     ) {}
 
     public function resolveTenant(): ?TenantModel
     {
-        if (! Schema::hasTable('tenants')) {
+        if (! $this->db->getSchemaBuilder()->hasTable('tenants')) {
             return null;
         }
 

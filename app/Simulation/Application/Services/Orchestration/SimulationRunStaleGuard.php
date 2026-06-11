@@ -39,19 +39,44 @@ final class SimulationRunStaleGuard
             ->get();
 
         foreach ($runs as $run) {
-            $reason = $this->staleReason($run->fresh());
-            if ($reason === null) {
-                continue;
+            if ($this->failRunIfExpired($run) !== null) {
+                $failed++;
             }
-
-            $this->failureHandler->handle($run, $reason, [
-                'source'     => 'stale_guard',
-                'worker_log' => $this->diagnosticsReader->excerpt($run->id),
-            ]);
-            $failed++;
         }
 
         return $failed;
+    }
+
+    public function failRunIfExpired(SimulationRunModel $run): ?SimulationRunModel
+    {
+        if (! config('platform.control_plane', false)) {
+            return null;
+        }
+
+        if (! in_array($run->status, [
+            SimulationRunModel::STATUS_PENDING,
+            SimulationRunModel::STATUS_RUNNING,
+        ], true)) {
+            return null;
+        }
+
+        $this->handoffSync->syncRun($run);
+        $run = $run->fresh(['tenant']);
+        if ($run === null) {
+            return null;
+        }
+
+        $reason = $this->staleReason($run);
+        if ($reason === null) {
+            return null;
+        }
+
+        $this->failureHandler->handle($run, $reason, [
+            'source'     => 'stale_guard',
+            'worker_log' => $this->diagnosticsReader->excerpt($run->id),
+        ]);
+
+        return $run->fresh(['tenant']);
     }
 
     private function staleReason(SimulationRunModel $run): ?string
@@ -70,6 +95,22 @@ final class SimulationRunStaleGuard
             return null;
         }
 
+        $stalledProgressSeconds = max(90, (int) config('platform.simulation.stalled_progress_seconds', 120));
+
+        if ($run->status === SimulationRunModel::STATUS_RUNNING
+            && $effectiveProgress > 0
+            && $effectiveProgress < (int) $run->planned_total) {
+            $secondsSinceProgress = $this->workerMonitor->secondsSinceLastProgress($run->id);
+            if ($secondsSinceProgress !== null
+                && $secondsSinceProgress >= $stalledProgressSeconds
+                && ! $this->workerMonitor->logRecentlyUpdated($run->id, $stalledProgressSeconds)) {
+                return 'El worker se detuvo con progreso parcial ('
+                    .$effectiveProgress.'/'.$run->planned_total
+                    .', sin actividad '.$secondsSinceProgress.' s). Revise storage/logs/simulation-worker-'
+                    .$run->id.'.log';
+            }
+        }
+
         if ($this->workerMonitor->isLikelyAlive($run)) {
             if ($elapsedMinutes <= $maxWallMinutes) {
                 return null;
@@ -79,17 +120,29 @@ final class SimulationRunStaleGuard
                 .' min para '.$run->planned_total.' eventos). Revise storage/logs/simulation-*-'.$run->id.'.log';
         }
 
+        $startupGraceMinutes = max(1, (int) config('platform.simulation.startup_grace_minutes', 3));
+        $noProgressTimeoutMinutes = max(
+            $startupGraceMinutes + 1,
+            (int) config('platform.simulation.no_progress_timeout_minutes', 5),
+        );
+
         if ($run->status === SimulationRunModel::STATUS_RUNNING
-            && $effectiveProgress > 0
-            && $elapsedMinutes <= $maxWallMinutes) {
-            return null;
+            && $effectiveProgress === 0
+            && $elapsedMinutes >= $noProgressTimeoutMinutes
+            && $elapsedMinutes < $maxWallMinutes) {
+            $handoff = $this->handoffStore->read($run->id);
+            $phase = is_string($handoff['phase'] ?? null) ? $handoff['phase'] : 'sin handoff';
+
+            return 'Sin progreso durante '.$noProgressTimeoutMinutes
+                .' min (fase: '.$phase.'). Revise storage/logs/simulation-dispatch-'
+                .$run->id.'.log y simulation-worker-'.$run->id.'.log';
         }
 
-        $startupGraceMinutes = 3;
         if ($run->status === SimulationRunModel::STATUS_RUNNING
             && $effectiveProgress === 0
             && $elapsedMinutes >= $startupGraceMinutes
-            && $elapsedMinutes < $maxWallMinutes) {
+            && $elapsedMinutes < $noProgressTimeoutMinutes
+            && ! $this->workerMonitor->isLikelyAlive($run)) {
             $handoff = $this->handoffStore->read($run->id);
             $phase = is_string($handoff['phase'] ?? null) ? $handoff['phase'] : 'sin handoff';
 
@@ -122,6 +175,6 @@ final class SimulationRunStaleGuard
 
         $terminal = (string) ($handoff['terminal_status'] ?? '');
 
-        return $terminal === 'completed' || $terminal === 'failed';
+        return $terminal === 'completed' || $terminal === 'failed' || $terminal === 'cancelled';
     }
 }

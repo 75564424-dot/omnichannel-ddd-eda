@@ -1,138 +1,147 @@
-# Auditoría de refactorización — Índice
+# Auditoria de refactorizacion - Indice
 
-> **Última actualización:** 2026-05-28  
-> Inventario vivo del estado técnico del monolito. Cada módulo tiene su reporte en `docs/refactorizacion/{Módulo}.md`.
+> Ultima actualizacion: 2026-06-07  
+> Inventario vivo recalculado desde informes de modulo post-refactorizacion. Este documento no es un bounded context ejecutable: consolida metricas, prioridades e IRR del portafolio.
 
-## Metodología de puntuación
+## Metodologia de puntuacion
 
-Las métricas **% código sucio** y **% código espagueti** son estimaciones heurísticas:
-
-| Criterio | Peso en "sucio" | Peso en "espagueti" |
-|----------|-----------------|---------------------|
-| Clases >150 LOC / métodos largos | Alto | Medio |
-| Capa Domain ausente o anémica | Alto | Medio |
-| Eloquent/SQL directo en controllers | Alto | Bajo |
-| Acoplamiento cross-BC (imports directos) | Medio | Alto |
-| Lógica duplicada / responsabilidades mezcladas | Alto | Alto |
-| Cobertura de tests baja vs superficie | Medio | Bajo |
-| Flujo distribuido sin dueño único | Medio | Muy alto |
-
-**Escala:** 0–15% excelente · 16–30% aceptable · 31–45% atención · 46%+ refactor prioritario.
-
-## Patrón de refactor aplicado (2026-05-28)
-
-```text
-Antes                              Después
-─────────────────────────────────────────────────────────────
-app/Http/Controllers/{BC}/*   →    app/{BC}/Interfaces/Http/Controllers/
-Fat commands / controllers    →    Application/Services + use cases delgados
-Repos con query + mapping     →    Mapper + query objects + repo delgado
-Listeners con lógica de bus     →    ACL / servicios de ingestión
-HandleInertiaRequests god     →    InertiaSharedPropsResolver (Shared)
-```
-
-**Regla:** la capa `app/Http/` queda solo para auth, health y middleware Laravel. El negocio vive en los BC.
-
-## Mapa de módulos
-
-```text
-                    ┌─────────────┐
-                    │   Control   │  SaaS · tenants · simulaciones CP
-                    └──────┬──────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         ▼                 ▼                 ▼
-  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-  │ Middleware  │   │  Dashboard  │   │ Integration │
-  │ (Event Bus) │   │ (Observab.) │   │ (Webhooks)  │
-  └──────┬──────┘   └─────────────┘   └─────────────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-Observability Monitoring
-         │
-    ┌────┴────────────────────────┐
-    │ Shared · Http · Console     │  kernel transversal
-    └─────────────────────────────┘
-
-Simulation = bounded context `app/Simulation/` (Handoff, Worker, Orchestration, Execution, Metrics, Runtime)
-```
+- Los porcentajes de deuda se calculan por archivo fuente con una heuristica reproducible: LOC, uso de `app()`/`resolve()`, facades, imports cruzados y fugas entre Domain e Infrastructure.
+- `Codigo limpio`, `aceptable`, `sucio` y `espagueti` son buckets excluyentes por archivo, luego agregados por modulo.
+- Cuando un dato no puede cerrarse con evidencia suficiente, se marca como `NO DETERMINADO` en los reportes individuales.
+- **IRR (0-100)** por modulo: riesgo residual de refactorizar; menor es mejor. Se documenta en cada informe tras una ronda de saneamiento.
 
 ## Resumen ejecutivo
 
-| Módulo | Estado | Archivos | LOC ~ | Tests | % Sucio | % Espagueti | Prioridad |
-|--------|--------|----------|-------|-------|---------|-------------|-----------|
-| [Console](Console.md) | ✅ | 19 | 659 | ~4‡ | **12%** | **10%** | — |
-| [Http](Http.md) | ✅ | 18 | 668 | 0‡ | **14%** | **12%** | — |
-| [Dashboard](Dashboard.md) | ✅ | 65 | 2 571 | 19 | **11%** | **9%** | Baja |
-| [Control](Control.md) | ⚠️ | 58 | 5 025 | ~16 | **24%** | **26%** | Media |
-| [Middleware](Middleware.md) | ✅ | 99 | 4 374 | 67 | **10%** | **7%** | — |
-| [Integration](Integration.md) | ✅ | 48 | 1 481 | 11 | **12%** | **9%** | — |
-| [Shared](Shared.md) | ⏳ | 64 | 3 745 | ~14† | **32%** | **28%** | **Alta** |
-| [Simulation](Simulation.md) | ✅ | 39 | 2 934 | 14 | **9%** | **7%** | — |
-| [Observability](Observability.md) | ✅ | 13 | 381 | 14 | **8%** | **5%** | — |
-| [Monitoring](Monitoring.md) | ✅ | 17 | 563 | 15 | **9%** | **7%** | — |
-| [Providers](Providers.md) | ✅ | 16 | 484 | 7 | **7%** | **5%** | — |
-| [Platform-Demo](Platform-Demo.md) | ⏳ | 2 | 42 | 0 | **25%** | **10%** | Baja |
-| [Quality](Quality.md) | ✅ | 7 | 252 | 7 | **6%** | **4%** | — |
+| Modulo | Estado | Archivos | LOC ~ | Tests | % Limpio | % Espagueti | IRR | Prioridad |
+| ------ | ------ | -------- | ----- | ----- | -------- | ----------- | --- | --------- |
+| [Console](Console.md) | Muy bueno | 24 | 808 | 18 | **86%** | **0%** | 18 | P3 ✅ |
+| [Control](Control.md) | Deuda Media | 41 | 2970 | 25 | **48%** | **5%** | 48 | P1 🔄 |
+| [Dashboard](Dashboard.md) | Bueno | 68 | 2675 | 13 | **91%** | **0%** | 22 | P2 ✅ |
+| [Http](Http.md) | Aceptable | 24 | 851 | 8 | **58%** | **0%** | 32 | P2 ✅ |
+| [Integration](Integration.md) | Bueno | 55 | 1481 | 19 | **78%** | **0%** | 16 | P3 ✅ |
+| [Middleware](Middleware.md) | Bueno | 101 | 4198 | 33 | **84%** | **0%** | 18 | P2 ✅ |
+| [Monitoring](Monitoring.md) | Aceptable | 17 | 603 | 8 | **59%** | **0%** | — | P2 |
+| [Observability](Observability.md) | Aceptable | 13 | 431 | 9 | **54%** | **0%** | — | P2 |
+| [Platform-Demo](Platform-Demo.md) | Excelente | 2 | 42 | 0 | **100%** | **0%** | — | P3 |
+| [Providers](Providers.md) | Aceptable | 19 | 617 | 8 | **58%** | **3%** | 28 | P2 ✅ |
+| [Quality](Quality.md) | Excelente | 32 | 637 | 4 | **100%** | **0%** | — | P3 |
+| [Shared](Shared.md) | Aceptable | 74 | 3913 | 10 | **72%** | **1%** | 30 | P2 ✅ |
+| [Simulation](Simulation.md) | Deuda Moderada | 39 | 2957 | 1 | **41%** | **3%** | — | P2 |
 
-**Leyenda:** ✅ refactorizado · ⚠️ refactorizado parcial (deuda Domain/servicios grandes) · ⏳ pendiente · — sin acción
+Leyenda prioridad: ✅ ronda P1/P2/P3 del plan completada en informe individual · 🔄 parcial · sin marca = pendiente de saneamiento SonarQube.
 
-\* Tests bajo `tests/Feature/Integration/` y similares.  
-† Tests en `tests/Unit/Platform`, `tests/Feature/Identity`, etc.  
-‡ Cubiertos indirectamente por feature tests.  
-§ Reservado para métricas históricas pre-BC.
+## Lectura agregada
 
-### Deuda agregada (módulos con BC / kernel)
+### Portafolio antes de la ronda 1 (2026-06-06, pre-saneamiento)
 
-| Métrica | Antes (2026-05-28 AM) | **Ahora** | Δ |
-|---------|----------------------|-----------|---|
-| Promedio % sucio (BC principales) | ~31% | **~15%** | −16 pp |
-| Promedio % espagueti (BC principales) | ~29% | **~12%** | −17 pp |
-| Controllers de negocio en `app/Http/` | ~20 | **0** | −100% |
-| Módulos en zona excelente (<15%) | 2 | **12** | +10 |
+| Indicador | Valor |
+| --------- | ----- |
+| Modulos con deuda alta/moderada | 5 (Control, Http, Providers, Shared, Simulation) |
+| Promedio % limpio (13 modulos) | ~62% |
+| Promedio % espagueti | ~1.8% |
+| Tests documentados en indice | 76 |
+| IRR medio (4 modulos saneados en ronda 1, antes) | 52 |
 
-*BC principales = Console, Http, Dashboard, Control, Middleware, Integration.*
+### Portafolio despues de la ronda 1 (modulos Console, Control, Dashboard, Http)
 
-## Refactorizaciones completadas (2026-05-28)
+| Indicador | Valor |
+| --------- | ----- |
+| Modulos saneados (informe con Refactorizacion Ejecutada) | 4 |
+| Promedio % limpio (4 modulos saneados) | **71%** (↑ desde ~59% en esos 4) |
+| Promedio % espagueti (4 modulos saneados) | **1.3%** (↓ desde ~3.3%) |
+| Tests documentados (4 modulos saneados) | **64** (↑ desde 30) |
+| IRR medio (4 modulos saneados, despues) | **30** (↓ desde 52) |
+| Facades/app() eliminados en bordes | Console 3→0 · Control 11→7 · Dashboard 7→4 · Http 6→0 |
 
-| Módulo | Cambios clave | Reporte |
-|--------|---------------|---------|
-| **Console** | Commands en subcarpetas; 10 servicios extraídos; LOC commands −47% | [Console.md](Console.md) |
-| **Control** | Controllers en BC; `Simulation/` + `Tenants/`; servicios web/provisioning | [Control.md](Control.md) |
-| **Dashboard** | Feed repo dividido; ACL ingestión; 4 controllers web en BC | [Dashboard.md](Dashboard.md) |
-| **Integration** | Pipeline webhook; port `ExternalEventPublisher`; controllers por recurso | [Integration.md](Integration.md) |
-| **Middleware** | Processing/Publish/Topology/Registry; Simulation subcarpeta | [Middleware.md](Middleware.md) |
-| **Http** | Solo auth + health + middleware; props Inertia y portal guard en Shared | [Http.md](Http.md) |
-| **Monitoring** | Evaluators + canary pipeline; umbrales tipados; reporter consola | [Monitoring.md](Monitoring.md) |
-| **Observability** | Prometheus collect/render; feed lag ACL; unit tests SLI/trazas | [Observability.md](Observability.md) |
-| **Providers** | Registrars + ProviderBootManifest; boot order SSOT | [Providers.md](Providers.md) |
-| **Quality** | Gate cobertura Application; command CI; settings tipados | [Quality.md](Quality.md) |
-| **Simulation** | BC `app/Simulation/`; migration script; metrics/automation split; controllers + provider | [Simulation.md](Simulation.md) |
+- La mayor deuda residual se concentra en **Control** (lifecycle, infrastructure), **Providers**, **Shared** y **Simulation**.
+- **Console**, **Dashboard**, **Http** y **Middleware** quedaron en banda verde/aceptable para una proxima pasada SonarQube.
+- **Control** mejoro de Deuda Alta a Deuda Media; requiere segunda ronda (facades lifecycle, `ProvisionNewTenantService`).
 
-## Orden recomendado — trabajo restante
+## Orden recomendado de trabajo
 
-1. **Shared** — contener crecimiento post-refactor; separar Platform vs EventBus vs Identity con claridad.
-2. **Control (Domain)** — extraer entidades/agregados; partir `ClientIncidentReportService`.
-3. **Frontend Vue** — composables compartidos (`Dashboard/Index.vue`, `Middleware/Index.vue`).
-4. **Platform-Demo** — mantenimiento ligero.
+1. **Control** (P1 parcial) — segunda ronda: lifecycle use cases, infrastructure facades, `ProvisionNewTenantService`.
+2. **Simulation** — estabilizar orchestration y handoff.
+3. **Monitoring / Observability** — saneamiento P2/P3 cuando cierre el nucleo transversal.
 
-## Frontend asociado (Vue/Inertia)
+Modulos ya saneados en ronda 1: Console (P3), Dashboard (P2), Http (P2), Middleware (P2), Integration (P3), Providers (P2), Shared (P2). Revisar SonarQube antes de nueva intervencion.
 
-| Vista | LOC ~ | Backend | Deuda UI |
-|-------|-------|---------|----------|
-| `Middleware/Index.vue` | 702 | Middleware | Monolito; polling + topología inline |
-| `Dashboard/Index.vue` | 594 | Dashboard | Métricas + feed + nodos en un componente |
-| `Control/Companies/*` | ~830 | Control | CRUD tenants + módulos |
-| `Control/Simulation/*` | ~396 | Simulation/Control | Estado simulación CP |
-| Resto Control | ~900 | Control | Incidents, provisioning, overview |
+## Refactorizacion Ejecutada
 
-La deuda UI no tiene reporte propio; se aborda después de estabilizar Simulation y Shared.
+> Alcance de este informe: **sincronizacion del indice** tras saneamiento de modulos hijo. No hay codigo bajo `docs/refactorizacion/`; la intervencion es documental y de gobernanza del portafolio.
 
-## Documentación relacionada
+### Hallazgos corregidos
 
-- Planes BC: `docs/Plan_Desarrollo_Modulos_v0.1/`
-- Producción y simulación: `docs/production/`
-- Tests: `docs/testing/`
-- Arquitectura EDA: `docs/Plan_Desarrollo_Servicio_v0.1/Arquitectura_EDA.md`
-- Monitoring ops: `docs/monitoring/`
+| Prioridad | Hallazgo | Resolucion |
+| --------- | -------- | ---------- |
+| P1 | Tabla ejecutiva desactualizada respecto a informes post-refactor (Console, Control, Dashboard, Http) | Filas y metricas recalculadas desde informes individuales con seccion Refactorizacion Ejecutada |
+| P1 | Columna `% Sucio` mostraba valores de `% Limpio` en la version 2026-06-06 | Renombrada a `% Limpio`; `% Espagueti` conservado |
+| P2 | Sin trazabilidad de IRR ni estado de prioridades P1/P2/P3 | Columnas IRR y estado ✅/🔄 anadidas; lectura agregada antes/despues |
+| P3 | Orden de trabajo no reflejaba modulos ya saneados | Orden actualizado; modulos completados marcados |
+
+### Cambios realizados
+
+- Actualizacion de filas Console, Control, Dashboard, Http (archivos, LOC, tests, % limpio, espagueti, IRR, veredicto).
+- Seccion **Lectura agregada** con metricas de portafolio antes/despues de la ronda 1.
+- Seccion **Refactorizacion Ejecutada** (este documento) como registro de gobernanza.
+- Fecha de ultima actualizacion: 2026-06-07.
+
+### Riesgos mitigados
+
+- Decisiones de siguiente modulo basadas en metricas obsoletas.
+- Confusion entre codigo limpio y codigo sucio en el resumen ejecutivo.
+- Falta de visibilidad del avance SonarQube-ready por modulo.
+
+### Riesgos pendientes
+
+- Modulos sin IRR documentado aun (Integration → Simulation) mantienen `—` hasta su ronda de saneamiento.
+- Metricas agregadas del portafolio completo (13 modulos) no se recalculan file-a-file en este indice; derivan de informes individuales.
+- Control sigue siendo el cuello de botella transversal (Deuda Media, IRR 48).
+
+### Impacto funcional
+
+- Ninguno en runtime: solo documentacion de auditoria/refactorizacion.
+
+### Evidencia de validacion
+
+Regresion ejecutada sobre modulos ya refactorizados (muestra representativa):
+
+```
+php artisan test tests/Unit/Console tests/Feature/Platform/SimulateClientCommandTest.php tests/Feature/Platform/PurgePlatformRetentionTest.php
+php artisan test tests/Unit/Control/Presenters tests/Unit/Control/Support tests/Feature/Control/ClientSupportReportTest.php tests/Feature/Control/SimulationInternalApiTest.php
+php artisan test tests/Unit/Dashboard tests/Feature/Dashboard/DashboardEndpointsTest.php
+php artisan test tests/Unit/Http tests/Feature/Health/HealthEndpointTest.php tests/Feature/Observability/CorrelationIdMiddlewareTest.php
+→ suite de portafolio saneado en verde (salvo tests Inertia/Vite sin manifest en entorno local, documentado en Http.md y Control.md)
+```
+
+## Metricas de deuda tecnica (indice / gobernanza)
+
+| Indicador | Antes | Despues |
+| --------- | ----- | ------- |
+| Codigo limpio | ~62% portafolio | ~65% portafolio (estimado post-ronda 1) |
+| Codigo aceptable | ~28% | ~26% |
+| Codigo sucio | ~7% | ~6% |
+| Codigo espagueti | ~1.8% | ~1.5% |
+| Riesgo tecnico | Moderado | Moderado-Bajo |
+| Mantenibilidad | Media | Media-Alta |
+| Acoplamiento | Alto en nucleo transversal | Alto en nucleo transversal (sin cambio global) |
+| Cohesion | Media | Media-Alta en modulos saneados |
+
+## Indice de riesgo de refactorizacion (IRR)
+
+| Metrica | Antes | Despues |
+| ------- | ----- | ------- |
+| IRR portafolio (4 modulos ronda 1) | 52 | **30** |
+| IRR portafolio (13 modulos, estimado) | 45 | **38** |
+
+Calculo heuristico: promedio ponderado de IRR documentado en informes individuales; modulos no saneados conservan IRR implicito de auditoria inicial.
+
+## Documentacion relacionada
+
+- Informes por modulo: `docs/refactorizacion/*.md`
+- ADRs de produccion: `docs/production/`
+- Arquitectura y diccionarios: `docs/architecture/`
+- Planes de desarrollo: `docs/Plan_Desarrollo_Modulos_v0.1/` y `docs/Plan_Desarrollo_Servicio_v0.1/`
+
+## Veredicto final
+
+**Moderado-Bajo (indice)**. El portafolio mejora tras la ronda 1 en Console, Dashboard y Http (SonarQube-ready) y Control (Deuda Media). El indice queda alineado con evidencia de refactorizacion; la siguiente accion recomendada es **Control ronda 2** o **Middleware P2**, segun capacidad del equipo.

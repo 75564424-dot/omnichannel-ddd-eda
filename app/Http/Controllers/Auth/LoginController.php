@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Models\User;
 use App\Shared\Identity\Application\AuthenticateOperatorUseCase;
 use App\Shared\Identity\Application\ResolveOperatorHomePathUseCase;
@@ -16,6 +17,7 @@ final class LoginController
 {
     public function __construct(
         private readonly ResolveOperatorHomePathUseCase $homePath,
+        private readonly OperatorSessionTerminator $sessionTerminator,
     ) {}
 
     public function create(Request $request): Response|RedirectResponse
@@ -60,9 +62,7 @@ final class LoginController
 
     public function destroy(Request $request): RedirectResponse
     {
-        auth()->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $this->sessionTerminator->terminate($request);
 
         return redirect()->route('login');
     }

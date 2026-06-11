@@ -51,11 +51,11 @@ final class LocalFleetOrphanPruner
     {
         $lines = [];
 
-        $tenant = TenantModel::query()->where('slug', $slug)->first();
+        $tenant = TenantModel::withTrashed()->where('slug', $slug)->first();
         if ($tenant !== null) {
             User::query()->where('tenant_id', $tenant->id)->delete();
-            $tenant->delete();
-            $lines[] = "Removed tenant «{$slug}» from control plane.";
+            $tenant->forceDelete();
+            $lines[] = "Removed tenant «{$slug}» from control plane (hard).";
         }
 
         $envPath = base_path($this->envBuilder->envFileName($slug));

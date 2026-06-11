@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Simulation\Application\Services\Runtime;
 
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
  * Short-lived flag so client UIs can show middleware flow during simulations.
@@ -21,6 +21,10 @@ final class SimulationPulseService
     /** After this many seconds without a tick, the pulse is treated as inactive (avoids stuck UI loops). */
     private const STALE_SECONDS = 25;
 
+    public function __construct(
+        private readonly CacheRepository $cache,
+    ) {}
+
     public function tick(string $phase, ?string $eventType = null): void
     {
         $previous = $this->readPayload();
@@ -34,13 +38,13 @@ final class SimulationPulseService
             'tick_at'         => now()->toIso8601String(),
         ];
 
-        Cache::put(self::CACHE_KEY, $payload, now()->addMinutes(6));
+        $this->cache->put(self::CACHE_KEY, $payload, now()->addMinutes(6));
         $this->writeFile($payload);
     }
 
     public function clear(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        $this->cache->forget(self::CACHE_KEY);
         $path = $this->filePath();
         if (is_file($path)) {
             @unlink($path);
@@ -83,7 +87,7 @@ final class SimulationPulseService
             return $fromFile;
         }
 
-        $cached = Cache::get(self::CACHE_KEY);
+        $cached = $this->cache->get(self::CACHE_KEY);
 
         return is_array($cached) ? $cached : null;
     }

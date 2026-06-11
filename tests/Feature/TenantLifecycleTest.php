@@ -79,7 +79,9 @@ final class TenantLifecycleTest extends TestCase
             ],
         ]);
 
-        $middleware = new EnsureTenantOperationalStatus($context);
+        $this->app->instance(InstanceTenantContextInterface::class, $context);
+
+        $middleware = $this->app->make(EnsureTenantOperationalStatus::class);
 
         // Prepare request
         $request = Request::create('/dashboard', 'GET');
@@ -114,7 +116,9 @@ final class TenantLifecycleTest extends TestCase
             ],
         ]);
 
-        $middleware = new EnsureTenantOperationalStatus($context);
+        $this->app->instance(InstanceTenantContextInterface::class, $context);
+
+        $middleware = $this->app->make(EnsureTenantOperationalStatus::class);
 
         // Prepare request
         $request = Request::create('/dashboard', 'GET');

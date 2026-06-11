@@ -14,8 +14,13 @@ use Illuminate\Support\ServiceProvider;
  */
 final class EventBusIntegrationServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->app->singleton(EventBusPackSubscriptionBootstrapper::class);
+    }
+
     public function boot(): void
     {
-        (new EventBusPackSubscriptionBootstrapper())->bootstrap();
+        $this->app->make(EventBusPackSubscriptionBootstrapper::class)->bootstrap();
     }
 }

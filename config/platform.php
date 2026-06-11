@@ -128,6 +128,10 @@ return [
         'fixture_slug' => env('PLATFORM_SIMULATION_FIXTURE_SLUG', 'acmepos'),
         'control_plane_url' => env('PLATFORM_CONTROL_PLANE_URL', 'http://127.0.0.1:8000'),
         'internal_token'    => env('PLATFORM_SIMULATION_INTERNAL_TOKEN', 'local-dev-simulation-token'),
+        /** Fail RUNNING runs with zero progress after this many minutes (stale guard). */
+        'no_progress_timeout_minutes' => (int) env('PLATFORM_SIMULATION_NO_PROGRESS_TIMEOUT_MINUTES', 5),
+        /** Grace before no-progress timeout while the detached worker is starting. */
+        'startup_grace_minutes' => (int) env('PLATFORM_SIMULATION_STARTUP_GRACE_MINUTES', 3),
         'tenant_fixture_map' => [
             'acme-retail'     => 'acmepos',
             'pruebas-retail'  => 'acmepos',

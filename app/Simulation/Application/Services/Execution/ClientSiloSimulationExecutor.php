@@ -66,9 +66,6 @@ final class ClientSiloSimulationExecutor
                     if ($onProgress !== null) {
                         $onProgress($current, $total);
                     }
-                    // Process each event right after publish so the client queue/topology update live.
-                    $this->simulationDrainer->drain([$eventId]);
-                    $this->simulationPulse->tick('simulating', $eventType);
                 },
             );
 
@@ -80,6 +77,9 @@ final class ClientSiloSimulationExecutor
                     'validation_errors' => $result['validation_errors'],
                 ];
             }
+
+            // Drain once after publish loop to avoid SQLite lock contention with the silo HTTP server.
+            $this->simulationDrainer->drain($result['event_ids']);
 
             return [
                 'published'         => $result['published'],

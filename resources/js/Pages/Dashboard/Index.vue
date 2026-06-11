@@ -293,7 +293,42 @@ export default {
     const chartLoading = ref(false);
     const chartError = ref('');
     const simulationPulse = ref({ active: false });
-    const middlewareFlowActive = computed(() => simulationPulse.value.active === true);
+    const FLOW_ACTIVITY_MS = 15 * 1000;
+    const PULSE_LIVE_MS = 20 * 1000;
+
+    function feedItemMillis(entry) {
+      const raw = entry?.occurred_at ?? entry?.timestamp ?? entry?.created_at ?? entry?.published_at ?? null;
+      if (raw == null || raw === '') return null;
+      let s = String(raw).trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) {
+        s = s.replace(' ', 'T');
+        if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+      }
+      const t = new Date(s).getTime();
+      return Number.isNaN(t) ? null : t;
+    }
+
+    const simulationLive = computed(() => {
+      const p = simulationPulse.value;
+      if (p?.active !== true || p?.stale === true) return false;
+      const tickAt = p.tick_at ?? p.tickAt;
+      if (!tickAt) return true;
+      const ts = feedItemMillis({ occurred_at: tickAt });
+      if (ts == null) return false;
+      return Date.now() - ts <= PULSE_LIVE_MS;
+    });
+
+    const hasRecentFeedActivity = computed(() => {
+      const now = Date.now();
+      return (liveFeed.value ?? []).some((entry) => {
+        const ts = feedItemMillis(entry);
+        return ts != null && now - ts <= FLOW_ACTIVITY_MS;
+      });
+    });
+
+    const middlewareFlowActive = computed(
+      () => simulationLive.value || hasRecentFeedActivity.value,
+    );
     let refreshTimer = null;
     const POLL_IDLE_MS = 30000;
     const POLL_ACTIVE_MS = 2000;
@@ -537,7 +572,7 @@ export default {
     watch(
       () => simulationPulse.value?.sequence,
       (seq, prev) => {
-        if (seq != null && seq !== prev && middlewareFlowActive.value) {
+        if (seq != null && seq !== prev && (simulationLive.value || hasRecentFeedActivity.value)) {
           refreshData();
         }
       },

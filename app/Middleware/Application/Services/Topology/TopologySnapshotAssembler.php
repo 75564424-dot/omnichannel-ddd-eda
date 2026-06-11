@@ -10,6 +10,7 @@ use App\Middleware\Application\Services\SubscriptionRegistryService;
 use App\Middleware\Domain\ModuleRegistry;
 use App\Middleware\Domain\ReadModels\TopologyView;
 use App\Middleware\Domain\TopologyService;
+use App\Shared\Platform\Services\TenantCatalogEventBusMapper;
 
 final class TopologySnapshotAssembler
 {
@@ -18,6 +19,9 @@ final class TopologySnapshotAssembler
         private readonly BusHealthService $busHealthService,
         private readonly ModuleRegistry $moduleRegistry,
         private readonly TopologyService $topologyService,
+        private readonly TopologyRegistryConfigMapper $configMapper,
+        private readonly TopologySnapshotMerger $merger,
+        private readonly TenantCatalogEventBusMapper $catalogMapper,
     ) {}
 
     public function assemble(): TopologyDTO
@@ -26,14 +30,21 @@ final class TopologySnapshotAssembler
         $subscriptions   = $this->subscriptionRegistry->getAll();
         $busStatus       = $this->busHealthService->getStatus();
 
-        $configProducers = $this->configProducersFromRegistry($producersConfig);
-        $configConsumers = $this->configConsumersFromSubscriptions($subscriptions);
+        [$declarativeProducers, $declarativeSubscriptions] = $this->declarativeCatalogEventBus();
+        $producersConfig = array_replace($producersConfig, $declarativeProducers);
+        foreach ($declarativeSubscriptions as $eventType => $modules) {
+            $existing = $subscriptions[$eventType] ?? [];
+            $subscriptions[$eventType] = array_values(array_unique([...$existing, ...$modules]));
+        }
+
+        $configProducers = $this->configMapper->mapProducers($producersConfig);
+        $configConsumers = $this->configMapper->mapConsumers($subscriptions);
 
         $observed = $this->topologyService->buildObservedSnapshot($this->moduleRegistry);
         $diagram  = $this->topologyService->toDiagramNodes($observed);
 
-        $producers = $this->mergeProducers($configProducers, $diagram['producers']);
-        $consumers = $this->mergeConsumers($configConsumers, $diagram['consumers']);
+        $producers = $this->merger->mergeProducers($configProducers, $diagram['producers']);
+        $consumers = $this->merger->mergeConsumers($configConsumers, $diagram['consumers']);
 
         $bus = [
             'id'     => 'event_bus',
@@ -52,137 +63,47 @@ final class TopologySnapshotAssembler
     }
 
     /**
-     * @param array<string, array<string, mixed>> $producersConfig
-     *
-     * @return list<array<string, mixed>>
+     * @return array{
+     *     0: array<string, array{label: string, produces: list<string>}>,
+     *     1: array<string, list<string>>
+     * }
      */
-    private function configProducersFromRegistry(array $producersConfig): array
+    private function declarativeCatalogEventBus(): array
     {
-        $rows = [];
-        foreach ($producersConfig as $id => $info) {
-            $rows[] = [
-                'id'     => $id,
-                'label'  => $info['label'],
-                'events' => $info['produces'] ?? [],
-            ];
+        $catalog = config('modules.catalog', []);
+        if (! is_array($catalog)) {
+            return [[], []];
         }
 
-        return $rows;
-    }
+        $producers = isset($catalog['producers']) && is_array($catalog['producers'])
+            ? array_values($catalog['producers'])
+            : [];
+        $subscribers = isset($catalog['subscribers']) && is_array($catalog['subscribers'])
+            ? array_values($catalog['subscribers'])
+            : [];
 
-    /**
-     * @param array<string, list<string>> $subscriptions
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function configConsumersFromSubscriptions(array $subscriptions): array
-    {
-        $consumerMap = [];
-        foreach ($subscriptions as $eventType => $modules) {
-            foreach ($modules as $module) {
-                $consumerMap[$module][] = $eventType;
-            }
+        if ($producers === [] && $subscribers === []) {
+            return [[], []];
         }
 
-        $rows = [];
-        foreach ($consumerMap as $module => $eventTypes) {
-            $rows[] = [
-                'id'            => strtolower($module),
-                'label'         => $module,
-                'subscribed_to' => array_values(array_unique($eventTypes)),
-            ];
-        }
+        $mapped = $this->catalogMapper->map([
+            'producers'   => $producers,
+            'subscribers' => $subscribers,
+        ]);
 
-        return $rows;
-    }
-
-    /**
-     * @param list<array<string, mixed>> $configRows
-     * @param list<array<string, mixed>> $observedRows
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function mergeProducers(array $configRows, array $observedRows): array
-    {
-        $byId = [];
-        foreach ($configRows as $p) {
-            $id = (string) ($p['id'] ?? '');
-            if ($id === '') {
-                continue;
+        $subscriptions = [];
+        foreach ($mapped['subscriptions'] as $eventType => $rows) {
+            $modules = [];
+            foreach ($rows as $row) {
+                if (is_array($row) && isset($row['module'])) {
+                    $modules[] = (string) $row['module'];
+                }
             }
-            $byId[$id] = [
-                'id'     => $id,
-                'label'  => $p['label'] ?? $id,
-                'events' => array_values(array_unique($p['events'] ?? [])),
-            ];
-        }
-
-        foreach ($observedRows as $p) {
-            $id = (string) ($p['id'] ?? '');
-            if ($id === '') {
-                continue;
-            }
-            $events = array_values(array_unique($p['events'] ?? []));
-            if (! isset($byId[$id])) {
-                $byId[$id] = [
-                    'id'     => $id,
-                    'label'  => (string) ($p['label'] ?? $id),
-                    'events' => $events,
-                ];
-                continue;
-            }
-
-            $byId[$id]['events'] = array_values(array_unique([...$byId[$id]['events'], ...$events]));
-            if (($p['label'] ?? '') !== '') {
-                $byId[$id]['label'] = (string) $p['label'];
+            if ($modules !== []) {
+                $subscriptions[$eventType] = array_values(array_unique($modules));
             }
         }
 
-        return array_values($byId);
-    }
-
-    /**
-     * @param list<array<string, mixed>> $configRows
-     * @param list<array<string, mixed>> $observedRows
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function mergeConsumers(array $configRows, array $observedRows): array
-    {
-        $byId = [];
-        foreach ($configRows as $c) {
-            $id = (string) ($c['id'] ?? '');
-            if ($id === '') {
-                continue;
-            }
-            $byId[$id] = [
-                'id'            => $id,
-                'label'         => $c['label'] ?? $id,
-                'subscribed_to' => array_values(array_unique($c['subscribed_to'] ?? [])),
-            ];
-        }
-
-        foreach ($observedRows as $c) {
-            $id = (string) ($c['id'] ?? '');
-            if ($id === '') {
-                continue;
-            }
-            $subs = array_values(array_unique($c['subscribed_to'] ?? []));
-            if (! isset($byId[$id])) {
-                $byId[$id] = [
-                    'id'            => $id,
-                    'label'         => (string) ($c['label'] ?? $id),
-                    'subscribed_to' => $subs,
-                ];
-                continue;
-            }
-
-            $byId[$id]['subscribed_to'] = array_values(array_unique([...$byId[$id]['subscribed_to'], ...$subs]));
-            if (($c['label'] ?? '') !== '') {
-                $byId[$id]['label'] = (string) $c['label'];
-            }
-        }
-
-        return array_values($byId);
+        return [$mapped['producers'], $subscriptions];
     }
 }

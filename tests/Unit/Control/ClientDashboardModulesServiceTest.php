@@ -9,6 +9,7 @@ use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Dashboard\Infrastructure\Modules\ConfigModulesCatalogDataProvider;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -47,6 +48,7 @@ final class ClientDashboardModulesServiceTest extends TestCase
             app(InstanceTenantContextInterface::class),
             app(TenantModuleCatalogService::class),
             app(ConfigModulesCatalogDataProvider::class),
+            app(DatabaseManager::class),
         );
 
         $catalog = $service->presentationCatalog();
@@ -81,6 +83,7 @@ final class ClientDashboardModulesServiceTest extends TestCase
             app(InstanceTenantContextInterface::class),
             app(TenantModuleCatalogService::class),
             app(ConfigModulesCatalogDataProvider::class),
+            app(DatabaseManager::class),
         );
 
         $service->updateVisibleModules(['acme_pos'], []);

@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Shared\Api\Http\Responses\ProblemDetailsFactory;
+use App\Http\Application\Presenters\TenantSuspendedResponsePresenter;
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
 use Closure;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 final class EnsureTenantOperationalStatus
 {
     public function __construct(
         private readonly InstanceTenantContextInterface $instanceContext,
+        private readonly OperatorSessionTerminator $sessionTerminator,
+        private readonly TenantSuspendedResponsePresenter $suspendedResponse,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -24,8 +26,7 @@ final class EnsureTenantOperationalStatus
             return $next($request);
         }
 
-        $path = $request->path();
-        if ($path === 'up' || $path === 'health/ready' || str_starts_with($path, '_vite') || str_starts_with($path, 'build')) {
+        if ($this->shouldBypassPath($request->path())) {
             return $next($request);
         }
 
@@ -40,26 +41,17 @@ final class EnsureTenantOperationalStatus
         }
 
         if ($request->user() !== null) {
-            auth()->logout();
-            if ($request->hasSession()) {
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-            }
+            $this->sessionTerminator->terminate($request);
         }
 
-        $message = 'El servicio asociado a esta empresa se encuentra temporalmente suspendido. Contacte al administrador para obtener más información.';
+        return $this->suspendedResponse->respond($request);
+    }
 
-        if ($request->is('api/*') || $request->expectsJson()) {
-            return ProblemDetailsFactory::make(
-                title: 'Tenant Suspended',
-                status: 403,
-                detail: $message,
-                type: 'tenant_suspended'
-            );
-        }
-
-        return Inertia::render('Tenant/Suspended', [
-            'message' => $message,
-        ])->toResponse($request)->setStatusCode(503);
+    private function shouldBypassPath(string $path): bool
+    {
+        return $path === 'up'
+            || $path === 'health/ready'
+            || str_starts_with($path, '_vite')
+            || str_starts_with($path, 'build');
     }
 }

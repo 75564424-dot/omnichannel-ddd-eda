@@ -6,12 +6,13 @@ namespace App\Simulation\Application\Services\Metrics;
 
 use App\Middleware\Application\Services\BusHealthService;
 use App\Middleware\Infrastructure\Models\QueueEntryModel;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 final class SimulationMetricsBaselineCapture
 {
     public function __construct(
         private readonly BusHealthService $busHealth,
+        private readonly DatabaseManager $db,
     ) {}
 
     /** @return array<string, mixed> */
@@ -34,7 +35,7 @@ final class SimulationMetricsBaselineCapture
     /** @param list<string> $statuses */
     private function countQueueByStatuses(array $statuses): int
     {
-        if (! Schema::hasTable('message_queue')) {
+        if (! $this->db->getSchemaBuilder()->hasTable('message_queue')) {
             return 0;
         }
 

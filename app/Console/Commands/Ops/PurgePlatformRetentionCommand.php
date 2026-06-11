@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Ops;
 
+use App\Console\Application\Presenters\PurgePlatformRetentionConsoleReporter;
+use App\Console\Application\Services\Ops\PurgePlatformRetentionTableValidator;
 use App\Shared\Platform\Services\PlatformRetentionService;
 use Illuminate\Console\Command;
 
@@ -15,44 +17,22 @@ final class PurgePlatformRetentionCommand extends Command
 
     protected $description = 'Purges aged rows from message_queue, event_logs, observability_metrics, trace_logs, event_store, audit_logs';
 
-    public function handle(PlatformRetentionService $retention): int
-    {
+    public function handle(
+        PlatformRetentionService $retention,
+        PurgePlatformRetentionTableValidator $tableValidator,
+        PurgePlatformRetentionConsoleReporter $reporter,
+    ): int {
         $dryRun = (bool) $this->option('dry-run');
-        $table = $this->option('table');
-        $table = is_string($table) && $table !== '' ? $table : null;
+        $table = $tableValidator->normalize($this->option('table'));
 
-        if ($table !== null && ! in_array($table, [
-            'message_queue',
-            'event_logs',
-            'observability_metrics',
-            'trace_logs',
-            'event_store',
-            'audit_logs',
-        ], true)) {
-            $this->error('Invalid --table value.');
-
-            return self::FAILURE;
+        if (! $tableValidator->isValid($table)) {
+            return $reporter->reportInvalidTable($this);
         }
 
-        foreach ($retention->purge($dryRun, $table) as $name => $stats) {
-            if ($stats['skipped'] ?? false) {
-                $this->line("  [skip] {$name} — table not present");
-
-                continue;
-            }
-
-            $this->line(sprintf(
-                '  %s: %s %d rows (retention %d days, cutoff %s)',
-                $name,
-                $dryRun ? 'would delete' : 'deleted',
-                $stats['deleted'],
-                $stats['days'],
-                $stats['cutoff'] ?? 'n/a',
-            ));
-        }
-
-        $this->info($dryRun ? 'Dry run complete.' : 'Retention purge complete.');
-
-        return self::SUCCESS;
+        return $reporter->reportPurgeResults(
+            $this,
+            $retention->purge($dryRun, $table),
+            $dryRun,
+        );
     }
 }

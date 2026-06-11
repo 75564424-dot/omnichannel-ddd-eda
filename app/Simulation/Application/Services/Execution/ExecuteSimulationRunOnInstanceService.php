@@ -11,6 +11,7 @@ use App\Simulation\Application\Services\Progress\SimulationProgressReporter;
 use App\Simulation\Application\Services\Progress\SimulationRunControlPlaneClient;
 use App\Simulation\Application\Services\Runtime\SimulationPulseService;
 use App\Simulation\Application\Services\Worker\SimulationWorkerTenantBootstrap;
+use App\Simulation\Domain\Exceptions\SimulationRunCancelledException;
 use App\Simulation\Domain\ValueObjects\SimulationMessages;
 use App\Simulation\Application\DTOs\SimulationRunExecutionResult;
 use Illuminate\Http\Client\ConnectionException;
@@ -73,7 +74,20 @@ final class ExecuteSimulationRunOnInstanceService
         $this->handoffStore->updateProgress($runId, 0, $effectiveTotal, 'starting');
 
         try {
-            $this->controlPlane->reportProgress($runId, 0, $effectiveTotal);
+            if ($this->handoffStore->isCancelRequested($runId)) {
+                throw new SimulationRunCancelledException();
+            }
+
+            $this->handoffStore->updateProgress($runId, 0, $effectiveTotal, 'publishing');
+
+            $progressReporter = $this->progressReporter->forRun($runId, $plannedTotal);
+            $onProgress = function (int $current, int $total) use ($runId, $progressReporter): void {
+                if ($this->handoffStore->isCancelRequested($runId)) {
+                    throw new SimulationRunCancelledException();
+                }
+
+                $progressReporter($current, $total);
+            };
 
             $result = $this->automation->runOnClientSilo(
                 tenantSlug: $tenantSlug,
@@ -82,7 +96,7 @@ final class ExecuteSimulationRunOnInstanceService
                 durationMinutes: $durationMinutes,
                 totalEvents: $plannedTotal,
                 skipPrepare: ! $prepareFirst,
-                onProgress: $this->progressReporter->forRun($runId, $plannedTotal),
+                onProgress: $onProgress,
             );
 
             $published = (int) $result['published'];
@@ -112,6 +126,14 @@ final class ExecuteSimulationRunOnInstanceService
             return $warning !== null
                 ? SimulationRunExecutionResult::completedWithWarning($runId, $published, $warning)
                 : SimulationRunExecutionResult::completed($runId, $published);
+        } catch (SimulationRunCancelledException $e) {
+            $published = max(0, (int) ($this->handoffStore->read($runId)['progress_current'] ?? 0));
+            $this->handoffStore->markTerminal($runId, 'cancelled', [
+                'published' => $published,
+                'source'    => 'worker',
+            ]);
+
+            return SimulationRunExecutionResult::cancelled($runId, $published);
         } catch (Throwable $e) {
             $context = $this->failureContext($runId, $usedHandoff);
             $this->handoffStore->markTerminal($runId, 'failed', [

@@ -12,19 +12,23 @@ use App\Control\Application\Services\ClientInstancePortalService;
  */
 final class DashboardKnownNodes
 {
+    public function __construct(
+        private readonly ClientInstancePortalService $instancePortal,
+    ) {}
+
     /** @return list<string> */
-    public static function keys(): array
+    public function keys(): array
     {
         $keys = config('dashboard.monitored_node_keys', ['middleware']);
         $keys = is_array($keys) ? $keys : ['middleware'];
 
-        $keys = array_merge($keys, app(ClientInstancePortalService::class)->monitoredNodeKeys());
+        $keys = array_merge($keys, $this->instancePortal->monitoredNodeKeys());
 
         return array_values(array_unique(array_map(static fn ($k) => (string) $k, $keys)));
     }
 
-    public static function exists(string $name): bool
+    public function exists(string $name): bool
     {
-        return in_array($name, self::keys(), true);
+        return in_array($name, $this->keys(), true);
     }
 }

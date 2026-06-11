@@ -6,10 +6,10 @@ namespace App\Simulation\Interfaces\Http\Controllers;
 
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Simulation\Application\Services\Orchestration\SimulationRunQueryService;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,11 +17,12 @@ final class SimulationRunController
 {
     public function __construct(
         private readonly SimulationRunQueryService $runs,
+        private readonly Gate $gate,
     ) {}
 
     public function index(Request $request): Response
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         $this->runs->syncActiveRuns();
 
@@ -38,7 +39,7 @@ final class SimulationRunController
 
     public function store(Request $request): RedirectResponse
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         $validated = $request->validate([
             'tenant_id' => ['required', 'uuid', 'exists:tenants,id'],
@@ -64,14 +65,27 @@ final class SimulationRunController
 
     public function status(SimulationRunModel $run): JsonResponse
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         return response()->json($this->runs->statusPayload($run));
     }
 
+    public function cancel(Request $request, SimulationRunModel $run): JsonResponse
+    {
+        $this->gate->authorize('platform.manage-users');
+
+        try {
+            $payload = $this->runs->cancelRun($run, $this->runs->resolveUserId($request->user()));
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($payload);
+    }
+
     public function report(SimulationRunModel $run): Response
     {
-        Gate::authorize('platform.manage-users');
+        $this->gate->authorize('platform.manage-users');
 
         return Inertia::render('Control/Simulation/Report', $this->runs->reportPayload($run));
     }

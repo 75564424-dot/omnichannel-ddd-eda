@@ -53,6 +53,8 @@ Al registrar una empresa nueva en `/control/provisioning`:
 
 `PLATFORM_LOCAL_FLEET_AUTO_PROVISION=true` en `.env.control-plane`.
 
+**Catálogo técnico de módulos:** al guardar desde `/control/companies/{id}/modules`, el control plane persiste el catálogo y ejecuta **mirrorCatalog** al silo (`modules_catalog` en SQLite del cliente + `config/modules/instances/{slug}/modules_config.json`, sin re-sync de operadores). La topología de middleware y `sync-config` incorporan siempre el catálogo declarativo. Reinicie `instances:serve` si el CP quedó bloqueado tras un guardado con fleet activo.
+
 ### Gestión del Ciclo de Vida (sin reinicio)
 
 Desde `/control/companies/{id}`:

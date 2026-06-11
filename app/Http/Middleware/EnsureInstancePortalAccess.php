@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Models\User;
 use App\Shared\Platform\Services\InstancePortalAccessGuard;
 use Closure;
@@ -17,6 +18,7 @@ final class EnsureInstancePortalAccess
 {
     public function __construct(
         private readonly InstancePortalAccessGuard $accessGuard,
+        private readonly OperatorSessionTerminator $sessionTerminator,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -33,9 +35,7 @@ final class EnsureInstancePortalAccess
         }
 
         if ($decision['logout'] ?? false) {
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            $this->sessionTerminator->terminate($request);
         }
 
         $redirect = redirect()->to($decision['redirect'] ?? route('login'));

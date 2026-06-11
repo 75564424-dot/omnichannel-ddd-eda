@@ -21,6 +21,7 @@ Route::middleware(['control.plane', 'auth.platform.web', 'control.web'])->prefix
     Route::prefix('simulations')->name('control.simulations.')->group(function (): void {
         Route::get('/', [SimulationRunController::class, 'index'])->name('index');
         Route::get('/{run}/status', [SimulationRunController::class, 'status'])->name('status');
+        Route::post('/{run}/cancel', [SimulationRunController::class, 'cancel'])->name('cancel');
         Route::get('/{run}/report', [SimulationRunController::class, 'report'])->name('report');
     });
 

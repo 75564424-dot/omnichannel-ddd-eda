@@ -6,10 +6,13 @@ namespace App\Simulation\Application\Services\Metrics;
 
 use App\Middleware\Infrastructure\Models\QueueEntryModel;
 use App\Shared\Persistence\MessageQueueStatusMapper;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 final class SimulationQueueMetricsAnalyzer
 {
+    public function __construct(
+        private readonly DatabaseManager $db,
+    ) {}
     /**
      * @param list<string> $eventIds
      *
@@ -17,7 +20,7 @@ final class SimulationQueueMetricsAnalyzer
      */
     public function queueStatsForEvents(array $eventIds): array
     {
-        if ($eventIds === [] || ! Schema::hasTable('message_queue')) {
+        if ($eventIds === [] || ! $this->db->getSchemaBuilder()->hasTable('message_queue')) {
             return [
                 'processed'          => 0,
                 'failed'             => 0,
@@ -68,7 +71,7 @@ final class SimulationQueueMetricsAnalyzer
      */
     public function interEventTiming(array $eventIds, int $targetPerMinute): array
     {
-        if (count($eventIds) < 2 || ! Schema::hasTable('message_queue')) {
+        if (count($eventIds) < 2 || ! $this->db->getSchemaBuilder()->hasTable('message_queue')) {
             $targetMs = (int) round(60_000 / max(1, $targetPerMinute));
 
             return ['avg_interval_ms' => $targetMs, 'max_interval_ms' => $targetMs];

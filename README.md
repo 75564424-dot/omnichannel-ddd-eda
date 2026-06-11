@@ -126,6 +126,42 @@ Los silos provisionados quedan en `deploy/local-instances/fleet-registry.json` y
 
 
 
+## Flujo de desarrollo
+
+```text
+Levantar proyecto (bootstrap → build → instances:serve)
+↓
+Provisionar tenant (/control/provisioning)
+↓
+Levantar servicio (lifecycle en panel SaaS)
+↓
+Configurar módulos (catálogo tenant)
+↓
+Middleware (registry / topología)
+↓
+Simulación
+```
+
+
+
+## Flujo de limpieza
+
+```text
+Detener npm run instances:serve
+↓
+php artisan platform:clean-environment --force --env=control-plane
+↓
+php artisan platform:clean-environment --verify --env=control-plane
+↓
+npm run instances:serve
+↓
+Provisionar tenant (puede reutilizar slug histórico, p. ej. pruebas)
+```
+
+> **Obligatorio:** `--env=control-plane` y detener el fleet antes de limpiar. SQLite bloqueadas impiden borrar silos y la auditoría post-limpieza fallará.
+
+
+
 ## Modo demo legacy (opcional, no GitHub Ready)
 
 
@@ -194,6 +230,74 @@ Ver [ADR-011](docs/production/ADR_011_friendly_routing_multitenant.md).
 
 La simulación exige módulos activos con productores configurados (`event_types_emitted`) en el catálogo almacenado del tenant. No se usa fixture default como sustituto.
 
+### Limpieza oficial (`platform:clean-environment`)
+
+Comando único recomendado para volver a estado GitHub Ready. Equivalente a `platform:reset-local --purge-tenants` más **auditoría post-limpieza**.
+
+```bash
+# Limpieza completa + verificación automática
+php artisan platform:clean-environment --force --env=control-plane
+
+# Solo auditar (sin borrar)
+php artisan platform:clean-environment --verify --env=control-plane
+```
+
+**Elimina:** tenants cliente (hard delete, incluye soft-deleted), usuarios operadores asociados, `simulation_runs`, handoffs, SQLite/`.env`/mirrors de clientes, fleet registry, tablas operativas CP + silos, colas, caché, logs de simulación.
+
+**Preserva:** migraciones, control plane (`platform`), operador SaaS, configuración global.
+
+### Saneamiento parcial (`platform:reset-local`)
+
+Use cuando quiera limpiar simulaciones y datos operativos **sin** eliminar tenants:
+
+```bash
+php artisan platform:reset-local --force --env=control-plane
+php artisan platform:reset-local --purge-tenants --force --env=control-plane  # sin auditoría
+```
+
+### Otros comandos relacionados
+
+| Comando | Limpia | No limpia |
+|---------|--------|-----------|
+| `platform:clean-environment` | Todo lo anterior + auditoría | CP, SaaS admin, migraciones |
+| `platform:reset-local` | Simulaciones, handoffs, tablas operativas | Tenants (salvo `--purge-tenants`) |
+| `platform:reset-local --purge-tenants` | + tenants, silos, `.env`, registry | Soft-deleted antes del fix; usar `clean-environment` |
+| `platform:simulation:reset` | Solo `simulation_runs` + handoffs | Tenants, silos, fleet |
+| `platform:fleet:prune-orphans` | Tenants/silos **no** listados en registry | Soft-deleted en CP; registry vacío |
+| `platform:purge-retention` | Filas antiguas por retención en tablas ops | Tenants, silos, simulaciones |
+| `demo:reset-operational` | Datos demo operativos | Identidad / tenants |
+| `platform:reset-demo-identity` | Usuarios demo e incidentes de otros tenants | Tenant principal demo |
+| `npm run instances:reset-operational` | Wrapper operacional por instancia | Tenants |
+
+### Saneamiento del entorno local (`platform:reset-local`) — detalle
+
+Use este comando cuando:
+
+- Queden simulaciones en **En curso 0%** por datos históricos o handoffs huérfanos.
+- Necesite repetir una auditoría E2E desde un estado reproducible.
+- Tras pruebas manuales intensivas (colas, métricas, event_store saturados).
+
+**Qué elimina (por defecto):**
+
+- Filas `simulation_runs` en el control plane (marca colgadas como fallidas antes).
+- Handoffs (`storage/app/simulation-handoff/`), logs `simulation-*.log`, launchers `.bat`, pulso de simulación.
+- Tablas operativas en CP y en cada silo del fleet (colas, event_store, métricas, registry, etc.).
+- Marcadores `last_simulation` en settings de tenants.
+
+**Qué preserva:**
+
+- Esquema y migraciones, configuración base, operador SaaS (`saas@local`).
+- Tenants registrados y silos (salvo `--purge-tenants`).
+
+**Ejemplos:**
+
+```bash
+# Limpieza estándar antes de certificar simulaciones
+php artisan platform:reset-local --force --env=control-plane
+```
+
+> Preferir `platform:clean-environment` cuando necesite eliminar tenants y certificar que no queden referencias históricas (p. ej. slug `pruebas` reutilizable).
+
 
 
 ## Comandos útiles
@@ -207,6 +311,16 @@ La simulación exige módulos activos con productores configurados (`event_types
 | `npm run instances:sync` | Re-espejar operadores/config a silos pendientes tras cambios en el panel SaaS |
 
 | `npm run instances:reset-operational` | Limpiar datos operativos (colas, métricas) sin borrar tenants |
+
+| `php artisan platform:clean-environment --force --env=control-plane` | **Limpieza oficial completa** + auditoría post-limpieza |
+
+| `php artisan platform:clean-environment --verify --env=control-plane` | Auditar referencias residuales sin borrar |
+
+| `php artisan platform:reset-local --force --env=control-plane` | Saneamiento parcial (simulaciones, colas, métricas) sin borrar tenants |
+
+| `php artisan platform:reset-local --purge-tenants --force --env=control-plane` | Purge de tenants sin auditoría automática |
+
+| `php artisan platform:simulation:reset --fail-stale --env=control-plane` | Solo historial de simulaciones (comando legacy acotado) |
 
 | `npm run instances:verify` | Comprobar aislamiento entre instancias |
 

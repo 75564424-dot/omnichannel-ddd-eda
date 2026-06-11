@@ -9,7 +9,8 @@ use App\Dashboard\Domain\ValueObjects\EventImpact;
 use App\Dashboard\Domain\ValueObjects\EventOrigin;
 use App\Dashboard\Infrastructure\Projectors\EventFeedProjector;
 use App\Shared\Logging\StructuredLogContext;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Container\Container;
+use Psr\Log\LoggerInterface;
 
 /**
  * Projects validated bus envelopes into the dashboard event feed read model.
@@ -19,6 +20,8 @@ final class DashboardBusEventIngestionService
     public function __construct(
         private readonly EventFeedProjector $feedProjector,
         private readonly DashboardIngestionGateService $ingestionGate,
+        private readonly Container $container,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
@@ -30,7 +33,7 @@ final class DashboardBusEventIngestionService
         $eventType = $data['event'] ?? $data['event_type'] ?? 'Unknown';
 
         if ($eventId === '' || $eventId === 'unknown') {
-            Log::info('Dashboard: bus ingestion skipped (no event_id)', [
+            $this->logger->info('Dashboard: bus ingestion skipped (no event_id)', [
                 'event_type' => $eventType,
             ]);
 
@@ -38,7 +41,7 @@ final class DashboardBusEventIngestionService
         }
 
         if (! $this->ingestionGate->allows($eventType, $data)) {
-            Log::info('Dashboard: bus ingestion skipped (ingestion gate)', [
+            $this->logger->info('Dashboard: bus ingestion skipped (ingestion gate)', [
                 'event_type' => $eventType,
                 'event_id'   => $eventId,
             ]);
@@ -64,7 +67,7 @@ final class DashboardBusEventIngestionService
         }
 
         foreach (config('dashboard.after_feed_insert_hooks', []) as $hookClass) {
-            $hook = app($hookClass);
+            $hook = $this->container->make($hookClass);
             if ($hook instanceof AfterEventFeedInsertHookInterface) {
                 $hook->onNewFeedRow($eventType, $data);
             }

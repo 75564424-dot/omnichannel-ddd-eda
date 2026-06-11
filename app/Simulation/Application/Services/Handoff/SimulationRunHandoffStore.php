@@ -6,26 +6,18 @@ namespace App\Simulation\Application\Services\Handoff;
 
 use App\Control\Infrastructure\Models\SimulationRunModel;
 use App\Shared\Infrastructure\Models\TenantModel;
+use App\Simulation\Application\Services\Handoff\Support\SimulationRunHandoffFileGateway;
+use App\Simulation\Application\Services\Handoff\Support\SimulationRunHandoffPayloadMapper;
 
 /**
  * Persists simulation run specs on disk so client workers can start without HTTP to control plane.
  */
 final class SimulationRunHandoffStore
 {
-    private function directory(): string
-    {
-        $dir = storage_path('app/simulation-handoff');
-        if (! is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        return $dir;
-    }
-
-    private function path(string $runId): string
-    {
-        return $this->directory().DIRECTORY_SEPARATOR.$runId.'.json';
-    }
+    public function __construct(
+        private readonly SimulationRunHandoffPayloadMapper $payloadMapper,
+        private readonly SimulationRunHandoffFileGateway $fileGateway,
+    ) {}
 
     /**
      * @param array<string, mixed> $modulesCatalog
@@ -35,22 +27,10 @@ final class SimulationRunHandoffStore
         TenantModel $tenant,
         array $modulesCatalog,
     ): void {
-        $durationMinutes = max(1, (int) $run->duration_minutes);
-
-        $this->persist($run->id, [
-            'run_id'            => $run->id,
-            'tenant_slug'       => $tenant->slug,
-            'events_per_minute' => (int) $run->events_per_minute,
-            'duration_minutes'  => $durationMinutes,
-            'planned_total'     => (int) $run->planned_total,
-            'prepare_first'     => (bool) $run->prepare_first,
-            'fixture_slug'      => $run->fixture_slug,
-            'modules_catalog'   => $modulesCatalog,
-            'deadline_at'       => now()->addMinutes($durationMinutes + 1)->toIso8601String(),
-            'written_at'        => now()->toIso8601String(),
-            'phase'             => 'dispatched',
-            'progress_current'  => 0,
-        ]);
+        $this->fileGateway->write(
+            $run->id,
+            $this->payloadMapper->buildDispatchPayload($run, $tenant, $modulesCatalog),
+        );
     }
 
     /**
@@ -58,7 +38,7 @@ final class SimulationRunHandoffStore
      */
     public function read(string $runId): ?array
     {
-        return $this->decodeFile($this->path($runId), useSharedLock: true);
+        return $this->fileGateway->read($runId, useSharedLock: true);
     }
 
     /**
@@ -68,7 +48,7 @@ final class SimulationRunHandoffStore
      */
     public function readForSync(string $runId): ?array
     {
-        return $this->decodeFile($this->path($runId), useSharedLock: false);
+        return $this->fileGateway->read($runId, useSharedLock: false);
     }
 
     /**
@@ -77,12 +57,9 @@ final class SimulationRunHandoffStore
     public function markTerminal(string $runId, string $status, array $payload): void
     {
         $data = $this->read($runId) ?? ['run_id' => $runId];
-        $data['terminal_status']  = $status;
-        $data['terminal_payload'] = $payload;
-        $data['terminal_at']      = now()->toIso8601String();
-        $data['phase']            = $status;
+        $data = $this->payloadMapper->applyTerminal($data, $status, $payload);
 
-        $this->persist($runId, $data);
+        $this->fileGateway->write($runId, $data);
     }
 
     public function updateProgress(string $runId, int $current, int $total, string $phase = 'publishing'): void
@@ -92,86 +69,42 @@ final class SimulationRunHandoffStore
             return;
         }
 
-        $payload['progress_current'] = max(0, $current);
-        $payload['planned_total']    = max(1, $total);
-        $payload['progress_percent'] = min(100, (int) round(($current / max(1, $total)) * 100));
-        $payload['phase']            = $phase;
-        $payload['progress_at']      = now()->toIso8601String();
+        $this->fileGateway->write(
+            $runId,
+            $this->payloadMapper->applyProgress($payload, $current, $total, $phase),
+        );
+    }
 
-        $this->persist($runId, $payload);
+    public function requestCancel(string $runId, ?int $userId): void
+    {
+        $payload = $this->read($runId);
+        if ($payload === null) {
+            return;
+        }
+
+        $payload['cancel_requested'] = true;
+        $payload['cancel_requested_at'] = now()->toIso8601String();
+        if ($userId !== null) {
+            $payload['cancel_requested_by_user_id'] = $userId;
+        }
+
+        $this->fileGateway->write($runId, $payload);
+    }
+
+    public function isCancelRequested(string $runId): bool
+    {
+        $payload = $this->readForSync($runId);
+
+        return is_array($payload) && ($payload['cancel_requested'] ?? false) === true;
     }
 
     public function forget(string $runId): void
     {
-        $path = $this->path($runId);
-        if (is_file($path)) {
-            unlink($path);
-        }
+        $this->fileGateway->forget($runId);
     }
 
     public function purgeAll(): int
     {
-        $count = 0;
-        foreach (glob($this->directory().DIRECTORY_SEPARATOR.'*.json') ?: [] as $file) {
-            if (is_file($file) && unlink($file)) {
-                $count++;
-            }
-        }
-
-        return $count;
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private function persist(string $runId, array $payload): void
-    {
-        $path = $this->path($runId);
-        $tmp  = $path.'.tmp';
-        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-
-        file_put_contents($tmp, $json, LOCK_EX);
-        rename($tmp, $path);
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeFile(string $path, bool $useSharedLock): ?array
-    {
-        if (! is_file($path)) {
-            return null;
-        }
-
-        if (! $useSharedLock) {
-            $contents = @file_get_contents($path);
-            if ($contents === false || $contents === '') {
-                return null;
-            }
-
-            $decoded = json_decode($contents, true);
-
-            return is_array($decoded) ? $decoded : null;
-        }
-
-        $handle = @fopen($path, 'rb');
-        if ($handle === false) {
-            return null;
-        }
-
-        try {
-            if (flock($handle, LOCK_SH)) {
-                $contents = (string) stream_get_contents($handle);
-                flock($handle, LOCK_UN);
-            } else {
-                $contents = (string) stream_get_contents($handle);
-            }
-        } finally {
-            fclose($handle);
-        }
-
-        $decoded = json_decode($contents, true);
-
-        return is_array($decoded) ? $decoded : null;
+        return $this->fileGateway->purgeAll();
     }
 }
