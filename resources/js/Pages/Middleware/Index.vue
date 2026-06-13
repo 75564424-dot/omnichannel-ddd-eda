@@ -302,6 +302,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { onNodesChanged } from '@/platform-node-events';
+import { useDashboardEventStream } from '@/composables/useDashboardEventStream';
 
 export default {
   name: 'MiddlewareIndex',
@@ -317,9 +318,18 @@ export default {
     const POLL_SECONDS_IDLE = 45;
     const POLL_SECONDS_ACTIVE = 2;
     const POLL_QUEUE_MS_ACTIVE = 800;
-    const FLOW_ACTIVITY_MS = 15 * 1000;
-    const PULSE_LIVE_MS = 20 * 1000;
+    const FLOW_ACTIVITY_MS = 30 * 1000;
+    const PULSE_LIVE_MS = 30 * 1000;
     const STALE_PENDING_MS = 90 * 1000;
+
+    const eventStream = useDashboardEventStream({
+      onFeedEvent() {
+        refreshData();
+      },
+      onActivity() {
+        refreshData();
+      },
+    });
 
     const syncingRegistry = ref(false);
     const simulationPulse = ref({ active: false });
@@ -740,6 +750,7 @@ export default {
     onMounted(() => {
       refreshData();
       startTimers();
+      eventStream.connect();
       stopNodesListener = onNodesChanged(() => {
         refreshData();
         countdown.value = pollSeconds.value;
@@ -749,6 +760,7 @@ export default {
       clearInterval(refreshTimer);
       clearInterval(queueTimer);
       clearInterval(countdownTimer);
+      eventStream.disconnect();
       stopNodesListener?.();
     });
 

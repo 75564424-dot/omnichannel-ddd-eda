@@ -43,3 +43,17 @@ yarn-error.log
 /database/instances/lifecycle-test.sqlite
 /database/instances/unaprueba.sqlite
 /database/instances/tenant-test-*.sqlite
+
+# Local fleet runtime state
+/deploy/local-instances/fleet-registry.json
+
+# Copy font asset from postinstall
+/public/fonts/material-symbols-outlined.woff2
+
+# Temp storage/framework outputs
+/storage/framework/testing/
+/storage/app/simulation-worker-*.bat
+/storage/app/simulation-worker-*.sh
+
+# Compile caches
+/bootstrap/cache/*.php

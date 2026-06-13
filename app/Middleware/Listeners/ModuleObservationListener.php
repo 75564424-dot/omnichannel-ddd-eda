@@ -42,14 +42,30 @@ final class ModuleObservationListener
         if (empty($eventId) || $eventType === '') {
             return;
         }
-
         try {
-            $origin       = EventOrigin::inferFromPayload($payload);
-            $producerId   = Str::slug($origin->value());
-            if ($producerId === '') {
-                $producerId = 'unknown';
+            $channel = strtoupper(trim((string) ($payload['channel'] ?? '')));
+            $catalog = config('modules.catalog', []);
+            $producers = $catalog['producers'] ?? [];
+            $foundProducer = null;
+            foreach ($producers as $prod) {
+                $channels = $prod['channels'] ?? [];
+                if (is_array($channels) && in_array($channel, $channels)) {
+                    $foundProducer = $prod;
+                    break;
+                }
             }
-            $producerName = $origin->value();
+
+            if ($foundProducer !== null) {
+                $producerId = $foundProducer['id'];
+                $producerName = $foundProducer['name'] ?? $foundProducer['id'];
+            } else {
+                $origin       = EventOrigin::inferFromPayload($payload);
+                $producerId   = Str::slug($origin->value());
+                if ($producerId === '') {
+                    $producerId = 'unknown';
+                }
+                $producerName = $origin->value();
+            }
 
             $this->moduleRegistry->recordProducerObservation($producerId, $producerName, $eventType);
 
