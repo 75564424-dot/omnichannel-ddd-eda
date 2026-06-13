@@ -1,0 +1,30 @@
+{
+    "service_contact_message": "Catálogo de pruebas — gestionado desde control SaaS.",
+    "middleware": {
+        "id": "middleware",
+        "name": "Middleware bus",
+        "description": "Catálogo para pruebas",
+        "role": "routing"
+    },
+    "producers": [
+        {
+            "id": "prueba01_POS",
+            "name": "Prueba 01 POS",
+            "event_types_emitted": [
+                "prueba01.sale.complete"
+            ],
+            "channels": [
+                "POS"
+            ]
+        }
+    ],
+    "subscribers": [
+        {
+            "id": "prueba01_reporting",
+            "name": "Prueba 01 Reporting",
+            "event_types_consumed": [
+                "prueba01.sale.complete"
+            ]
+        }
+    ]
+}
