@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Dashboard\Interfaces\Providers;
 
+use App\Dashboard\Application\Adapters\ControlClientDashboardMetricsAdapter;
+use App\Dashboard\Application\Contracts\ClientDashboardMetricsPortInterface;
 use App\Dashboard\Application\Contracts\ModulesCatalogDataProviderInterface;
-use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
+use App\Dashboard\Application\Services\DynamicMetricSeriesBuilder;
 use App\Dashboard\Application\UseCases\GetConfiguredDailySeriesUseCase;
 use App\Dashboard\Application\UseCases\GetDashboardMetricCatalogUseCase;
 use App\Dashboard\Application\UseCases\GetDynamicMetricSeriesUseCase;
@@ -18,6 +20,7 @@ use App\Dashboard\Application\UseCases\GetSystemNodeStatusUseCase;
 use App\Dashboard\Application\UseCases\RefreshSystemNodeUseCase;
 use App\Dashboard\Application\UseCases\SetNodeMiddlewareEventsUseCase;
 use App\Dashboard\Application\UseCases\StreamLiveEventsUseCase;
+use App\Dashboard\Domain\DashboardKnownNodes;
 use App\Dashboard\Domain\Repositories\BusQueueAnalyticsRepositoryInterface;
 use App\Dashboard\Domain\Repositories\EventFeedRepositoryInterface;
 use App\Dashboard\Domain\Repositories\MetricsRepositoryInterface;
@@ -33,13 +36,15 @@ use App\Dashboard\Infrastructure\Projectors\EventFeedProjector;
 use App\Dashboard\Listeners\MiddlewareMetricsListener;
 use App\Dashboard\Listeners\UniversalDashboardFeedListener;
 use App\Shared\Contracts\ControlPlane\NodeIngestionGateReaderInterface;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 
 final class DashboardServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(ClientDashboardMetricsPortInterface::class, ControlClientDashboardMetricsAdapter::class);
+
         $this->app->bind(ModulesCatalogDataProviderInterface::class, TenantAwareModulesCatalogDataProvider::class);
 
         $this->app->bind(BusQueueAnalyticsRepositoryInterface::class, DbBusQueueAnalyticsRepository::class);
@@ -57,8 +62,9 @@ final class DashboardServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Event::listen('*', UniversalDashboardFeedListener::class);
-        Event::listen('*', MiddlewareMetricsListener::class);
+        $events = $this->app->make(Dispatcher::class);
+        $events->listen('*', UniversalDashboardFeedListener::class);
+        $events->listen('*', MiddlewareMetricsListener::class);
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
     }
@@ -81,16 +87,15 @@ final class DashboardServiceProvider extends ServiceProvider
         $this->app->bind(
             GetDynamicMetricSeriesUseCase::class,
             fn ($app) => new GetDynamicMetricSeriesUseCase(
-                $app->make(EventFeedRepositoryInterface::class),
-                $app->make(BusQueueAnalyticsRepositoryInterface::class),
-                $app->make(ClientDashboardMetricsCatalogService::class),
+                $app->make(ClientDashboardMetricsPortInterface::class),
+                $app->make(DynamicMetricSeriesBuilder::class),
             ),
         );
 
         $this->app->bind(
             GetDashboardMetricCatalogUseCase::class,
             fn ($app) => new GetDashboardMetricCatalogUseCase(
-                $app->make(ClientDashboardMetricsCatalogService::class),
+                $app->make(ClientDashboardMetricsPortInterface::class),
             ),
         );
 
@@ -99,22 +104,33 @@ final class DashboardServiceProvider extends ServiceProvider
             fn ($app) => new GetSystemNodeStatusUseCase(
                 $app->make(NodeStatusRepositoryInterface::class),
                 $app->make(EventFeedRepositoryInterface::class),
+                $app->make(DashboardKnownNodes::class),
             ),
         );
 
         $this->app->bind(
             RefreshSystemNodeUseCase::class,
-            fn ($app) => new RefreshSystemNodeUseCase($app->make(NodeStatusRepositoryInterface::class)),
+            fn ($app) => new RefreshSystemNodeUseCase(
+                $app->make(NodeStatusRepositoryInterface::class),
+                $app->make(DashboardKnownNodes::class),
+                $app->make(Dispatcher::class),
+            ),
         );
 
         $this->app->bind(
             SetNodeMiddlewareEventsUseCase::class,
-            fn ($app) => new SetNodeMiddlewareEventsUseCase($app->make(NodeStatusRepositoryInterface::class)),
+            fn ($app) => new SetNodeMiddlewareEventsUseCase(
+                $app->make(NodeStatusRepositoryInterface::class),
+                $app->make(DashboardKnownNodes::class),
+            ),
         );
 
         $this->app->bind(
             StreamLiveEventsUseCase::class,
-            fn ($app) => new StreamLiveEventsUseCase($app->make(EventFeedRepositoryInterface::class)),
+            fn ($app) => new StreamLiveEventsUseCase(
+                $app->make(EventFeedRepositoryInterface::class),
+                $app->make(\App\Observability\Application\Services\StreamConnectionTracker::class),
+            ),
         );
 
         $this->app->bind(

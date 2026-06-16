@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Models\User;
 use App\Shared\Identity\Application\AuthenticateOperatorUseCase;
-use App\Shared\Identity\Domain\PlatformRole;
+use App\Shared\Identity\Application\ResolveOperatorHomePathUseCase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +15,11 @@ use Inertia\Response;
 
 final class LoginController
 {
+    public function __construct(
+        private readonly ResolveOperatorHomePathUseCase $homePath,
+        private readonly OperatorSessionTerminator $sessionTerminator,
+    ) {}
+
     public function create(Request $request): Response|RedirectResponse
     {
         if (! config('platform_auth.web_auth_enabled', true)) {
@@ -21,7 +27,7 @@ final class LoginController
         }
 
         if ($request->user() !== null) {
-            return redirect()->to($this->homeForUser($request->user()));
+            return redirect()->to($this->homePath->execute($request->user()));
         }
 
         return Inertia::render('Auth/Login');
@@ -51,30 +57,13 @@ final class LoginController
             return redirect()->to($intended);
         }
 
-        return redirect()->to($user instanceof User ? $this->homeForUser($user) : route('dashboard'));
+        return redirect()->to($user instanceof User ? $this->homePath->execute($user) : route('dashboard'));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        auth()->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $this->sessionTerminator->terminate($request);
 
         return redirect()->route('login');
-    }
-
-    private function homeForUser(User $user): string
-    {
-        $role = PlatformRole::tryFromString((string) $user->getAttribute('platform_role'));
-        if ($role === null) {
-            return route('dashboard');
-        }
-
-        return match ($role) {
-            PlatformRole::SaasAdmin        => route('control.overview'),
-            PlatformRole::BusOperator      => route('middleware'),
-            PlatformRole::DashboardViewer  => route('dashboard'),
-            PlatformRole::PlatformAdmin    => route('dashboard'),
-        };
     }
 }

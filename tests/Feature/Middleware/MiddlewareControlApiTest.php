@@ -60,6 +60,10 @@ final class MiddlewareControlApiTest extends TestCase
                 ['module' => 'IntegrationPack.Adapters'],
             ],
         ]);
+        config()->set('modules.catalog', [
+            'producers'   => [],
+            'subscribers' => [],
+        ]);
 
         $this->postJson('/api/middleware/registry/sync-config')
             ->assertStatus(200)

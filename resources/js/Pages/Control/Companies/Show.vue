@@ -4,10 +4,25 @@
       <div>
         <p class="font-mono text-xs text-[#849495]">{{ tenant.slug }} · {{ tenant.id }}</p>
         <p class="mt-1 text-sm text-[#b9cacb]">Plan: <strong class="text-[#e1fdff]">{{ tenant.plan }}</strong></p>
+        <div class="mt-3 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wide">
+          <span class="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[#b9cacb]">
+            Acceso: {{ statusLabel }}
+          </span>
+          <span class="rounded px-2.5 py-1" :class="lifecycleClass">
+            Servicio: {{ lifecycleLabel }}
+          </span>
+        </div>
       </div>
-      <div class="flex gap-2">
-        <button v-if="tenant.status === 'active'" type="button" class="btn-danger" @click="suspend">Suspender</button>
-        <button v-else type="button" class="btn-primary" @click="activate">Activar</button>
+      <div class="flex flex-wrap gap-2">
+        <button v-if="canStart" type="button" class="btn-primary" @click="startService">
+          Levantar servicio
+        </button>
+        <button v-if="canSuspend" type="button" class="btn-danger" @click="suspendService">
+          Suspender servicio
+        </button>
+        <button v-if="canRestore" type="button" class="btn-primary" @click="restoreService">
+          Restaurar servicio
+        </button>
       </div>
     </div>
 
@@ -28,7 +43,7 @@
         · Empresa: <span class="font-mono">{{ deployment.tenant_slug }}</span>
       </p>
 
-      <template v-if="!deployment.is_bound_to_instance">
+      <template v-if="!deployment.is_bound_to_instance && !deployment.local_instance">
         <p class="mt-3 text-xs text-[#849495]">
           Cada cliente comercial requiere su propio despliegue (BD + URL + <span class="font-mono">PLATFORM_CLIENT_SLUG</span>).
           El registro SaaS no sustituye el despliegue; los operadores inician sesión solo en la URL de su instancia.
@@ -44,6 +59,18 @@
           · Runbook: {{ deployment.runbook_path }}
         </p>
       </template>
+
+      <div v-else-if="deployment.local_instance" class="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
+        <p class="text-emerald-200">
+          Instancia aislada local — operadores inician sesión solo en:
+          <a :href="deployment.local_instance.app_url + '/login'" class="font-mono text-[#00f2ff] hover:underline" target="_blank" rel="noopener">
+            {{ deployment.local_instance.app_url }}
+          </a>
+        </p>
+        <p class="mt-2 font-mono text-[11px] text-[#849495]">
+          Puerto {{ deployment.local_instance.port }} · {{ deployment.local_instance.env_file }} · {{ deployment.local_instance.db_path }}
+        </p>
+      </div>
 
       <p v-else class="mt-2 text-xs text-emerald-300/90">
         Esta empresa está vinculada a la instancia actual. Los operadores pueden usar el portal en {{ deployment.recommended_app_url || $page.props.deployment_context?.app_url }}.
@@ -246,6 +273,31 @@ const props = defineProps({
 });
 
 const base = `/control/companies/${props.tenant.id}`;
+const actions = computed(() => props.tenant.actions_available || []);
+const canStart = computed(() => actions.value.includes('start'));
+const canSuspend = computed(() => actions.value.includes('suspend'));
+const canRestore = computed(() => actions.value.includes('restore'));
+const statusLabel = computed(() => (props.tenant.status === 'suspended' ? 'Suspendido' : 'Activo'));
+const lifecycleLabel = computed(() => {
+  const map = {
+    provisioned: 'Provisionado',
+    running: 'En ejecucion',
+    stopped: 'Detenido',
+  };
+
+  return map[props.tenant.lifecycle] || props.tenant.lifecycle || 'Sin estado';
+});
+const lifecycleClass = computed(() => {
+  if (props.tenant.lifecycle === 'running') {
+    return 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
+  }
+
+  if (props.tenant.lifecycle === 'stopped') {
+    return 'border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 text-[#ffb4ab]';
+  }
+
+  return 'border border-amber-500/30 bg-amber-500/10 text-amber-200';
+});
 
 const profileLabels = {
   legal_name: 'Razón social',
@@ -289,11 +341,14 @@ function consumptionLabel(key) {
   return map[key] || key;
 }
 
-function suspend() {
-  router.post(`${base}/suspend`, {}, { preserveScroll: true });
+function startService() {
+  router.post(`${base}/lifecycle/start`, {}, { preserveScroll: true });
 }
-function activate() {
-  router.post(`${base}/activate`, {}, { preserveScroll: true });
+function suspendService() {
+  router.post(`${base}/lifecycle/suspend`, {}, { preserveScroll: true });
+}
+function restoreService() {
+  router.post(`${base}/lifecycle/restore`, {}, { preserveScroll: true });
 }
 function savePlan() {
   planForm.patch(`${base}/plan`, { preserveScroll: true });

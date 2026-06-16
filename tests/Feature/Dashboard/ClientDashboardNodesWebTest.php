@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dashboard;
 
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,7 +45,10 @@ final class ClientDashboardNodesWebTest extends TestCase
             'email'         => 'admin@local',
             'password'      => Hash::make('secret'),
             'platform_role' => 'platform_admin',
+            'tenant_id'     => '11111111-1111-1111-1111-111111111111',
         ]);
+
+        $this->withoutMiddleware(VerifyCsrfToken::class);
 
         $this->actingAs($user)
             ->patchJson('/dashboard/nodes/producer%3Aacme_web/middleware-events', [

@@ -1,0 +1,16 @@
+{
+  "$schema": "./instances.schema.json",
+  "description": "Control plane estático. Los clientes se registran en fleet-registry.json (auto al provisionar).",
+  "instances": [
+    {
+      "id": "control-plane",
+      "label": "Mi empresa (SaaS / control plane)",
+      "slug": "platform",
+      "port": 8000,
+      "role": "control_plane",
+      "adminEmail": "saas@local",
+      "adminPassword": "saas-local-dev",
+      "adminName": "SaaS Admin"
+    }
+  ]
+}

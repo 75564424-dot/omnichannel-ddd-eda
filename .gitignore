@@ -7,8 +7,13 @@
 /storage/pail
 /vendor
 .env
+.env.*
+!.env.example
+!.env.*.example
 .env.backup
-.env.production
+.env.control-plane
+.env.playwright
+.env.testing
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -22,5 +27,39 @@ yarn-error.log
 /.vscode
 /.zed
 /config/eventbus_client_overlay.json
+/config/modules/instances/
 /playwright-report/
 /test-results/
+/database/database.sqlite
+/public/build
+/storage/logs
+/storage/framework/views/
+/storage/app/simulation-launchers/
+/storage/app/simulation-handoff/
+/database/instances/*.sqlite
+!/database/instances/.gitkeep
+/database/instances/*.sqlite-shm
+/database/instances/*.sqlite-wal
+/storage/app/simulation-pulse.json
+/database/instances/acme-retail.sqlite
+/database/instances/pruebas-retail.sqlite
+/database/instances/lifecycle-test.sqlite
+/database/instances/unaprueba.sqlite
+/database/instances/tenant-test-*.sqlite
+
+# Local fleet runtime state
+/deploy/local-instances/fleet-registry.json
+
+# Copy font asset from postinstall
+/public/fonts/material-symbols-outlined.woff2
+
+# Temp storage/framework outputs
+/storage/framework/testing/
+/storage/app/simulation-worker-*.bat
+/storage/app/simulation-worker-*.sh
+
+# Compile caches
+/bootstrap/cache/*.php
+
+# Historical env backups must never contain real secrets
+/docs/**/backups/**/.env*

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Monitoring\Application\Services;
 
 use App\Middleware\Application\Services\EventPublisherService;
+use App\Monitoring\Application\Services\Canary\CanaryProbeEnvelopeFactory;
+use App\Monitoring\Application\Services\Canary\CanaryQueueCompletionVerifier;
+use App\Monitoring\Application\Services\Canary\CanarySuccessTracker;
 use App\Observability\Application\Services\SliMetricsRecorder;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Ramsey\Uuid\Uuid;
 use Throwable;
 
 /**
@@ -16,10 +16,11 @@ use Throwable;
  */
 final class CanaryPublishService
 {
-    public const CACHE_KEY_LAST_SUCCESS = 'platform.monitoring.canary_last_success';
-
     public function __construct(
         private readonly EventPublisherService $publisher,
+        private readonly CanaryProbeEnvelopeFactory $envelopeFactory,
+        private readonly CanaryQueueCompletionVerifier $completionVerifier,
+        private readonly CanarySuccessTracker $successTracker,
         private readonly SliMetricsRecorder $sliMetrics,
     ) {}
 
@@ -29,33 +30,18 @@ final class CanaryPublishService
             return true;
         }
 
-        $eventId   = Uuid::uuid4()->toString();
-        $occurred  = now()->toIso8601String();
-        $eventType = (string) config('platform_monitoring.canary.event_type', 'Platform.Monitoring.Canary');
+        $envelope = $this->envelopeFactory->build();
+        $eventId  = (string) $envelope['event_id'];
 
         try {
-            $result = $this->publisher->publish([
-                'event_id'    => $eventId,
-                'event_type'  => $eventType,
-                'occurred_at' => $occurred,
-                'origin'      => 'MonitoringCanary',
-                'payload'     => [
-                    'event_id'    => $eventId,
-                    'event'       => $eventType,
-                    'occurred_at' => $occurred,
-                    'probe'       => 'canary',
-                ],
-            ]);
-
-            $row = DB::table('message_queue')->where('event_uuid', $eventId)->first();
-            $ok  = $row !== null && in_array(strtolower((string) ($row->status ?? '')), ['completed', 'processed', 'procesado'], true);
+            $this->publisher->publish($envelope);
+            $ok = $this->completionVerifier->isCompleted($eventId);
 
             if ($ok) {
-                Cache::put(self::CACHE_KEY_LAST_SUCCESS, now()->timestamp, now()->addDay());
-                $this->sliMetrics->record('canary_publish_success', 1.0);
-            } else {
-                $this->sliMetrics->record('canary_publish_success', 0.0);
+                $this->successTracker->markSuccess();
             }
+
+            $this->sliMetrics->record('canary_publish_success', $ok ? 1.0 : 0.0);
 
             return $ok;
         } catch (Throwable) {
@@ -67,11 +53,6 @@ final class CanaryPublishService
 
     public function lastSuccessAgeSeconds(): int
     {
-        $ts = Cache::get(self::CACHE_KEY_LAST_SUCCESS);
-        if ($ts === null) {
-            return -1;
-        }
-
-        return max(0, now()->timestamp - (int) $ts);
+        return $this->successTracker->lastSuccessAgeSeconds();
     }
 }

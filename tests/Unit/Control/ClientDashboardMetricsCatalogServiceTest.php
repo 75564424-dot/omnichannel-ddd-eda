@@ -6,12 +6,13 @@ namespace Tests\Unit\Control;
 
 use App\Control\Application\Services\ClientDashboardMetricsCatalogService;
 use App\Control\Application\Services\ClientDashboardModulesService;
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Dashboard\Infrastructure\Modules\ConfigModulesCatalogDataProvider;
 use App\Dashboard\Infrastructure\Persistence\DbBusQueueAnalyticsRepository;
 use App\Dashboard\Infrastructure\Persistence\EloquentEventFeedRepository;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -74,10 +75,12 @@ final class ClientDashboardMetricsCatalogServiceTest extends TestCase
             new ClientDashboardModulesService(
                 app(InstanceTenantContextInterface::class),
                 app(TenantModuleCatalogService::class),
-                new ConfigModulesCatalogDataProvider(),
+                app(ConfigModulesCatalogDataProvider::class),
+                app(DatabaseManager::class),
             ),
-            new EloquentEventFeedRepository(),
-            new DbBusQueueAnalyticsRepository(),
+            app(EloquentEventFeedRepository::class),
+            app(DbBusQueueAnalyticsRepository::class),
         );
     }
 }
+

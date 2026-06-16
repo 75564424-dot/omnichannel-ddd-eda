@@ -4,26 +4,30 @@ declare(strict_types=1);
 
 namespace App\Shared\Logging;
 
-use Illuminate\Support\Facades\Log;
+use Psr\Log\LoggerInterface;
 
 /**
  * Structured logger with correlation context and PII-safe payload hashing (Plan_Logs).
  */
 final class PlatformStructuredLogger
 {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {}
+
     public function info(string $message, array $context = []): void
     {
-        Log::info($message, $this->enrich($context));
+        $this->logger->info($message, $this->enrich($context));
     }
 
     public function warning(string $message, array $context = []): void
     {
-        Log::warning($message, $this->enrich($context));
+        $this->logger->warning($message, $this->enrich($context));
     }
 
     public function error(string $message, array $context = []): void
     {
-        Log::error($message, $this->enrich($context));
+        $this->logger->error($message, $this->enrich($context));
     }
 
     /** @param array<string, mixed> $context */

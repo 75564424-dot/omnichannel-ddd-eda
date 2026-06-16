@@ -2,6 +2,15 @@
   <AppLayout title="Global Dashboard" search-placeholder="Search...">
     <div class="p-6 max-w-[1600px] mx-auto space-y-6">
 
+      <div
+        v-if="!dashboardConfigured"
+        class="rounded-sm border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900"
+      >
+        Configure qué módulos autorizados desea ver en el dashboard desde
+        <span class="font-semibold">Configuración de módulos visibles</span>
+        antes de operar la topología y métricas de su instancia.
+      </div>
+
       <!-- Configurable KPI cards (counter_cards in config/dashboard_config.json) -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div
@@ -117,7 +126,7 @@
 
       <!-- Event flow — generic topology (no business module names) -->
       <div class="grid grid-cols-12 gap-5">
-        <EventFlowTopology :modules-catalog="modules_catalog" />
+        <EventFlowTopology :modules-catalog="modules_catalog" :flow-active="middlewareFlowActive" />
 
         <div class="col-span-12 lg:col-span-3 space-y-5">
           <div class="bg-white border border-slate-200 shadow-sm rounded-sm overflow-hidden">
@@ -261,6 +270,8 @@ import { usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EventFlowTopology from '@/Components/Dashboard/EventFlowTopology.vue';
 import { SYSTEM_MODULE_ROWS, parseSystemNode } from '@/lib/systemModules';
+import { onNodesChanged } from '@/platform-node-events';
+import { useDashboardEventStream } from '@/composables/useDashboardEventStream';
 
 export default {
   name: 'DashboardIndex',
@@ -276,6 +287,7 @@ export default {
     nodes: { type: Object, default: () => ({}) },
     middlewareMetrics: { type: Object, default: () => ({}) },
     system_module_rows: { type: Array, default: () => [] },
+    dashboard_configured: { type: Boolean, default: false },
   },
   setup(props) {
     const page = usePage();
@@ -291,7 +303,60 @@ export default {
     );
     const chartLoading = ref(false);
     const chartError = ref('');
+    const simulationPulse = ref({ active: false });
+    const FLOW_ACTIVITY_MS = 15 * 1000;
+    const PULSE_LIVE_MS = 20 * 1000;
+
+    function feedItemMillis(entry) {
+      const raw = entry?.occurred_at ?? entry?.timestamp ?? entry?.created_at ?? entry?.published_at ?? null;
+      if (raw == null || raw === '') return null;
+      let s = String(raw).trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) {
+        s = s.replace(' ', 'T');
+        if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+      }
+      const t = new Date(s).getTime();
+      return Number.isNaN(t) ? null : t;
+    }
+
+    const simulationLive = computed(() => {
+      const p = simulationPulse.value;
+      if (p?.active !== true || p?.stale === true) return false;
+      const tickAt = p.tick_at ?? p.tickAt;
+      if (!tickAt) return true;
+      const ts = feedItemMillis({ occurred_at: tickAt });
+      if (ts == null) return false;
+      return Date.now() - ts <= PULSE_LIVE_MS;
+    });
+
+    const hasRecentFeedActivity = computed(() => {
+      const now = Date.now();
+      return (liveFeed.value ?? []).some((entry) => {
+        const ts = feedItemMillis(entry);
+        return ts != null && now - ts <= FLOW_ACTIVITY_MS;
+      });
+    });
+
+    const middlewareFlowActive = computed(
+      () => simulationLive.value || hasRecentFeedActivity.value,
+    );
     let refreshTimer = null;
+    let metricsRefreshTimer = null;
+    const POLL_IDLE_MS = 30000;
+    const POLL_ACTIVE_MS = 2000;
+    const dashboardConfigured = computed(() => props.dashboard_configured === true);
+
+    const eventStream = useDashboardEventStream({
+      onFeedEvent(entry) {
+        if (!entry || entry.id == null) return;
+        const exists = (liveFeed.value ?? []).some((row) => Number(row.id) === Number(entry.id));
+        if (exists) return;
+        liveFeed.value = [entry, ...(liveFeed.value ?? [])].slice(0, 50);
+      },
+      onActivity() {
+        refreshNodesAndMetrics();
+      },
+    });
 
     watch(() => props.feed, (v) => { liveFeed.value = [...(v ?? [])]; }, { deep: true });
     watch(() => props.nodes, (v) => { liveNodes.value = v ?? {}; }, { deep: true });
@@ -529,21 +594,63 @@ export default {
 
     watch(selectedMetricId, () => { fetchMetricSeries(); });
 
-    async function refreshData() {
+    watch(
+      () => simulationPulse.value?.sequence,
+      (seq, prev) => {
+        if (seq != null && seq !== prev && (simulationLive.value || hasRecentFeedActivity.value)) {
+          refreshData();
+        }
+      },
+    );
+
+    async function fetchSimulationPulse() {
       try {
-        const requests = [
-          window.axios.get('/api/dashboard/events/feed'),
+        const res = await window.axios.get('/api/middleware/simulation-pulse');
+        simulationPulse.value = res.data?.data ?? res.data ?? { active: false };
+      } catch {
+        simulationPulse.value = { active: false };
+      }
+    }
+
+    function applyDashboardPollCadence() {
+      const ms = middlewareFlowActive.value ? POLL_ACTIVE_MS : POLL_IDLE_MS;
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshData, ms);
+    }
+
+    async function refreshNodesAndMetrics() {
+      try {
+        const [nodesRes, metricsRes] = await Promise.all([
           window.axios.get('/api/dashboard/nodes/status'),
           window.axios.get('/api/dashboard/metrics'),
-        ];
-        const [feedRes, nodesRes, metricsRes] = await Promise.all(requests);
-        liveFeed.value = feedRes.data?.data ?? feedRes.data ?? [];
+        ]);
         liveNodes.value = nodesRes.data?.data ?? nodesRes.data ?? {};
-        liveMetrics.value = { ...(metricsRes.data ?? {}) };
+        const metricsPayload = metricsRes.data?.data ?? metricsRes.data ?? {};
+        liveMetrics.value = { ...metricsPayload };
+        await fetchSimulationPulse();
+        applyDashboardPollCadence();
+      } catch (e) {
+        console.error('Dashboard nodes/metrics refresh failed:', e);
+      }
+    }
+
+    async function refreshData() {
+      try {
+        const feedRes = await window.axios.get('/api/dashboard/events/feed');
+        liveFeed.value = feedRes.data?.data ?? feedRes.data ?? [];
+        await refreshNodesAndMetrics();
       } catch (e) {
         console.error('Dashboard refresh failed:', e);
       }
     }
+
+    function applyNodesPayload(payload) {
+      if (payload && typeof payload === 'object') {
+        liveNodes.value = payload;
+      }
+    }
+
+    let stopNodesListener = null;
 
     onMounted(() => {
       syncDefaultMetric();
@@ -552,11 +659,35 @@ export default {
       if (!hasInitialSeries) {
         fetchMetricSeries();
       }
-      refreshTimer = setInterval(refreshData, 30000);
+      refreshData();
+      applyDashboardPollCadence();
+      eventStream.connect();
+      metricsRefreshTimer = setInterval(() => {
+        if (middlewareFlowActive.value) {
+          refreshNodesAndMetrics();
+          if (selectedMetricId.value) {
+            fetchMetricSeries();
+          }
+        }
+      }, POLL_ACTIVE_MS);
+      stopNodesListener = onNodesChanged((payload) => {
+        if (payload) {
+          applyNodesPayload(payload);
+        } else {
+          refreshNodesAndMetrics();
+        }
+      });
     });
-    onUnmounted(() => clearInterval(refreshTimer));
+    onUnmounted(() => {
+      clearInterval(refreshTimer);
+      clearInterval(metricsRefreshTimer);
+      eventStream.disconnect();
+      stopNodesListener?.();
+    });
 
     return {
+      dashboardConfigured,
+      middlewareFlowActive,
       liveFeed,
       liveNodes,
       liveMetrics,

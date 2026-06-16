@@ -76,8 +76,12 @@ final class InstanceDeploymentService
         $bound = $this->isTenantBoundToThisInstance($tenant);
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
         $stored = is_array($settings['deployment'] ?? null) ? $settings['deployment'] : [];
+        $localInstance = is_array($stored['local_instance'] ?? null) ? $stored['local_instance'] : null;
 
         $status = $bound ? 'active_on_instance' : (string) ($stored['status'] ?? 'pending_dedicated_instance');
+        $recommendedUrl = is_array($localInstance)
+            ? (string) ($localInstance['app_url'] ?? $this->recommendedAppUrl($tenant->slug))
+            : $this->recommendedAppUrl($tenant->slug);
 
         return [
             'mode'                    => 'instance_per_client',
@@ -88,9 +92,10 @@ final class InstanceDeploymentService
             'allows_portal_on_host'   => $this->portalLoginAllowedForTenant($tenant),
             'operators_on_this_host'  => $this->operatorsManageableOnThisHost($tenant),
             'status'                  => $status,
-            'status_label'            => $this->statusLabel($status, $bound),
-            'recommended_app_url'     => $this->recommendedAppUrl($tenant->slug),
-            'env_snippet'             => $this->envSnippet($tenant),
+            'status_label'            => $this->statusLabel($status, $bound, $localInstance !== null),
+            'recommended_app_url'     => $recommendedUrl,
+            'local_instance'          => $localInstance,
+            'env_snippet'             => $this->envSnippet($tenant, $recommendedUrl),
             'bootstrap_commands'      => $this->bootstrapCommands(),
             'runbook_path'            => 'docs/production/Runbook_Onboarding_Cliente.md',
         ];
@@ -147,10 +152,10 @@ final class InstanceDeploymentService
     /**
      * @return list<string>
      */
-    private function envSnippet(TenantModel $tenant): array
+    private function envSnippet(TenantModel $tenant, string $appUrl): array
     {
         return [
-            'APP_URL='.$this->recommendedAppUrl($tenant->slug),
+            'APP_URL='.$appUrl,
             'PLATFORM_CLIENT_SLUG='.$tenant->slug,
             'PLATFORM_CLIENT_NAME="'.$tenant->name.'"',
             'PLATFORM_DEPLOYMENT_MODE=instance_per_client',
@@ -160,10 +165,14 @@ final class InstanceDeploymentService
         ];
     }
 
-    private function statusLabel(string $status, bool $bound): string
+    private function statusLabel(string $status, bool $bound, bool $hasLocalInstance = false): string
     {
         if ($bound) {
             return 'Activa en esta instancia';
+        }
+
+        if ($hasLocalInstance || $status === 'active_on_instance') {
+            return 'Instancia local aislada (fleet dev)';
         }
 
         return match ($status) {

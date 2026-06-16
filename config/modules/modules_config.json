@@ -1,41 +1,27 @@
 {
-    "service_contact_message": "Catálogo de Acme Retail Middleware — gestionado desde control SaaS.",
+    "service_contact_message": "Catálogo de Acme Retail Middleware",
     "middleware": {
         "id": "middleware",
-        "name": "Middleware bus",
-        "description": "Catálogo para Acme Retail Middleware",
+        "name": "Bus",
+        "description": "",
         "role": "routing"
     },
     "producers": [
         {
             "id": "acme_pos",
-            "name": "Acme POS Terminal",
+            "name": "POS",
             "event_types_emitted": [
-                "AcmePOS.Sale.Completed",
-                "AcmePOS.Sale.Voided"
+                "AcmePOS.Sale.Completed"
             ],
-            "channels": [
-                "POS"
-            ]
-        },
-        {
-            "id": "acme_web",
-            "name": "Acme Web Shop",
-            "event_types_emitted": [
-                "AcmeWeb.Order.Created"
-            ],
-            "channels": [
-                "WEB"
-            ]
+            "channels": []
         }
     ],
     "subscribers": [
         {
             "id": "acme_reporting",
-            "name": "Acme Reporting",
+            "name": "Reporting",
             "event_types_consumed": [
-                "AcmePOS.Sale.Completed",
-                "AcmeWeb.Order.Created"
+                "AcmePOS.Sale.Completed"
             ]
         }
     ]

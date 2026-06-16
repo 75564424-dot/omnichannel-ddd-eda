@@ -6,6 +6,8 @@ namespace App\Shared\Api\Routes;
 
 use App\Integration\Interfaces\Http\Controllers\ChannelController;
 use App\Integration\Interfaces\Http\Controllers\IntegrationController;
+use App\Integration\Interfaces\Http\Controllers\IntegrationCredentialController;
+use App\Integration\Interfaces\Http\Controllers\IntegrationOutboundController;
 use App\Integration\Interfaces\Http\Controllers\WebhookIngressController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,8 +32,8 @@ final class IntegrationApiRoutes
                     Route::get('/{id}', [IntegrationController::class, 'show']);
                     Route::patch('/{id}', [IntegrationController::class, 'update']);
                     Route::delete('/{id}', [IntegrationController::class, 'destroy']);
-                    Route::post('/{id}/credentials', [IntegrationController::class, 'storeCredential']);
-                    Route::post('/{id}/connectors/{connectorId}/dispatch', [IntegrationController::class, 'dispatchOutbound']);
+                    Route::post('/{id}/credentials', [IntegrationCredentialController::class, 'store']);
+                    Route::post('/{id}/connectors/{connectorId}/dispatch', [IntegrationOutboundController::class, 'dispatch']);
                 });
             });
         });

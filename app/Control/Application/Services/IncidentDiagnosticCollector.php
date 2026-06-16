@@ -8,8 +8,7 @@ use App\Dashboard\Application\UseCases\GetSystemNodeStatusUseCase;
 use App\Middleware\Application\DTOs\BusMetricsDTO;
 use App\Middleware\Application\Services\BusHealthService;
 use App\Monitoring\Application\Services\AlertEvaluationService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 
 /**
  * Captures a point-in-time diagnostic bundle when a client submits a support report.
@@ -20,6 +19,7 @@ final class IncidentDiagnosticCollector
         private readonly BusHealthService $busHealth,
         private readonly AlertEvaluationService $alerts,
         private readonly GetSystemNodeStatusUseCase $nodeStatus,
+        private readonly DatabaseManager $db,
     ) {}
 
     /**
@@ -65,8 +65,8 @@ final class IncidentDiagnosticCollector
     {
         $items = [];
 
-        if (Schema::hasTable('dead_letter_queue')) {
-            $dlq = DB::table('dead_letter_queue')
+        if ($this->db->getSchemaBuilder()->hasTable('dead_letter_queue')) {
+            $dlq = $this->db->table('dead_letter_queue')
                 ->whereNull('resolved_at')
                 ->orderByDesc('failed_at')
                 ->limit(8)
@@ -84,8 +84,8 @@ final class IncidentDiagnosticCollector
             }
         }
 
-        if (Schema::hasTable('event_logs')) {
-            $logs = DB::table('event_logs')
+        if ($this->db->getSchemaBuilder()->hasTable('event_logs')) {
+            $logs = $this->db->table('event_logs')
                 ->whereIn('status', ['failed', 'error', 'FAILED', 'ERROR'])
                 ->orderByDesc('logged_at')
                 ->limit(8)

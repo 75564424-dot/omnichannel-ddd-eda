@@ -31,9 +31,11 @@ final class InstanceTenantSeeder extends Seeder
         $slug = Str::slug((string) config('platform.client_slug', 'default'));
         $name = (string) config('platform.client_name', config('app.name', 'Platform Instance'));
 
-        $pruned = TenantModel::query()->where('slug', '!=', $slug)->delete();
-        if ($pruned > 0) {
-            $this->command?->warn("Removed {$pruned} tenant(s) not matching instance slug «{$slug}».");
+        if (! config('platform.control_plane', false)) {
+            $pruned = TenantModel::query()->where('slug', '!=', $slug)->delete();
+            if ($pruned > 0) {
+                $this->command?->warn("Removed {$pruned} tenant(s) not matching instance slug «{$slug}».");
+            }
         }
 
         $existing = TenantModel::query()->where('slug', $slug)->first();

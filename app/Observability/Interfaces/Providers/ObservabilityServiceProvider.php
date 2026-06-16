@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Observability\Interfaces\Providers;
 
+use App\Observability\Application\Services\Prometheus\FeedProjectionLagCalculator;
+use App\Observability\Application\Services\Prometheus\PrometheusGaugeCollector;
+use App\Observability\Application\Services\Prometheus\PrometheusTextRenderer;
 use App\Observability\Application\Services\PrometheusMetricsExporter;
 use App\Observability\Application\Services\SliMetricsRecorder;
 use App\Observability\Application\Services\StreamConnectionTracker;
@@ -32,6 +35,9 @@ final class ObservabilityServiceProvider extends ServiceProvider
         $this->app->singleton(TraceSpanService::class);
         $this->app->singleton(SliMetricsRecorder::class);
         $this->app->singleton(StreamConnectionTracker::class);
+        $this->app->singleton(FeedProjectionLagCalculator::class);
+        $this->app->singleton(PrometheusGaugeCollector::class);
+        $this->app->singleton(PrometheusTextRenderer::class);
         $this->app->singleton(PrometheusMetricsExporter::class);
     }
 

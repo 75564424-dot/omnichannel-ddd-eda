@@ -27,6 +27,9 @@ interface InstanceTenantContextInterface
 
     public function bindPortalTenantFromSession(?string $tenantId): void;
 
+    /** Forces tenant_id for CLI workers (fleet simulation on client silo). */
+    public function bindInstanceTenantId(string $tenantId): void;
+
     /** @return array<string, mixed> Context for structured logs. */
     public function logContext(): array;
 }

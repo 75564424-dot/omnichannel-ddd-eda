@@ -2,25 +2,26 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Control\CompanyController;
-use App\Http\Controllers\Control\SimulationRunController;
-use App\Http\Controllers\Control\IncidentsController;
-use App\Http\Controllers\Control\InfrastructureController;
-use App\Http\Controllers\Control\MiddlewareGlobalController;
-use App\Http\Controllers\Control\OverviewController;
-use App\Http\Controllers\Control\ProvisioningController;
+use App\Control\Interfaces\Http\Controllers\CompanyController;
+use App\Simulation\Interfaces\Http\Controllers\SimulationRunController;
+use App\Control\Interfaces\Http\Controllers\IncidentsController;
+use App\Control\Interfaces\Http\Controllers\InfrastructureController;
+use App\Control\Interfaces\Http\Controllers\MiddlewareGlobalController;
+use App\Control\Interfaces\Http\Controllers\OverviewController;
+use App\Control\Interfaces\Http\Controllers\ProvisioningController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/control', '/control/overview');
 Route::redirect('/control/tenants', '/control/companies');
 Route::redirect('/control/users', '/control/companies');
 
-Route::middleware(['auth.platform.web', 'control.web'])->prefix('control')->group(function (): void {
+Route::middleware(['control.plane', 'auth.platform.web', 'control.web'])->prefix('control')->group(function (): void {
     Route::get('/overview', [OverviewController::class, 'index'])->name('control.overview');
 
     Route::prefix('simulations')->name('control.simulations.')->group(function (): void {
         Route::get('/', [SimulationRunController::class, 'index'])->name('index');
         Route::get('/{run}/status', [SimulationRunController::class, 'status'])->name('status');
+        Route::post('/{run}/cancel', [SimulationRunController::class, 'cancel'])->name('cancel');
         Route::get('/{run}/report', [SimulationRunController::class, 'report'])->name('report');
     });
 
@@ -34,6 +35,10 @@ Route::middleware(['auth.platform.web', 'control.web'])->prefix('control')->grou
         Route::get('/{tenant}', [CompanyController::class, 'show'])->name('show');
         Route::post('/{tenant}/suspend', [CompanyController::class, 'suspend'])->name('suspend');
         Route::post('/{tenant}/activate', [CompanyController::class, 'activate'])->name('activate');
+        Route::post('/{tenant}/lifecycle/start', [CompanyController::class, 'start'])->name('lifecycle.start');
+        Route::post('/{tenant}/lifecycle/suspend', [CompanyController::class, 'suspend'])->name('lifecycle.suspend');
+        Route::post('/{tenant}/lifecycle/restore', [CompanyController::class, 'restore'])->name('lifecycle.restore');
+        Route::get('/{tenant}/lifecycle/status', [CompanyController::class, 'lifecycleStatus'])->name('lifecycle.status');
         Route::patch('/{tenant}/plan', [CompanyController::class, 'updatePlan'])->name('update-plan');
         Route::patch('/{tenant}/modules', [CompanyController::class, 'updateModules'])->name('update-modules');
         Route::post('/{tenant}/operators', [CompanyController::class, 'storeOperator'])->name('operators.store');

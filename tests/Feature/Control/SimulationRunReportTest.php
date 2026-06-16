@@ -6,6 +6,7 @@ namespace Tests\Feature\Control;
 
 use App\Control\Infrastructure\Jobs\RunTenantSimulationJob;
 use App\Control\Infrastructure\Models\SimulationRunModel;
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\User;
 use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,12 +53,16 @@ final class SimulationRunReportTest extends TestCase
     public function simulation_start_creates_run_and_can_complete_with_report(): void
     {
         config([
+            'platform.control_plane' => true,
             'platform.client_slug' => 'acme-retail',
+            'platform.local_fleet.auto_provision' => false,
             'platform_auth.web_auth_enabled' => true,
         ]);
 
         $tenant = $this->seedAcmeTenant();
         $saas   = $this->saasUser();
+
+        $this->withoutMiddleware(VerifyCsrfToken::class);
 
         $this->actingAs($saas)
             ->post('/control/companies/simulation', [
@@ -67,7 +72,7 @@ final class SimulationRunReportTest extends TestCase
                 'total_events'      => 2,
                 'prepare_first'     => true,
             ])
-            ->assertRedirect(route('control.companies.index'))
+            ->assertRedirect(route('control.simulations.index', ['run' => session('active_simulation_run_id')]))
             ->assertSessionHas('active_simulation_run_id');
 
         $runId = session('active_simulation_run_id');
@@ -99,7 +104,10 @@ final class SimulationRunReportTest extends TestCase
     #[Test]
     public function report_is_not_available_while_run_is_pending(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config([
+            'platform.control_plane' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $tenant = $this->seedAcmeTenant();
         $saas   = $this->saasUser();
@@ -123,7 +131,10 @@ final class SimulationRunReportTest extends TestCase
     #[Test]
     public function saas_admin_can_list_simulation_history(): void
     {
-        config(['platform_auth.web_auth_enabled' => true]);
+        config([
+            'platform.control_plane' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $tenant = $this->seedAcmeTenant();
         $saas   = $this->saasUser();

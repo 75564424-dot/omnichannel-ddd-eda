@@ -1,0 +1,25 @@
+{
+  "updated_at": "2026-05-28T00:00:00+00:00",
+  "instances": [
+    {
+      "id": "client-acme-retail",
+      "label": "Acme Retail Middleware",
+      "slug": "acme-retail",
+      "port": 8001,
+      "role": "client",
+      "adminEmail": "admin@local",
+      "adminPassword": "client-local-dev",
+      "adminName": "Platform Admin"
+    },
+    {
+      "id": "client-pruebas-retail",
+      "label": "Pruebas Retail",
+      "slug": "pruebas-retail",
+      "port": 8002,
+      "role": "client",
+      "adminEmail": "prueba@prueba",
+      "adminPassword": "client-local-dev",
+      "adminName": "Prueba"
+    }
+  ]
+}

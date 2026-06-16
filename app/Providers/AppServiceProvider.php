@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Dashboard\Interfaces\Providers\DashboardServiceProvider;
-use App\Middleware\Interfaces\Providers\MiddlewareServiceProvider;
+use App\Providers\Registrars\BoundedContextProviderRegistrar;
+use App\Providers\Registrars\SqliteConcurrencyConfigurator;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -15,21 +16,15 @@ use Illuminate\Support\ServiceProvider;
  */
 class AppServiceProvider extends ServiceProvider
 {
-    protected array $contextProviders = [
-        DashboardServiceProvider::class,
-        MiddlewareServiceProvider::class,
-        \App\Integration\Interfaces\Providers\IntegrationServiceProvider::class,
-    ];
-
     public function register(): void
     {
-        foreach ($this->contextProviders as $provider) {
-            $this->app->register($provider);
-        }
+        BoundedContextProviderRegistrar::register($this->app);
     }
 
     public function boot(): void
     {
-        //
+        $xsrfCookie = (string) config('session.xsrf_cookie', 'XSRF-TOKEN');
+        EncryptCookies::except([$xsrfCookie, 'XSRF-TOKEN']);
+        (new SqliteConcurrencyConfigurator())->configure();
     }
 }

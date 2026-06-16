@@ -2,9 +2,9 @@
   <div class="min-h-screen flex items-center justify-center bg-surface-container-low px-4">
     <div class="w-full max-w-md bg-white border border-slate-200 shadow-sm rounded-sm p-8">
       <div class="flex items-center gap-3 mb-8">
-        <div class="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold">C</div>
+        <div class="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold">{{ companyInitial }}</div>
         <div>
-          <h1 class="text-lg font-bold text-slate-900">Core Platform</h1>
+          <h1 class="text-lg font-bold text-slate-900">{{ companyName }}</h1>
           <p class="text-xs text-slate-500">Operator sign in</p>
         </div>
       </div>
@@ -53,7 +53,15 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useForm, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const companyName = computed(() => page.props.instance?.company_name || 'Core Platform');
+const companyInitial = computed(() => {
+  const name = companyName.value.trim();
+  return name ? name.charAt(0).toUpperCase() : 'C';
+});
 
 const form = useForm({
   email: '',

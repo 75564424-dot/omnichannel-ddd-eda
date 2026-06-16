@@ -6,13 +6,16 @@ namespace App\Dashboard\Infrastructure\Persistence;
 
 use App\Dashboard\Domain\ReadModels\EventFeedEntry;
 use App\Dashboard\Domain\Repositories\EventFeedRepositoryInterface;
-use App\Dashboard\Domain\ValueObjects\EventImpact;
-use App\Dashboard\Domain\ValueObjects\EventOrigin;
 use App\Dashboard\Infrastructure\Models\EventFeedEntryModel;
-use DateTimeImmutable;
 
 final class EloquentEventFeedRepository implements EventFeedRepositoryInterface
 {
+    public function __construct(
+        private readonly EventFeedEntryMapper $mapper,
+        private readonly EventFeedLatencyCalculator $latencyCalculator,
+        private readonly EventFeedCalendarSeriesQuery $calendarSeriesQuery,
+    ) {}
+
     public function save(EventFeedEntry $entry): int
     {
         $model = EventFeedEntryModel::create([
@@ -40,7 +43,7 @@ final class EloquentEventFeedRepository implements EventFeedRepositoryInterface
         return EventFeedEntryModel::orderByDesc('id')
             ->limit($limit)
             ->get()
-            ->map(fn ($m) => $this->toDomain($m))
+            ->map(fn ($m) => $this->mapper->toDomain($m))
             ->all();
     }
 
@@ -52,7 +55,7 @@ final class EloquentEventFeedRepository implements EventFeedRepositoryInterface
             ->offset($offset)
             ->limit($limit)
             ->get()
-            ->map(fn ($m) => $this->toDomain($m))
+            ->map(fn ($m) => $this->mapper->toDomain($m))
             ->all();
     }
 
@@ -67,27 +70,13 @@ final class EloquentEventFeedRepository implements EventFeedRepositoryInterface
             ->orderBy('id')
             ->limit($limit)
             ->get()
-            ->map(fn ($m) => $this->toDomain($m))
+            ->map(fn ($m) => $this->mapper->toDomain($m))
             ->all();
     }
 
     public function computeAverageLatencyMs(int $lastN = 100): int
     {
-        $entries = EventFeedEntryModel::orderByDesc('id')
-            ->limit($lastN)
-            ->get(['occurred_at', 'received_at']);
-
-        if ($entries->isEmpty()) {
-            return 0;
-        }
-
-        $totalMs = $entries->sum(function ($e) {
-            $occurred = DateTimeImmutable::createFromInterface($e->occurred_at);
-            $received = DateTimeImmutable::createFromInterface($e->received_at);
-            return max(0, ($received->getTimestamp() - $occurred->getTimestamp()) * 1000);
-        });
-
-        return (int) round($totalMs / $entries->count());
+        return $this->latencyCalculator->averageMs($lastN);
     }
 
     public function countEventsInLastSeconds(int $seconds = 60): int
@@ -102,87 +91,11 @@ final class EloquentEventFeedRepository implements EventFeedRepositoryInterface
 
     public function sumPayloadPathByCalendarDay(string $eventType, array $pathKeys, int $days = 14): array
     {
-        $days  = max(1, min(90, $days));
-        $tz    = config('app.timezone');
-        $since = now()->subDays($days - 1)->startOfDay();
-
-        $rows = EventFeedEntryModel::query()
-            ->where('event_type', $eventType)
-            ->where('occurred_at', '>=', $since)
-            ->orderBy('occurred_at')
-            ->get(['occurred_at', 'raw_payload']);
-
-        $sums = [];
-        foreach ($rows as $row) {
-            $day     = $row->occurred_at->clone()->timezone($tz)->format('Y-m-d');
-            $payload = $row->raw_payload ?? [];
-            $value   = $payload;
-            foreach ($pathKeys as $key) {
-                $value = is_array($value) ? ($value[$key] ?? 0) : 0;
-            }
-            $sums[$day] = ($sums[$day] ?? 0.0) + (float) $value;
-        }
-
-        $series = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $d        = now()->subDays($i)->timezone($tz)->format('Y-m-d');
-            $series[] = [
-                'date'  => $d,
-                'total' => round($sums[$d] ?? 0.0, 2),
-            ];
-        }
-
-        return $series;
+        return $this->calendarSeriesQuery->sumPayloadPathByCalendarDay($eventType, $pathKeys, $days);
     }
 
     public function countEventsByCalendarDay(array $eventTypes, int $days = 14): array
     {
-        $days  = max(1, min(90, $days));
-        $tz    = config('app.timezone');
-        $since = now()->subDays($days - 1)->startOfDay();
-
-        $query = EventFeedEntryModel::query()
-            ->where('occurred_at', '>=', $since);
-
-        $normalizedTypes = array_values(array_unique(array_filter(array_map(
-            static fn ($t) => trim((string) $t),
-            $eventTypes,
-        ))));
-
-        if ($normalizedTypes !== []) {
-            $query->whereIn('event_type', $normalizedTypes);
-        }
-
-        $counts = [];
-        foreach ($query->get(['occurred_at']) as $row) {
-            $day = $row->occurred_at->clone()->timezone($tz)->format('Y-m-d');
-            $counts[$day] = ($counts[$day] ?? 0) + 1;
-        }
-
-        $series = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $d        = now()->subDays($i)->timezone($tz)->format('Y-m-d');
-            $series[] = [
-                'date'  => $d,
-                'total' => (int) ($counts[$d] ?? 0),
-            ];
-        }
-
-        return $series;
-    }
-
-    private function toDomain(EventFeedEntryModel $model): EventFeedEntry
-    {
-        return new EventFeedEntry(
-            id:         (int) $model->id,
-            eventId:    $model->event_uuid,
-            eventType:  $model->event_type,
-            origin:     new EventOrigin($model->origin),
-            impact:     new EventImpact($model->impact),
-            status:     $model->status,
-            occurredAt: DateTimeImmutable::createFromInterface($model->occurred_at),
-            receivedAt: DateTimeImmutable::createFromInterface($model->received_at),
-            rawPayload: $model->raw_payload ?? [],
-        );
+        return $this->calendarSeriesQuery->countEventsByCalendarDay($eventTypes, $days);
     }
 }

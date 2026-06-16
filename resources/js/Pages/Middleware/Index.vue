@@ -10,8 +10,11 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-highest rounded-full text-xs font-medium text-on-surface">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
-            {{ isBusActive ? 'Bus Active' : 'Bus Offline' }}
+            <span
+              class="w-2 h-2 rounded-full"
+              :class="showFlowAnimation ? 'bg-emerald-500 live-pulse' : (isBusActive ? 'bg-emerald-500' : 'bg-slate-400')"
+            ></span>
+            {{ flowStatusLabel }}
           </span>
         </div>
       </div>
@@ -100,7 +103,10 @@
             </span>
           </div>
         </div>
-        <div class="flex items-stretch gap-4 bg-surface-container-low rounded-xl border border-surface-container-highest p-6">
+        <div
+          class="flex items-stretch gap-4 bg-surface-container-low rounded-xl border border-surface-container-highest p-6"
+          :class="{ 'middleware-flow-active': showFlowAnimation }"
+        >
 
           <!-- Producer Nodes -->
           <div class="flex flex-col gap-3 w-[280px] shrink-0">
@@ -132,23 +138,24 @@
           </div>
 
           <!-- Arrow In + Label -->
-          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2">
-            <div class="flex-1 w-px bg-outline-variant"></div>
+          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2 relative min-h-[120px]">
+            <span v-if="showFlowAnimation" class="flow-packet flow-packet-in" aria-hidden="true"></span>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
             <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest rotate-90 whitespace-nowrap my-2">Publishes</p>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
-            <div class="flex-1 w-px bg-outline-variant"></div>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
           </div>
 
           <!-- Event Bus -->
           <div class="flex flex-col items-center justify-center shrink-0 px-4">
             <div
               class="bg-primary-container border-2 rounded-2xl py-6 px-5 flex flex-col items-center justify-center shadow-lg relative transition-all duration-300"
-              :class="busHasRecentActivity ? 'border-emerald-500 ring-4 ring-emerald-400/40 scale-[1.02]' : 'border-primary'"
+              :class="showFlowAnimation ? 'border-emerald-500 ring-4 ring-emerald-400/40 scale-[1.02]' : 'border-primary'"
             >
               <div
                 class="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full ring-2 ring-white transition-colors"
-                :class="busHasRecentActivity ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'"
+                :class="showFlowAnimation ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'"
               ></div>
               <span class="material-symbols-outlined text-on-primary-container text-[36px] mb-2">hub</span>
               <span class="text-[11px] font-black text-on-primary-container tracking-[0.15em]">EVENT BUS</span>
@@ -157,12 +164,13 @@
           </div>
 
           <!-- Arrow Out + Label -->
-          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2">
-            <div class="flex-1 w-px bg-outline-variant"></div>
+          <div class="flex flex-col items-center justify-center gap-1 shrink-0 px-2 relative min-h-[120px]">
+            <span v-if="showFlowAnimation" class="flow-packet flow-packet-out" aria-hidden="true"></span>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
             <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest rotate-90 whitespace-nowrap my-2">Dispatches</p>
             <span class="material-symbols-outlined text-outline text-[20px]">arrow_forward</span>
-            <div class="flex-1 w-px bg-outline-variant"></div>
+            <div class="flex-1 w-px flow-connector-line bg-outline-variant"></div>
           </div>
 
           <!-- Consumer Nodes -->
@@ -234,11 +242,11 @@
                 <td class="py-4 px-6 font-medium">{{ event.event_type ?? event.type }}</td>
                 <td class="py-4 px-6 text-on-surface-variant">{{ event.origin ?? event.source ?? '—' }}</td>
                 <td class="py-4 px-6 text-on-surface-variant">{{ formatConsumers(event.consumers) }}</td>
-                <td class="py-4 px-6 text-on-surface-variant font-mono text-xs">{{ formatTimestamp(event.created_at ?? event.timestamp) }}</td>
+                <td class="py-4 px-6 text-on-surface-variant font-mono text-xs">{{ formatTimestamp(event.published_at ?? event.publishedAt ?? event.dispatched_at ?? event.dispatchedAt ?? event.created_at ?? event.timestamp) }}</td>
                 <td class="py-4 px-6 text-right">
                   <span :class="statusBadgeClass(event.status)">
                     <span v-if="event.status === 'Pendiente' || event.status === 'PENDING'" class="w-1.5 h-1.5 rounded-full bg-primary mr-1.5 inline-block"></span>
-                    {{ event.status ?? 'Procesado' }}
+                    {{ normalizeQueueStatus(event.status) }}
                   </span>
                 </td>
               </tr>
@@ -293,6 +301,8 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { onNodesChanged } from '@/platform-node-events';
+import { useDashboardEventStream } from '@/composables/useDashboardEventStream';
 
 export default {
   name: 'MiddlewareIndex',
@@ -305,14 +315,31 @@ export default {
     busStatus: { type: [Boolean, String, Object], default: true },
   },
   setup(props) {
-    const POLL_SECONDS = 45;
+    const POLL_SECONDS_IDLE = 45;
+    const POLL_SECONDS_ACTIVE = 2;
+    const POLL_QUEUE_MS_ACTIVE = 800;
+    const FLOW_ACTIVITY_MS = 30 * 1000;
+    const PULSE_LIVE_MS = 30 * 1000;
+    const STALE_PENDING_MS = 90 * 1000;
+
+    const eventStream = useDashboardEventStream({
+      onFeedEvent() {
+        refreshData();
+      },
+      onActivity() {
+        refreshData();
+      },
+    });
 
     const syncingRegistry = ref(false);
+    const simulationPulse = ref({ active: false });
 
     const liveQueue = ref([...(props.queue ?? [])]);
     const liveMetrics = ref({ ...(props.metrics ?? {}) });
-    const countdown = ref(POLL_SECONDS);
+    const pollSeconds = ref(POLL_SECONDS_IDLE);
+    const countdown = ref(POLL_SECONDS_IDLE);
     let refreshTimer = null;
+    let queueTimer = null;
     let countdownTimer = null;
 
     watch(() => props.queue, (q) => { liveQueue.value = [...(q ?? [])]; }, { deep: true });
@@ -362,9 +389,6 @@ export default {
 
     const topologyGeneratedAt = computed(() => liveTopology.value.generated_at ?? '—');
 
-    /** Same window as dashboard idle reconciliation (GetSystemNodeStatusUseCase) + topology subtitle. */
-    const FLOW_ACTIVITY_MS = 45 * 1000;
-
     function publishedAtMillis(entry) {
       const raw =
         entry.published_at ?? entry.publishedAt ?? entry.created_at ?? entry.createdAt ?? entry.timestamp ?? null;
@@ -372,43 +396,108 @@ export default {
       let s = String(raw).trim();
       if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) {
         s = s.replace(' ', 'T');
+        if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+          s += 'Z';
+        }
       }
       const t = new Date(s).getTime();
       return Number.isNaN(t) ? null : t;
     }
 
     function queueStatusUpper(entry) {
-      return String(entry.status ?? entry.state ?? '').trim().toUpperCase();
+      const s = String(entry.status ?? entry.state ?? '').trim().toUpperCase();
+      if (s === 'COMPLETED' || s === 'PROCESSED') {
+        return 'PROCESADO';
+      }
+
+      return s;
     }
 
-    /** Pending rows always paint flow; processed rows only if published within FLOW_ACTIVITY_MS. */
-    function entryCountsForTopologyFlow(entry, nowMs) {
+    const simulationLive = computed(() => {
+      const p = simulationPulse.value;
+      if (p?.active !== true || p?.stale === true) {
+        return false;
+      }
+      const tickAt = p.tick_at ?? p.tickAt;
+      if (!tickAt) {
+        return true;
+      }
+      try {
+        let s = String(tickAt).trim();
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) {
+          s = s.replace(' ', 'T');
+          if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+            s += 'Z';
+          }
+        }
+        const age = Date.now() - new Date(s).getTime();
+        return age >= 0 && age <= PULSE_LIVE_MS;
+      } catch {
+        return false;
+      }
+    });
+
+    /** Only pending (during sim) or very recent processed rows drive flow visuals. */
+    function entryCountsForTopologyFlow(entry, nowMs, pulseOn) {
       const st = queueStatusUpper(entry);
-      if (st === 'PENDING' || st === 'PENDIENTE') return true;
       const ts = publishedAtMillis(entry);
-      if (ts == null) return false;
+      if (st === 'PENDING' || st === 'PENDIENTE') {
+        if (pulseOn) {
+          return true;
+        }
+        if (ts == null) {
+          return false;
+        }
+
+        return nowMs - ts <= STALE_PENDING_MS;
+      }
+      if (ts == null) {
+        return false;
+      }
+
       return nowMs - ts <= FLOW_ACTIVITY_MS;
     }
 
     const recentEventTypeCounts = computed(() => {
       const counts = {};
       const now = Date.now();
+      const pulseOn = simulationLive.value;
       const slice = liveQueue.value.slice(0, 100);
       for (const entry of slice) {
-        if (!entryCountsForTopologyFlow(entry, now)) continue;
+        if (!entryCountsForTopologyFlow(entry, now, pulseOn)) {
+          continue;
+        }
         const t = entry.event_type ?? entry.eventType ?? entry.type;
-        if (!t) continue;
+        if (!t) {
+          continue;
+        }
         counts[t] = (counts[t] ?? 0) + 1;
       }
       return counts;
     });
 
-    /** True when the queue slice shows event types pending in the recent window — drives topology paint (independent of bus_status / EPS). */
     const hasQueuedFlowActivity = computed(
       () => Object.keys(recentEventTypeCounts.value).length > 0,
     );
 
-    const busHasRecentActivity = computed(() => hasQueuedFlowActivity.value);
+    const showFlowAnimation = computed(
+      () => simulationLive.value || hasQueuedFlowActivity.value,
+    );
+
+    const middlewareFlowActive = computed(
+      () => showFlowAnimation.value,
+    );
+
+    const flowStatusLabel = computed(() => {
+      if (simulationLive.value) {
+        return 'Simulación activa';
+      }
+      if (hasQueuedFlowActivity.value) {
+        return 'Actividad en cola';
+      }
+
+      return isBusActive.value ? 'Bus Active' : 'Bus Offline';
+    });
 
     const activeTypesSummary = computed(() => {
       const c = recentEventTypeCounts.value;
@@ -416,7 +505,7 @@ export default {
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1])
         .map(([t, n]) => `${t}(${n})`);
-      return parts.length ? parts.slice(0, 10).join(', ') : '— (sin eventos pendientes ni recientes en 45s)';
+      return parts.length ? parts.slice(0, 10).join(', ') : '— (sin actividad reciente en cola)';
     });
 
     function producerEventChipClass(evt) {
@@ -534,20 +623,31 @@ export default {
       return String(consumers);
     }
 
+    function normalizeQueueStatus(status) {
+      const s = String(status ?? '').trim().toUpperCase();
+      if (s === 'PENDING' || s === 'PENDIENTE' || s === 'PROCESSING') return 'Pendiente';
+      if (s === 'FALLIDO' || s === 'FAILED') return 'Fallido';
+      if (s === 'PROCESADO' || s === 'COMPLETED' || s === 'PROCESSED') return 'Procesado';
+      return status ? String(status) : 'Procesado';
+    }
+
     function statusBadgeClass(status) {
+      const label = normalizeQueueStatus(status);
       const base = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
-      switch (status) {
-        case 'PENDING':
+      switch (label) {
         case 'Pendiente':
           return `${base} bg-secondary-fixed text-on-secondary-fixed`;
         case 'Fallido':
-        case 'Failed':
           return `${base} bg-error-container text-on-error-container`;
-        case 'Procesado':
-        case 'Processed':
         default:
           return `${base} bg-surface-container-highest text-on-surface-variant`;
       }
+    }
+
+    function parseQueuePayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && Array.isArray(payload.data)) return payload.data;
+      return [];
     }
 
     async function syncConfiguredModules() {
@@ -563,6 +663,43 @@ export default {
       }
     }
 
+    async function fetchSimulationPulse() {
+      try {
+        const res = await window.axios.get('/api/middleware/simulation-pulse');
+        simulationPulse.value = res.data?.data ?? res.data ?? { active: false };
+      } catch {
+        simulationPulse.value = { active: false };
+      }
+    }
+
+    async function refreshQueueOnly() {
+      try {
+        const [queueRes, pulseRes] = await Promise.all([
+          window.axios.get('/api/middleware/queue', { params: { limit: 100 } }),
+          window.axios.get('/api/middleware/simulation-pulse'),
+        ]);
+        liveQueue.value = parseQueuePayload(queueRes.data);
+        simulationPulse.value = pulseRes.data?.data ?? pulseRes.data ?? { active: false };
+      } catch (e) {
+        console.error('Middleware queue refresh failed:', e);
+      }
+    }
+
+    function applyPollCadence() {
+      const active = middlewareFlowActive.value;
+      const next = active ? POLL_SECONDS_ACTIVE : POLL_SECONDS_IDLE;
+      if (pollSeconds.value !== next) {
+        pollSeconds.value = next;
+        countdown.value = next;
+      }
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshData, next * 1000);
+      clearInterval(queueTimer);
+      if (active) {
+        queueTimer = setInterval(refreshQueueOnly, POLL_QUEUE_MS_ACTIVE);
+      }
+    }
+
     async function refreshData() {
       try {
         const [metricsRes, queueRes, topologyRes] = await Promise.all([
@@ -570,8 +707,10 @@ export default {
           window.axios.get('/api/middleware/queue', { params: { limit: 100 } }),
           window.axios.get('/api/middleware/topology'),
         ]);
-        liveMetrics.value = metricsRes.data?.data ?? metricsRes.data ?? {};
-        liveQueue.value = queueRes.data?.data ?? queueRes.data ?? [];
+        await fetchSimulationPulse();
+        const metricsPayload = metricsRes.data?.data ?? metricsRes.data ?? {};
+        liveMetrics.value = { ...metricsPayload };
+        liveQueue.value = parseQueuePayload(queueRes.data);
         const topo = topologyRes.data?.data ?? topologyRes.data;
         if (topo && typeof topo === 'object') {
           liveTopology.value = {
@@ -584,33 +723,56 @@ export default {
       } catch (e) {
         console.error('Middleware refresh failed:', e);
       }
-      countdown.value = POLL_SECONDS;
+      countdown.value = pollSeconds.value;
+      applyPollCadence();
     }
 
     function startTimers() {
-      refreshTimer = setInterval(refreshData, POLL_SECONDS * 1000);
+      refreshTimer = setInterval(refreshData, pollSeconds.value * 1000);
       countdownTimer = setInterval(() => {
         countdown.value = Math.max(0, countdown.value - 1);
       }, 1000);
     }
 
+    watch(middlewareFlowActive, () => applyPollCadence());
+
+    watch(
+      () => simulationPulse.value?.sequence,
+      (seq, prev) => {
+        if (seq != null && seq !== prev && simulationLive.value) {
+          refreshQueueOnly();
+        }
+      },
+    );
+
+    let stopNodesListener = null;
+
     onMounted(() => {
       refreshData();
       startTimers();
+      eventStream.connect();
+      stopNodesListener = onNodesChanged(() => {
+        refreshData();
+        countdown.value = pollSeconds.value;
+      });
     });
     onUnmounted(() => {
       clearInterval(refreshTimer);
+      clearInterval(queueTimer);
       clearInterval(countdownTimer);
+      eventStream.disconnect();
+      stopNodesListener?.();
     });
 
     return {
       liveQueue, liveMetrics, liveTopology, countdown, topologyProducers, topologyConsumers,
-      topologyGeneratedAt, activeTypesSummary, recentEventTypeCounts, busHasRecentActivity,
-      pollSeconds: POLL_SECONDS,
+      topologyGeneratedAt, activeTypesSummary, recentEventTypeCounts,
+      showFlowAnimation, flowStatusLabel, middlewareFlowActive, simulationPulse, simulationLive,
+      pollSeconds,
       producerEventChipClass, consumerEventChipClass, producerCardClass, consumerCardClass,
       isBusActive,
       displayQueue, formatNumber, formatMetric, formatErrorRate, truncateId, formatTimestamp, formatConsumers,
-      statusBadgeClass, refreshData, syncConfiguredModules, syncingRegistry, nodeIcon,
+      statusBadgeClass, normalizeQueueStatus, refreshData, syncConfiguredModules, syncingRegistry, nodeIcon,
     };
   },
 };

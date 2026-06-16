@@ -7,7 +7,10 @@
       </span>
       <span class="px-2 py-1 bg-white border border-slate-200 text-[10px] font-bold rounded-sm">TOPOLOGY</span>
     </div>
-    <div class="p-12 min-h-[280px] flex items-center justify-center bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]">
+    <div
+      class="p-12 min-h-[280px] flex items-center justify-center bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]"
+      :class="{ 'middleware-flow-active': flowActive }"
+    >
       <div class="flex items-center w-full max-w-4xl justify-between relative">
         <!-- Producers -->
         <div
@@ -32,7 +35,10 @@
         </div>
 
         <div class="flex-1 h-px bg-slate-200 relative mx-4 overflow-hidden pointer-events-none">
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/30 to-transparent w-full h-full animate-[shimmer_2s_infinite]" />
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/30 to-transparent w-full h-full"
+            :class="flowActive ? 'animate-[shimmer_1.2s_infinite]' : 'animate-[shimmer_2s_infinite] opacity-40'"
+          />
         </div>
 
         <!-- Middleware -->
@@ -46,9 +52,15 @@
           @keydown.enter.prevent="openMiddleware"
           @keydown.space.prevent="openMiddleware"
         >
-          <div class="w-24 h-24 bg-primary flex items-center justify-center rounded-full shadow-2xl relative">
+          <div
+            class="w-24 h-24 bg-primary flex items-center justify-center rounded-full shadow-2xl relative transition-transform"
+            :class="flowActive ? 'ring-4 ring-emerald-300/50 scale-[1.03]' : ''"
+          >
             <span class="material-symbols-outlined text-white text-4xl">hub</span>
-            <div class="absolute inset-0 rounded-full border-4 border-white opacity-20 scale-110" />
+            <div
+              class="absolute inset-0 rounded-full border-4 border-white scale-110"
+              :class="flowActive ? 'opacity-40 animate-pulse' : 'opacity-20'"
+            />
           </div>
           <div class="text-center pointer-events-none">
             <p class="text-sm font-semibold text-slate-900">Middleware bus</p>
@@ -58,7 +70,10 @@
         </div>
 
         <div class="flex-1 h-px bg-slate-200 relative mx-4 overflow-hidden pointer-events-none">
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-slate-400/30 to-transparent w-full h-full animate-[shimmer_3s_infinite_reverse]" />
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-transparent via-slate-400/30 to-transparent w-full h-full"
+            :class="flowActive ? 'animate-[shimmer_1.4s_infinite_reverse]' : 'animate-[shimmer_3s_infinite_reverse] opacity-40'"
+          />
         </div>
 
         <!-- Subscribers -->
@@ -114,6 +129,7 @@ export default {
   components: { ModulesTopologyPanel },
   props: {
     modulesCatalog: { type: Object, default: () => ({}) },
+    flowActive: { type: Boolean, default: false },
   },
   setup(props) {
     const panelOpen = ref(false);

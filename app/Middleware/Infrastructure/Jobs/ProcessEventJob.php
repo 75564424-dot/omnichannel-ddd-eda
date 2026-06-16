@@ -11,7 +11,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Throwable;
 
 /**
  * Async event processing with Laravel retry/backoff (Plan_Resiliencia Fase 2).
@@ -55,17 +54,6 @@ final class ProcessEventJob implements ShouldQueue
             $this->payload,
             $this->origin,
             $this->attempts(),
-        );
-    }
-
-    public function failed(?Throwable $exception): void
-    {
-        app(EventProcessingService::class)->finalizeDeadLetter(
-            $this->eventId,
-            $this->eventType,
-            $this->payload,
-            $this->origin,
-            $exception,
         );
     }
 }

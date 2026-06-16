@@ -64,6 +64,10 @@ final class ClientSimulationService
         ];
     }
 
+    /**
+     * @param list<array<string, mixed>>|null $sampleTemplates When set, skips fixture overlay and uses these templates.
+     * @param callable(int, int, string, string): void|null $onPublished Current, total, event id, event type
+     */
     public function simulate(
         string $slug,
         int $events = 10,
@@ -72,21 +76,24 @@ final class ClientSimulationService
         bool $skipSync = false,
         ?int $eventsPerMinute = null,
         ?int $durationMinutes = null,
+        ?array $sampleTemplates = null,
         ?callable $onPublished = null,
     ): array {
         $plan = self::resolvePublishPlan($events, $eventsPerMinute, $durationMinutes);
         $events = $plan['total'];
         $intervalMicroseconds = $plan['interval_microseconds'];
 
-        if (! $this->fixtures->exists($slug)) {
-            throw new RuntimeException("Unknown client fixture slug: {$slug}");
-        }
+        if ($sampleTemplates === null) {
+            if (! $this->fixtures->exists($slug)) {
+                throw new RuntimeException("Unknown client fixture slug: {$slug}");
+            }
 
-        if ($applyFixture) {
-            $this->fixtures->applyToFilesystem($slug);
-        }
+            if ($applyFixture) {
+                $this->fixtures->applyToFilesystem($slug);
+            }
 
-        $this->fixtures->applyToRuntimeConfig($slug);
+            $this->fixtures->applyToRuntimeConfig($slug);
+        }
 
         $validationErrors = [];
         if (! $skipValidate) {
@@ -108,14 +115,26 @@ final class ClientSimulationService
             $syncStats = $this->syncRegistry->execute();
         }
 
-        $templates = $this->fixtures->loadSampleEvents($slug);
+        $templates = $sampleTemplates ?? $this->fixtures->loadSampleEvents($slug);
         if ($events > 0 && $templates === []) {
-            throw new RuntimeException("No sample events defined for fixture: {$slug}");
+            throw new RuntimeException('No sample events defined for simulation.');
         }
 
         $eventIds = [];
+        // When total is fixed (rate × duration), honor the event count — not a wall-clock cap.
+        // Per-event drain/sync can exceed duration_minutes; cutting early caused 5/10 style partial runs.
+        $hasFixedEventCount = $events > 0 && $eventsPerMinute !== null && $eventsPerMinute > 0
+            && $durationMinutes !== null && $durationMinutes > 0;
+        $deadlineNs = (! $hasFixedEventCount && $durationMinutes !== null && $durationMinutes > 0)
+            ? hrtime(true) + ($durationMinutes * 60 * 1_000_000_000)
+            : null;
+
         if ($events > 0) {
             for ($i = 1; $i <= $events; $i++) {
+                if ($deadlineNs !== null && hrtime(true) >= $deadlineNs) {
+                    break;
+                }
+
                 $template = $templates[($i - 1) % count($templates)];
                 $eventId  = Uuid::uuid4()->toString();
                 $type     = trim((string) ($template['event_type'] ?? ''));
@@ -134,7 +153,11 @@ final class ClientSimulationService
                 $eventIds[] = $eventId;
 
                 if ($onPublished !== null) {
-                    $onPublished(count($eventIds), $events, $eventId);
+                    $onPublished(count($eventIds), $events, $eventId, $type);
+                }
+
+                if ($deadlineNs !== null && hrtime(true) >= $deadlineNs) {
+                    break;
                 }
 
                 if ($intervalMicroseconds !== null && $i < $events) {
@@ -143,7 +166,7 @@ final class ClientSimulationService
             }
         }
 
-        $queueMatches = $this->countQueueMatches($eventIds);
+        $queueMatches = $this->countQueueMatchesForEventIds($eventIds);
 
         return [
             'slug'                   => $slug,
@@ -191,7 +214,7 @@ final class ClientSimulationService
     /**
      * @param list<string> $eventIds
      */
-    private function countQueueMatches(array $eventIds): int
+    public function countQueueMatchesForEventIds(array $eventIds): int
     {
         if ($eventIds === []) {
             return 0;

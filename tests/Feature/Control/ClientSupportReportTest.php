@@ -6,6 +6,7 @@ namespace Tests\Feature\Control;
 
 use App\Models\User;
 use App\Shared\Infrastructure\Models\ClientIncidentReportModel;
+use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,9 +19,21 @@ final class ClientSupportReportTest extends TestCase
     #[Test]
     public function instance_operator_can_submit_support_report(): void
     {
-        config()->set('platform_auth.api_auth_enabled', false);
+        config([
+            'platform.client_slug' => 'acme',
+            'platform_auth.api_auth_enabled' => false,
+        ]);
+
+        $tenant = TenantModel::query()->create([
+            'id'       => 'aaaaaaaa-1111-1111-1111-111111111111',
+            'name'     => 'Acme',
+            'slug'     => 'acme',
+            'status'   => 'active',
+            'settings' => [],
+        ]);
 
         $user = User::query()->create([
+            'tenant_id'     => $tenant->id,
             'name'          => 'Admin',
             'email'         => 'admin@local',
             'password'      => Hash::make('secret'),
@@ -48,7 +61,10 @@ final class ClientSupportReportTest extends TestCase
     #[Test]
     public function saas_admin_sees_client_reports_on_incidents_page(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config([
+            'platform.control_plane' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         ClientIncidentReportModel::query()->create([
             'id'              => '11111111-1111-1111-1111-111111111111',
@@ -80,7 +96,10 @@ final class ClientSupportReportTest extends TestCase
     #[Test]
     public function saas_admin_can_respond_and_client_sees_unread_notification(): void
     {
-        config()->set('platform_auth.web_auth_enabled', true);
+        config([
+            'platform.control_plane' => true,
+            'platform_auth.web_auth_enabled' => true,
+        ]);
 
         $client = User::query()->create([
             'name'          => 'Cliente',
@@ -116,6 +135,20 @@ final class ClientSupportReportTest extends TestCase
         $report->refresh();
         $this->assertSame('Revisamos el bus. Reinicie el nodo middleware.', $report->admin_response);
         $this->assertNull($report->client_read_at);
+
+        config([
+            'platform.control_plane' => false,
+            'platform.client_slug' => 'acme',
+        ]);
+
+        $tenant = TenantModel::query()->create([
+            'id'       => 'bbbbbbbb-2222-2222-2222-222222222222',
+            'name'     => 'Acme',
+            'slug'     => 'acme',
+            'status'   => 'active',
+            'settings' => [],
+        ]);
+        $client->forceFill(['tenant_id' => $tenant->id])->save();
 
         $this->actingAs($client)
             ->getJson('/support/notifications')

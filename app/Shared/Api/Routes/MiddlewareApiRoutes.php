@@ -9,6 +9,7 @@ use App\Middleware\Interfaces\Http\Controllers\DeadLetterController;
 use App\Middleware\Interfaces\Http\Controllers\EventQueueController;
 use App\Middleware\Interfaces\Http\Controllers\EventSearchController;
 use App\Middleware\Interfaces\Http\Controllers\ModuleRegistrySyncController;
+use App\Simulation\Interfaces\Http\Controllers\SimulationPulseController;
 use App\Middleware\Interfaces\Http\Controllers\TopologyController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,7 @@ final class MiddlewareApiRoutes
                     Route::get('/metrics', [BusMetricsController::class, 'index']);
                     Route::get('/queue', [EventQueueController::class, 'index']);
                     Route::get('/topology', [TopologyController::class, 'index']);
+                    Route::get('/simulation-pulse', [SimulationPulseController::class, 'index']);
                     Route::get('/status', [EventSearchController::class, 'status']);
                     Route::get('/events/{eventId}', [EventSearchController::class, 'show']);
                     Route::get('/dead-letters', [DeadLetterController::class, 'index']);

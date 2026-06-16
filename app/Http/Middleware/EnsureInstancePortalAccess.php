@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Application\Security\OperatorSessionTerminator;
 use App\Models\User;
-use App\Shared\Identity\Domain\PlatformRole;
-use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use App\Shared\Platform\Services\InstancePortalAccessGuard;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class EnsureInstancePortalAccess
 {
     public function __construct(
-        private readonly InstanceTenantContextInterface $instanceContext,
+        private readonly InstancePortalAccessGuard $accessGuard,
+        private readonly OperatorSessionTerminator $sessionTerminator,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -27,59 +28,21 @@ final class EnsureInstancePortalAccess
             return redirect()->guest(route('login'));
         }
 
-        $role = PlatformRole::tryFromString((string) $user->getAttribute('platform_role'));
-        if ($role === null || $role->isSaasAdmin()) {
-            return redirect()->route('control.overview');
+        $decision = $this->accessGuard->evaluate($user, $request->path());
+
+        if ($decision['allowed']) {
+            return $next($request);
         }
 
-        $userTenantId = $user->getAttribute('tenant_id');
-
-        if ($userTenantId === null) {
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect()
-                ->route('login')
-                ->withErrors(['email' => 'Su cuenta no está asignada a una empresa. Contacte al administrador SaaS.']);
+        if ($decision['logout'] ?? false) {
+            $this->sessionTerminator->terminate($request);
         }
 
-        if ($this->instanceContext->allowsMultiTenantPortalLogin()) {
-            $this->instanceContext->bindPortalTenantFromSession((string) $userTenantId);
+        $redirect = redirect()->to($decision['redirect'] ?? route('login'));
+        if (isset($decision['error'])) {
+            $redirect->withErrors(['email' => $decision['error']]);
         }
 
-        $activeTenantId = $this->instanceContext->tenantId();
-
-        if ($activeTenantId !== null && (string) $userTenantId !== $activeTenantId) {
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect()
-                ->route('login')
-                ->withErrors(['email' => 'Su cuenta no pertenece a esta empresa. Contacte al administrador SaaS.']);
-        }
-
-        $path = $request->path();
-
-        if ($this->isDashboardPath($path) && ! $role->canAccessDashboardWeb()) {
-            return redirect()->route('middleware');
-        }
-
-        if ($this->isMiddlewarePath($path) && ! $role->canAccessMiddlewareWeb()) {
-            return redirect()->route('dashboard');
-        }
-
-        return $next($request);
-    }
-
-    private function isDashboardPath(string $path): bool
-    {
-        return $path === 'dashboard' || str_starts_with($path, 'dashboard/');
-    }
-
-    private function isMiddlewarePath(string $path): bool
-    {
-        return $path === 'middleware';
+        return $redirect;
     }
 }

@@ -23,13 +23,14 @@ final class GetSystemNodeStatusUseCase
     public function __construct(
         private readonly NodeStatusRepositoryInterface $nodeStatusRepository,
         private readonly EventFeedRepositoryInterface $eventFeedRepository,
+        private readonly DashboardKnownNodes $knownNodes,
     ) {}
 
     public function execute(): NodeStatusDTO
     {
         $this->reconcileStaleSyncingIfFeedIdle();
 
-        $keys     = DashboardKnownNodes::keys();
+        $keys     = $this->knownNodes->keys();
         $statuses = $this->nodeStatusRepository->getAllStatuses();
 
         $ingest = [];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dashboard;
 
+use App\Shared\Infrastructure\Models\TenantModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -99,6 +100,22 @@ final class DashboardEndpointsTest extends TestCase
     #[Test]
     public function get_dashboard_modules_catalog_returns_normalized_topology_payload(): void
     {
+        $slug = (string) config('platform.client_slug', 'default');
+        TenantModel::query()->updateOrCreate(
+            ['slug' => $slug],
+            [
+                'id'       => Uuid::uuid4()->toString(),
+                'name'     => 'Test Instance',
+                'status'   => 'active',
+                'settings' => [
+                    'dashboard_visible_modules' => [
+                        'producers'   => ['acme_pos'],
+                        'subscribers' => ['acme_reporting'],
+                    ],
+                ],
+            ],
+        );
+
         $this->getJson('/api/dashboard/modules/catalog')
             ->assertOk()
             ->assertJsonStructure([
@@ -111,8 +128,9 @@ final class DashboardEndpointsTest extends TestCase
                 'middleware' => ['id', 'name', 'description', 'role'],
                 'service_contact_message',
             ])
-            ->assertJsonPath('producers', [])
-            ->assertJsonPath('subscribers', [])
+            ->assertJsonPath('dashboard_configured', true)
+            ->assertJsonPath('producers.0.id', 'acme_pos')
+            ->assertJsonPath('subscribers.0.id', 'acme_reporting')
             ->assertJsonPath('middleware.id', 'middleware');
     }
 

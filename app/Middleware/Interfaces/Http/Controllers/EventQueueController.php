@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Middleware\Interfaces\Http\Controllers;
 
 use App\Middleware\Application\Services\EventPublisherService;
+use App\Middleware\Application\Support\MiddlewarePlatformAuthorizer;
 use App\Middleware\Application\UseCases\GetEventQueueUseCase;
 use App\Middleware\Domain\ValueObjects\CorrelationContext;
 use App\Shared\Api\Application\Services\IdempotencyKeyStore;
@@ -12,7 +13,6 @@ use App\Shared\Api\Http\Responses\PaginationEnvelope;
 use App\Shared\Api\Http\Responses\ProblemDetailsFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
 /**
@@ -21,9 +21,10 @@ use InvalidArgumentException;
 final class EventQueueController
 {
     public function __construct(
-        private readonly GetEventQueueUseCase  $getEventQueue,
+        private readonly GetEventQueueUseCase $getEventQueue,
         private readonly EventPublisherService $eventPublisher,
         private readonly IdempotencyKeyStore $idempotencyKeys,
+        private readonly MiddlewarePlatformAuthorizer $authorizer,
     ) {}
 
     /**
@@ -52,11 +53,13 @@ final class EventQueueController
         $limit   = max(1, min($limit, 200));
         $entries = $this->getEventQueue->execute($limit);
 
-        return response()->json([
-            'success' => true,
-            'data'    => array_map(fn ($e) => $e->toArray(), $entries),
-            'count'   => count($entries),
-        ]);
+        return response()
+            ->json([
+                'success' => true,
+                'data'    => array_map(fn ($e) => $e->toArray(), $entries),
+                'count'   => count($entries),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**
@@ -65,7 +68,7 @@ final class EventQueueController
      */
     public function publish(Request $request): JsonResponse
     {
-        Gate::authorize('platform.publish');
+        $this->authorizer->authorizePublish();
 
         $idempotencyHeader = (string) config('platform_api.idempotency.header', 'Idempotency-Key');
         $idempotencyKey    = $request->header($idempotencyHeader);

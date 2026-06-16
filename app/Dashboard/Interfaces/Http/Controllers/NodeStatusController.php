@@ -19,6 +19,7 @@ final class NodeStatusController
         private readonly GetMiddlewareBusMetricsUseCase $getBusMetrics,
         private readonly RefreshSystemNodeUseCase       $refreshNode,
         private readonly SetNodeMiddlewareEventsUseCase $setMiddlewareEvents,
+        private readonly DashboardKnownNodes            $knownNodes,
     ) {}
 
     public function status(): JsonResponse
@@ -33,7 +34,7 @@ final class NodeStatusController
 
     public function refresh(string $node): JsonResponse
     {
-        abort_unless(DashboardKnownNodes::exists($node), 404);
+        abort_unless($this->knownNodes->exists($node), 404);
         $this->refreshNode->execute($node);
 
         return response()->json($this->getNodeStatus->execute()->toArray());
@@ -41,7 +42,7 @@ final class NodeStatusController
 
     public function patchMiddlewareEvents(Request $request, string $node): JsonResponse
     {
-        abort_unless(DashboardKnownNodes::exists($node), 404);
+        abort_unless($this->knownNodes->exists($node), 404);
         $data = $request->validate([
             'middleware_events_enabled' => ['required', 'boolean'],
         ]);

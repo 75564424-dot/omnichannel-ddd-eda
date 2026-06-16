@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Middleware\Interfaces\Http\Controllers;
 
+use App\Middleware\Application\Presenters\DeadLetterHttpPresenter;
+use App\Middleware\Application\Support\MiddlewarePlatformAuthorizer;
 use App\Middleware\Application\UseCases\GetDeadLetterQueueUseCase;
 use App\Middleware\Application\UseCases\RequeueDeadLetterUseCase;
 use App\Middleware\Domain\Repositories\DeadLetterRepositoryInterface;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 /**
@@ -18,9 +19,11 @@ use RuntimeException;
 final class DeadLetterController
 {
     public function __construct(
-        private readonly GetDeadLetterQueueUseCase    $getDeadLetters,
+        private readonly GetDeadLetterQueueUseCase $getDeadLetters,
         private readonly DeadLetterRepositoryInterface $deadLetterRepository,
-        private readonly RequeueDeadLetterUseCase     $requeueDeadLetter,
+        private readonly RequeueDeadLetterUseCase $requeueDeadLetter,
+        private readonly MiddlewarePlatformAuthorizer $authorizer,
+        private readonly DeadLetterHttpPresenter $presenter,
     ) {}
 
     /**
@@ -31,11 +34,7 @@ final class DeadLetterController
     {
         $entries = $this->getDeadLetters->execute();
 
-        return response()->json([
-            'success' => true,
-            'data'    => array_map(fn($e) => $e->toArray(), $entries),
-            'count'   => count($entries),
-        ]);
+        return $this->presenter->list(array_map(fn ($e) => $e->toArray(), $entries));
     }
 
     /**
@@ -44,14 +43,11 @@ final class DeadLetterController
      */
     public function resolve(int $id): JsonResponse
     {
-        Gate::authorize('platform.resolve-dead-letter');
+        $this->authorizer->authorizeResolveDeadLetter();
 
         $this->deadLetterRepository->markResolved($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => "Dead letter #{$id} marked as resolved.",
-        ]);
+        return $this->presenter->resolved($id);
     }
 
     /**
@@ -60,17 +56,14 @@ final class DeadLetterController
      */
     public function requeue(int $id): JsonResponse
     {
-        Gate::authorize('platform.resolve-dead-letter');
+        $this->authorizer->authorizeResolveDeadLetter();
 
         try {
             $this->requeueDeadLetter->execute($id);
         } catch (RuntimeException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 404);
+            return $this->presenter->notFound($e->getMessage());
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => "Dead letter #{$id} requeued for processing.",
-        ]);
+        return $this->presenter->requeued($id);
     }
 }

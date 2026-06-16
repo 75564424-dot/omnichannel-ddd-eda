@@ -8,8 +8,8 @@ use App\Middleware\Application\Services\SubscriptionRegistryService;
 use App\Middleware\Domain\ModuleRegistry;
 use App\Middleware\Domain\ValueObjects\EventOrigin;
 use App\Shared\EventBus\PlatformWildcardPayload;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -22,6 +22,7 @@ final class ModuleObservationListener
     public function __construct(
         private readonly ModuleRegistry $moduleRegistry,
         private readonly SubscriptionRegistryService $subscriptionRegistry,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
@@ -41,14 +42,30 @@ final class ModuleObservationListener
         if (empty($eventId) || $eventType === '') {
             return;
         }
-
         try {
-            $origin       = EventOrigin::inferFromPayload($payload);
-            $producerId   = Str::slug($origin->value());
-            if ($producerId === '') {
-                $producerId = 'unknown';
+            $channel = strtoupper(trim((string) ($payload['channel'] ?? '')));
+            $catalog = config('modules.catalog', []);
+            $producers = $catalog['producers'] ?? [];
+            $foundProducer = null;
+            foreach ($producers as $prod) {
+                $channels = $prod['channels'] ?? [];
+                if (is_array($channels) && in_array($channel, $channels)) {
+                    $foundProducer = $prod;
+                    break;
+                }
             }
-            $producerName = $origin->value();
+
+            if ($foundProducer !== null) {
+                $producerId = $foundProducer['id'];
+                $producerName = $foundProducer['name'] ?? $foundProducer['id'];
+            } else {
+                $origin       = EventOrigin::inferFromPayload($payload);
+                $producerId   = Str::slug($origin->value());
+                if ($producerId === '') {
+                    $producerId = 'unknown';
+                }
+                $producerName = $origin->value();
+            }
 
             $this->moduleRegistry->recordProducerObservation($producerId, $producerName, $eventType);
 
@@ -62,7 +79,7 @@ final class ModuleObservationListener
                 $this->moduleRegistry->recordConsumerObservation($cid, $consumerName, $eventType);
             }
         } catch (Throwable $e) {
-            Log::warning('[EventBus][ModuleRegistry] Observation failed', [
+            $this->logger->warning('[EventBus][ModuleRegistry] Observation failed', [
                 'event_id'   => $eventId,
                 'event_type' => $eventType,
                 'error'      => $e->getMessage(),

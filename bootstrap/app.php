@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Health\ReadinessController;
 use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\EnsureAuthenticatedInstanceBinding;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeadersMiddleware;
+use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use App\Observability\Interfaces\Providers\ObservabilityServiceProvider;
 use App\Providers\LoggingServiceProvider;
+use App\Providers\Registrars\ApplicationSupplementalRouteRegistrar;
 use App\Providers\SecurityServiceProvider;
 use App\Shared\Api\Http\Middleware\AppendRateLimitHeadersMiddleware;
 use App\Shared\Api\Http\Responses\ProblemDetailsFactory;
@@ -18,7 +21,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -27,18 +29,25 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function (): void {
-            Route::middleware('web')->group(base_path('routes/control.php'));
-            Route::get('/health/ready', ReadinessController::class)->name('health.ready');
-        },
+        then: fn (): null => ApplicationSupplementalRouteRegistrar::register(),
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(replace: [
+            ValidateCsrfToken::class => VerifyCsrfToken::class,
+        ]);
+
+        $middleware->web(prepend: [
+            \App\Http\Middleware\EnsureTenantOperationalStatus::class,
+        ]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,
+            EnsureAuthenticatedInstanceBinding::class,
         ]);
 
         $middleware->api(prepend: [
+            \App\Http\Middleware\EnsureTenantOperationalStatus::class,
             EnsureFrontendRequestsAreStateful::class,
             CorrelationIdMiddleware::class,
             SecurityHeadersMiddleware::class,

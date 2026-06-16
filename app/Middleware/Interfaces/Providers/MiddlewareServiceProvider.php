@@ -46,8 +46,10 @@ use App\Middleware\Infrastructure\Persistence\EloquentWorkflowRepository;
 use App\Middleware\Infrastructure\Resilience\ConnectorCircuitBreaker;
 use App\Middleware\Listeners\BusTrackingListener;
 use App\Middleware\Listeners\ModuleObservationListener;
+use App\Middleware\Listeners\ProcessEventJobFailureListener;
 use App\Shared\Contracts\EventBus\EventBusPort;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -55,7 +57,23 @@ class MiddlewareServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Repositories
+        $this->registerRepositories();
+        $this->registerEventBus();
+        $this->registerProcessingServices();
+        $this->registerDomainServices();
+        $this->registerApplicationServices();
+        $this->registerUseCases();
+    }
+
+    public function boot(): void
+    {
+        $this->loadRoutes();
+        $this->registerBusTrackingListeners();
+        $this->registerProcessEventJobFailureListener();
+    }
+
+    private function registerRepositories(): void
+    {
         $this->app->bind(
             QueueEntryRepositoryInterface::class,
             EloquentQueueEntryRepository::class,
@@ -95,7 +113,10 @@ class MiddlewareServiceProvider extends ServiceProvider
             ProcessingJobRepositoryInterface::class,
             EloquentProcessingJobRepository::class,
         );
+    }
 
+    private function registerEventBus(): void
+    {
         $this->app->bind(EventBusPort::class, function () {
             if (config('eventbus.driver') === 'kafka') {
                 return $this->app->make(KafkaEventBusAdapter::class);
@@ -105,12 +126,22 @@ class MiddlewareServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(ConnectorCircuitBreaker::class);
+    }
+
+    private function registerProcessingServices(): void
+    {
         $this->app->singleton(EventSchemaRegistry::class);
         $this->app->singleton(EventLogProjector::class);
         $this->app->singleton(EventLogService::class);
         $this->app->singleton(WorkflowEngine::class);
         $this->app->singleton(EventProcessingService::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventProcessingAttemptExecutor::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventProcessingDispatchPlanner::class);
+        $this->app->singleton(\App\Middleware\Application\Services\Processing\EventDeadLetterFinalizer::class);
+    }
 
+    private function registerDomainServices(): void
+    {
         $this->app->bind(
             BusMetricsRepositoryInterface::class,
             EloquentBusMetricsRepository::class,
@@ -122,14 +153,18 @@ class MiddlewareServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(TopologyService::class);
+    }
 
-        // Services
+    private function registerApplicationServices(): void
+    {
         $this->app->singleton(SubscriptionRegistryService::class);
         $this->app->singleton(BusMetricsService::class);
         $this->app->singleton(BusHealthService::class);
         $this->app->singleton(EventPublisherService::class);
+    }
 
-        // Use Cases
+    private function registerUseCases(): void
+    {
         $this->app->bind(GetBusMetricsUseCase::class);
         $this->app->bind(GetEventQueueUseCase::class);
         $this->app->bind(GetTopologySnapshotUseCase::class);
@@ -138,12 +173,6 @@ class MiddlewareServiceProvider extends ServiceProvider
         $this->app->bind(GetDeadLetterQueueUseCase::class);
         $this->app->bind(RequeueDeadLetterUseCase::class);
         $this->app->bind(SyncConfiguredModulesToRegistryUseCase::class);
-    }
-
-    public function boot(): void
-    {
-        $this->loadRoutes();
-        $this->registerBusTrackingListeners();
     }
 
     private function loadRoutes(): void
@@ -160,7 +189,14 @@ class MiddlewareServiceProvider extends ServiceProvider
      */
     private function registerBusTrackingListeners(): void
     {
-        Event::listen('*', BusTrackingListener::class);
-        Event::listen('*', ModuleObservationListener::class);
+        $events = $this->app->make(Dispatcher::class);
+        $events->listen('*', BusTrackingListener::class);
+        $events->listen('*', ModuleObservationListener::class);
+    }
+
+    private function registerProcessEventJobFailureListener(): void
+    {
+        $events = $this->app->make(Dispatcher::class);
+        $events->listen(JobFailed::class, ProcessEventJobFailureListener::class);
     }
 }

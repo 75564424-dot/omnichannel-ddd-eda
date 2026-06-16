@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Control;
 
 use App\Control\Application\Services\ClientInstancePortalService;
-use App\Control\Application\Services\TenantModuleCatalogService;
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -45,6 +46,7 @@ final class ClientInstancePortalServiceTest extends TestCase
         $service = new ClientInstancePortalService(
             app(InstanceTenantContextInterface::class),
             app(TenantModuleCatalogService::class),
+            app(DatabaseManager::class),
         );
 
         $this->assertSame($tenant->id, $service->resolveTenant()?->id);
@@ -70,3 +72,4 @@ final class ClientInstancePortalServiceTest extends TestCase
         $this->assertSame('subscriber:crm', ClientInstancePortalService::subscriberNodeKey('crm'));
     }
 }
+

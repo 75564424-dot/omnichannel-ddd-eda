@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Control\Application\Services;
 
+use App\Control\Application\Services\Tenants\TenantModuleCatalogService;
 use App\Dashboard\Infrastructure\Modules\ConfigModulesCatalogDataProvider;
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\DatabaseManager;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -22,25 +23,68 @@ final class ClientDashboardModulesService
         private readonly InstanceTenantContextInterface $instanceContext,
         private readonly TenantModuleCatalogService $catalogService,
         private readonly ConfigModulesCatalogDataProvider $catalogNormalizer,
+        private readonly DatabaseManager $db,
     ) {}
+
+    public function hasActiveDashboardConfiguration(): bool
+    {
+        $tenant = $this->resolveTenant();
+        if ($tenant === null) {
+            return false;
+        }
+
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        $stored = $settings[self::SETTINGS_KEY] ?? null;
+
+        return is_array($stored)
+            && (
+                $this->stringIdList($stored['producers'] ?? []) !== []
+                || $this->stringIdList($stored['subscribers'] ?? []) !== []
+            );
+    }
 
     /** @return array<string, mixed> */
     public function presentationCatalog(): array
     {
+        $tenant = $this->resolveTenant();
         $saas = $this->saasCatalog();
-        $visible = $this->visibleModuleIds();
+        $visible = $this->visibleModuleIds($saas);
+
+        // When no tenant record exists in the DB (e.g. tests, control-plane admin context),
+        // expose the full available catalog — there is no per-tenant visibility restriction.
+        if ($tenant === null) {
+            return [
+                'middleware'              => $saas['middleware'],
+                'producers'               => $saas['producers'],
+                'subscribers'             => $saas['subscribers'],
+                'available_producers'     => $saas['producers'],
+                'available_subscribers'   => $saas['subscribers'],
+                'visible_producer_ids'    => $this->moduleIds($saas['producers']),
+                'visible_subscriber_ids'  => $this->moduleIds($saas['subscribers']),
+                'dashboard_configured'    => false,
+                'service_contact_message' => $saas['service_contact_message'],
+            ];
+        }
+
+        $configured = $this->hasActiveDashboardConfiguration();
 
         return [
             'middleware'              => $saas['middleware'],
-            'producers'               => $this->filterModules($saas['producers'], $visible['producers']),
-            'subscribers'             => $this->filterModules($saas['subscribers'], $visible['subscribers']),
+            'producers'               => $configured
+                ? $this->filterModules($saas['producers'], $visible['producers'])
+                : [],
+            'subscribers'             => $configured
+                ? $this->filterModules($saas['subscribers'], $visible['subscribers'])
+                : [],
             'available_producers'     => $saas['producers'],
             'available_subscribers'   => $saas['subscribers'],
             'visible_producer_ids'    => $visible['producers'],
             'visible_subscriber_ids'  => $visible['subscribers'],
+            'dashboard_configured'    => $configured,
             'service_contact_message' => $saas['service_contact_message'],
         ];
     }
+
 
     /**
      * @param list<string> $producerIds
@@ -71,17 +115,23 @@ final class ClientDashboardModulesService
     }
 
     /** @return array{producers: list<string>, subscribers: list<string>} */
-    private function visibleModuleIds(): array
+    private function visibleModuleIds(array $saasCatalog): array
     {
         $tenant = $this->resolveTenant();
         if ($tenant === null) {
-            return ['producers' => [], 'subscribers' => []];
+            return [
+                'producers' => $this->moduleIds($saasCatalog['producers'] ?? []),
+                'subscribers' => $this->moduleIds($saasCatalog['subscribers'] ?? []),
+            ];
         }
 
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
         $stored = $settings[self::SETTINGS_KEY] ?? null;
         if (! is_array($stored)) {
-            return ['producers' => [], 'subscribers' => []];
+            return [
+                'producers'   => [],
+                'subscribers' => [],
+            ];
         }
 
         return [
@@ -115,7 +165,7 @@ final class ClientDashboardModulesService
 
     public function resolveTenant(): ?TenantModel
     {
-        if (! Schema::hasTable('tenants')) {
+        if (! $this->db->getSchemaBuilder()->hasTable('tenants')) {
             return null;
         }
 
@@ -163,6 +213,12 @@ final class ClientDashboardModulesService
         }
 
         return $set;
+    }
+
+    /** @param list<array<string, mixed>> $modules */
+    private function moduleIds(array $modules): array
+    {
+        return array_keys($this->moduleIdSet($modules));
     }
 
     /**

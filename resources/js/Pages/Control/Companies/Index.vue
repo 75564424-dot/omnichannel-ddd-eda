@@ -46,6 +46,14 @@
           </p>
         </div>
         <p class="font-mono text-lg text-[#00f2ff]">{{ activeRun.run?.progress_percent ?? 0 }}%</p>
+        <button
+          type="button"
+          class="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold uppercase text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+          :disabled="cancelling"
+          @click="cancelSimulation(activeRun.run.id)"
+        >
+          {{ cancelling ? 'Cancelando…' : 'Cancelar' }}
+        </button>
       </div>
       <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#191c1f]">
         <div
@@ -77,6 +85,15 @@
           Ver reporte
         </Link>
       </div>
+    </div>
+
+
+
+    <div
+      v-else-if="activeRun?.run?.status === 'cancelled'"
+      class="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+    >
+      Simulación cancelada tras {{ activeRun.run?.published ?? 0 }} eventos publicados.
     </div>
 
 
@@ -283,6 +300,7 @@
             <th class="px-6 py-3">Slug</th>
 
             <th class="px-6 py-3">Estado</th>
+            <th class="px-6 py-3">Servicio</th>
 
             <th class="px-6 py-3">Módulos</th>
 
@@ -300,7 +318,16 @@
 
             <td class="px-6 py-3 font-mono text-xs">{{ t.slug }}</td>
 
-            <td class="px-6 py-3 uppercase text-xs">{{ t.status }}</td>
+            <td class="px-6 py-3">
+              <span class="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase text-[#b9cacb]">
+                {{ statusLabel(t.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-3">
+              <span class="rounded px-2 py-1 text-[10px] font-bold uppercase" :class="lifecycleClass(t.lifecycle)">
+                {{ lifecycleLabel(t.lifecycle) }}
+              </span>
+            </td>
 
             <td class="px-6 py-3 font-mono text-xs text-[#b9cacb]">
 
@@ -320,7 +347,7 @@
 
           <tr v-if="tenants.length === 0">
 
-            <td colspan="5" class="px-6 py-10 text-center text-[#849495]">
+            <td colspan="6" class="px-6 py-10 text-center text-[#849495]">
 
               Sin empresas. Cree una en <Link href="/control/provisioning" class="text-[#00dbe7]">Provisioning</Link>.
 
@@ -373,6 +400,7 @@ const props = defineProps({
 const activeRun = ref(null);
 
 let pollTimer = null;
+const cancelling = ref(false);
 
 
 
@@ -437,6 +465,32 @@ const canSubmitSimulation = computed(
 
 
 const estimatedMinutes = computed(() => Number(simForm.duration_minutes) || 1);
+
+function statusLabel(status) {
+  return status === 'suspended' ? 'Suspendido' : 'Activo';
+}
+
+function lifecycleLabel(lifecycle) {
+  const map = {
+    provisioned: 'Provisionado',
+    running: 'En ejecucion',
+    stopped: 'Detenido',
+  };
+
+  return map[lifecycle] || lifecycle || 'Sin estado';
+}
+
+function lifecycleClass(lifecycle) {
+  if (lifecycle === 'running') {
+    return 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
+  }
+
+  if (lifecycle === 'stopped') {
+    return 'border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 text-[#ffb4ab]';
+  }
+
+  return 'border border-amber-500/30 bg-amber-500/10 text-amber-200';
+}
 
 
 
@@ -526,12 +580,39 @@ async function pollOnce(runId) {
 
   const status = data.run?.status;
 
-  if (status === 'completed' || status === 'failed') {
+  if (status === 'completed' || status === 'failed' || status === 'cancelled') {
 
     stopPolling();
 
   }
 
+}
+
+
+
+async function cancelSimulation(runId) {
+  if (!runId || cancelling.value) return;
+
+  cancelling.value = true;
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const res = await fetch(`/control/simulations/${runId}/cancel`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': token ?? '',
+      },
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      activeRun.value = data;
+      stopPolling();
+    }
+  } finally {
+    cancelling.value = false;
+  }
 }
 
 
