@@ -9,7 +9,11 @@
 .env
 .env.*
 !.env.example
+!.env.*.example
 .env.backup
+.env.control-plane
+.env.playwright
+.env.testing
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -26,7 +30,6 @@ yarn-error.log
 /config/modules/instances/
 /playwright-report/
 /test-results/
-/bootstrap/cache
 /database/database.sqlite
 /public/build
 /storage/logs
@@ -56,4 +59,7 @@ yarn-error.log
 /storage/app/simulation-worker-*.sh
 
 # Compile caches
-/bootstrap/cache/*.php
+/bootstrap/cache/*.php
+
+# Historical env backups must never contain real secrets
+/docs/**/backups/**/.env*

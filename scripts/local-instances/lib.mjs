@@ -1,4 +1,5 @@
-import { execSync, spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,11 +32,9 @@ export function envFileForInstance(instanceId) {
 }
 
 export function generateAppKey() {
-    return execSync('php artisan key:generate --show', {
-        cwd: root,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-    }).trim();
+    // Same format as `php artisan key:generate --show` (32 random bytes, base64).
+    // Avoids booting Laravel, which requires a configured .env/database.
+    return `base64:${randomBytes(32).toString('base64')}`;
 }
 
 export function readExistingAppKey(envPath) {
@@ -175,6 +174,45 @@ export function ensureInstancesDbDir() {
     if (!existsSync(instancesDbDir)) {
         mkdirSync(instancesDbDir, { recursive: true });
     }
+}
+
+/** Laravel runtime dirs (mirrors bootstrap/ensure-runtime-dirs.php). */
+export function ensureStorageDirectories() {
+    const dirs = [
+        join(root, 'storage', 'app', 'public'),
+        join(root, 'storage', 'framework', 'cache', 'data'),
+        join(root, 'storage', 'framework', 'sessions'),
+        join(root, 'storage', 'framework', 'views'),
+        join(root, 'storage', 'logs'),
+        join(root, 'bootstrap', 'cache'),
+    ];
+
+    for (const dir of dirs) {
+        if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+        }
+    }
+}
+
+export function upsertAppKeyInEnvFile(envPath, { force = false } = {}) {
+    if (!existsSync(envPath)) {
+        return null;
+    }
+
+    const existing = readExistingAppKey(envPath);
+    if (existing && !force) {
+        return { path: envPath, action: 'kept' };
+    }
+
+    const key = generateAppKey();
+    const content = readFileSync(envPath, 'utf8');
+    const updated = /^APP_KEY=/m.test(content)
+        ? content.replace(/^APP_KEY=.*$/m, `APP_KEY=${key}`)
+        : `APP_KEY=${key}\n${content}`;
+
+    writeFileSync(envPath, updated, 'utf8');
+
+    return { path: envPath, action: force && existing ? 'rotated' : 'generated' };
 }
 
 export function ensureSqliteDatabase(slug) {

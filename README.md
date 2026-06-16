@@ -42,6 +42,16 @@ composer install
 
 npm install
 
+npm run instances:bootstrap
+
+```
+
+Cada `.env.*` local (p. ej. `.env.control-plane`) **no se versiona** y recibe un `APP_KEY` único al bootstrap. Para regenerar claves sin re-migrar:
+
+```bash
+
+npm run instances:env-keys
+
 ```
 
 
@@ -381,8 +391,17 @@ Todas las APIs operativas del sistema (middleware, observabilidad, métricas, to
 - **Tokens Internos de Simulación:** El canal de comunicación interna de simulación (`control/internal/*`) requiere el envío de la cabecera `X-Simulation-Internal-Token` y se limita estrictamente a tráfico local (`127.0.0.1` o `::1`) a través del middleware `EnsureSimulationInternalRequest`.
 
 ### Generación de claves y secretos
-Los secretos y claves de la aplicación (`APP_KEY`, tokens de simulación, claves de API, etc.) se definen mediante variables de entorno en archivos `.env` (derivados automáticamente de `.env.example`).
-**Nunca** versione archivos `.env` reales o con secretos de producción. Los scripts de bootstrap local generarán claves únicas de forma automática para cada instancia.
+Los secretos (`APP_KEY`, tokens de simulación, claves de API, etc.) viven **solo** en archivos `.env.*` locales, excluidos por `.gitignore`.
+**Nunca** versione `.env.control-plane`, `.env.client-*` ni `.env.playwright`.
+
+| Comando | Uso |
+| --- | --- |
+| `npm run instances:bootstrap` | Crea `.env.control-plane` (y silos) con `APP_KEY` nuevo |
+| `npm run instances:env-keys` | Genera `APP_KEY` faltante en envs locales existentes |
+| `npm run instances:env-keys -- --force` | Rota todas las `APP_KEY` locales |
+| `npm run verify:clone` | Audita que el repo esté listo para clonar sin secretos ni rutas rotas |
+
+Plantillas versionadas: `.env.example`, `.env.playwright.example` (sin claves reales).
 
 ### Recuperación del entorno desde cero
 Para levantar el proyecto en un entorno limpio sin residuos históricos:

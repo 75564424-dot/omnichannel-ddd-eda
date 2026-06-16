@@ -7,7 +7,7 @@
  *   node scripts/local-instances/serve.mjs --only=client-alpha,client-beta
  */
 import { existsSync } from 'node:fs';
-import { loadManifest, spawnArtisanServe, envFileForInstance } from './lib.mjs';
+import { ensureStorageDirectories, loadManifest, spawnArtisanServe, envFileForInstance } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const onlyArg = args.find((a) => a.startsWith('--only='));
@@ -22,6 +22,8 @@ if (instances.length === 0) {
     console.error('No instances to serve. Run: npm run instances:bootstrap');
     process.exit(1);
 }
+
+ensureStorageDirectories();
 
 for (const instance of instances) {
     if (!existsSync(envFileForInstance(instance.id))) {
