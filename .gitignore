@@ -6,10 +6,6 @@
 /storage/*.key
 /storage/pail
 /vendor
-.env
-.env.*
-!.env.example
-.env.backup
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -22,24 +18,46 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-/config/eventbus_client_overlay.json
-/config/modules/instances/
-/playwright-report/
-/test-results/
-/bootstrap/cache
-/database/database.sqlite
+
+# --- Entornos locales (autogenerados por npm run instances:bootstrap) ---
+.env
+.env.*
+!.env.example
+!.env.testing
+!.env.playwright
+.env.backup
+
+# --- Build frontend (autogenerado por npm run build) ---
 /public/build
+
+# --- Laravel runtime ---
+/bootstrap/cache
 /storage/logs
 /storage/framework/views/
-/storage/app/simulation-launchers/
-/storage/app/simulation-handoff/
+/storage/framework/testing/
+
+# --- Bases de datos locales (autogeneradas por bootstrap / provisioning) ---
+/database/database.sqlite
 /database/instances/*.sqlite
-!/database/instances/.gitkeep
 /database/instances/*.sqlite-shm
 /database/instances/*.sqlite-wal
+!/database/instances/.gitkeep
+
+# --- Fleet local: tenants provisionados (autogenerado; ver fleet-registry.example.json) ---
+/deploy/local-instances/fleet-registry.json
+
+# --- Catálogo bus por tenant (espejado al provisionar / guardar módulos) ---
+/config/eventbus_client_overlay.json
+/config/modules/instances/
+
+# --- Simulación / workers locales ---
+/storage/app/simulation-launchers/
+/storage/app/simulation-handoff/
 /storage/app/simulation-pulse.json
-/database/instances/acme-retail.sqlite
-/database/instances/pruebas-retail.sqlite
-/database/instances/lifecycle-test.sqlite
-/database/instances/unaprueba.sqlite
-/database/instances/tenant-test-*.sqlite
+/storage/app/simulation-worker-*.bat
+/storage/logs/simulation-*.log
+/storage/logs/simulation-worker-*.log
+
+# --- E2E / QA ---
+/playwright-report/
+/test-results/

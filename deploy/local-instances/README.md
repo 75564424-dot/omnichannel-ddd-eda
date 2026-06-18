@@ -20,7 +20,9 @@ npm run instances:serve
 
 Panel SaaS: http://127.0.0.1:8000/control/companies
 
-Provisiona clientes desde `/control/provisioning`. Cada empresa nueva genera silo, `.env`, SQLite y entrada en `fleet-registry.json`.
+Provisiona clientes desde `/control/provisioning`. Cada empresa nueva genera silo, `.env`, SQLite y entrada en `fleet-registry.json` (local, no versionado).
+
+**Plantillas versionadas:** `instances.json` (control plane) y `fleet-registry.example.json` (fleet vacío). El bootstrap crea `fleet-registry.json` si no existe.
 
 ## Modo demo legacy (opcional)
 

@@ -177,6 +177,22 @@ export function ensureInstancesDbDir() {
     }
 }
 
+/** Empty fleet registry for GitHub Ready baseline (client silos se añaden al provisionar). */
+export function ensureFleetRegistry() {
+    if (existsSync(fleetRegistryPath)) {
+        return fleetRegistryPath;
+    }
+
+    const examplePath = join(root, 'deploy', 'local-instances', 'fleet-registry.example.json');
+    const payload = existsSync(examplePath)
+        ? readFileSync(examplePath, 'utf8')
+        : JSON.stringify({ updated_at: null, instances: [] }, null, 4) + '\n';
+
+    writeFileSync(fleetRegistryPath, payload, 'utf8');
+
+    return fleetRegistryPath;
+}
+
 export function ensureSqliteDatabase(slug) {
     ensureInstancesDbDir();
     const dbPath = sqlitePathForSlug(slug);
