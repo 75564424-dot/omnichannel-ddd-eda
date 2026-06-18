@@ -14,7 +14,7 @@ Plataforma middleware con **control plane SaaS** (`:8000`) y **un silo Laravel p
 
 - **Base de puertos de tenants:** `PLATFORM_LOCAL_FLEET_PORT_START` (default `8001`).
 
-- **Convención:** cada tenant provisionado toma el siguiente puerto libre en `fleet-registry.json`.
+- **Convención:** cada tenant provisionado toma el siguiente puerto libre en `fleet-registry.json` (archivo local autogenerado; plantilla: `fleet-registry.example.json`).
 
 
 
@@ -58,6 +58,28 @@ npm run instances:env-keys
 
 No hace falta un `.env` en la raíz: el bootstrap genera `.env.control-plane` desde `deploy/local-instances/instances.json`.
 
+### Qué va en Git vs qué se autogenera
+
+| Commitear (plantilla / código) | No commitear (local / runtime) |
+|--------------------------------|--------------------------------|
+| `deploy/local-instances/instances.json` | `.env.control-plane`, `.env.client-*` |
+| `deploy/local-instances/fleet-registry.example.json` | `deploy/local-instances/fleet-registry.json` |
+| `database/instances/.gitkeep` | `database/instances/*.sqlite` |
+| `.env.example`, `.env.testing`, `.env.playwright` | `config/modules/instances/{slug}/` |
+| `composer.json`, migraciones, código fuente | `vendor/` (ejecutar `composer install`) |
+| | `node_modules/` (ejecutar `npm install`) |
+| | `public/build/` (ejecutar `npm run build`) |
+| | `storage/app/simulation-*`, logs de simulación |
+
+Tras un `git clone`, ejecute **en este orden** antes de cualquier comando `php artisan`:
+
+```bash
+composer install
+npm install
+npm run instances:bootstrap
+npm run build
+```
+
 
 
 ## Arranque baseline GitHub Ready (v1.7)
@@ -68,9 +90,14 @@ Flujo reproducible desde clone limpio **sin datos legacy**. Los silos de cliente
 
 
 
-Ejecuta los comandos **en este orden**:
+Ejecuta los comandos **en este orden** (omitir `composer install` / `npm install` solo si ya los ejecutó en «Primera vez»):
 
+### 0. Dependencias (obligatorio tras `git clone`)
 
+```bash
+composer install
+npm install
+```
 
 ### 1. `npm run instances:bootstrap`
 
@@ -156,19 +183,41 @@ Simulación
 
 ## Flujo de limpieza
 
+Vuelve al estado **GitHub Ready** (solo control plane, sin tenants cliente). Requiere `composer install` y al menos una vez `npm run instances:bootstrap` (para `.env.control-plane`).
+
 ```text
-Detener npm run instances:serve
+Detener npm run instances:serve   ← obligatorio (SQLite bloqueadas si sigue activo)
 ↓
 php artisan platform:clean-environment --force --env=control-plane
-↓
-php artisan platform:clean-environment --verify --env=control-plane
+  (incluye auditoría post-limpieza automática)
 ↓
 npm run instances:serve
 ↓
-Provisionar tenant (puede reutilizar slug histórico, p. ej. pruebas)
+Provisionar tenant desde /control/provisioning
 ```
 
+### Verificar sin borrar
+
+```bash
+php artisan platform:clean-environment --verify --env=control-plane
+```
+
+Útil para auditar residuos (tenants soft-deleted, SQLite huérfanas, fleet desincronizado) **sin** ejecutar la limpieza.
+
+### Si algo falla tras clonar o limpiar
+
+| Síntoma | Solución |
+|---------|----------|
+| `vendor/autoload.php: No such file or directory` | Ejecutar `composer install` (normal tras clone; `vendor/` no va en Git) |
+| `database.sqlite does not exist` durante `composer install` | Normal en clone limpio; vuelva a ejecutar `composer install` tras el fix, luego `npm run instances:bootstrap` |
+| `platform:clean-environment` no reconoce control plane | Falta `.env.control-plane` → `npm run instances:bootstrap` |
+| UI sin estilos / Vite | `npm run build` |
+| `fleet-registry.json` no existe | Se crea en bootstrap desde `fleet-registry.example.json` |
+| Auditoría detecta SQLite bloqueadas | Detener `instances:serve` y repetir `--force` |
+
 > **Obligatorio:** `--env=control-plane` y detener el fleet antes de limpiar. SQLite bloqueadas impiden borrar silos y la auditoría post-limpieza fallará.
+
+> **Nota:** Tras una limpieza exitosa **no** hace falta repetir `instances:bootstrap` si se preservó `platform.sqlite` y `.env.control-plane`. Solo reprovisionar tenants.
 
 
 
@@ -345,10 +394,9 @@ php artisan platform:reset-local --force --env=control-plane
 
 
 - **BD:** `database/instances/{slug}.sqlite`
-
-- **Env:** `.env.{instance-id}` (p. ej. `.env.client-mi-empresa`)
-
+- **Env:** `.env.{instance-id}` (p. ej. `.env.client-mi-empresa`, `.env.control-plane`)
 - **Catálogo bus:** `config/modules/instances/{slug}/modules_config.json` vía `MODULES_CONFIG_PATH` (ignorado por git)
+- **Fleet registry:** `deploy/local-instances/fleet-registry.json` (ignorado por git; ejemplo en `fleet-registry.example.json`)
 
 
 

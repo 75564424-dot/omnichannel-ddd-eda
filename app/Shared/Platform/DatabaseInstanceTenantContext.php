@@ -6,6 +6,7 @@ namespace App\Shared\Platform;
 
 use App\Shared\Infrastructure\Models\TenantModel;
 use App\Shared\Platform\Contracts\InstanceTenantContextInterface;
+use App\Shared\Platform\Support\PlatformDatabaseReadiness;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -61,6 +62,10 @@ final class DatabaseInstanceTenantContext implements InstanceTenantContextInterf
     {
         if ($this->resolvedTenantId !== null) {
             return $this->resolvedTenantId;
+        }
+
+        if (! PlatformDatabaseReadiness::canQuerySchema()) {
+            return null;
         }
 
         if (! Schema::hasTable('tenants')) {
