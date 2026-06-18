@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.21",
-    "@inertiajs/vue3": "^3.0",
+    "@inertiajs/vue3": "^3.4",
     "vue": "^3.4.21"
   }
 }
