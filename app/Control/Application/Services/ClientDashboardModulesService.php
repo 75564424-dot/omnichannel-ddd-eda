@@ -46,8 +46,26 @@ final class ClientDashboardModulesService
     /** @return array<string, mixed> */
     public function presentationCatalog(): array
     {
+        $tenant = $this->resolveTenant();
         $saas = $this->saasCatalog();
         $visible = $this->visibleModuleIds($saas);
+
+        // When no tenant record exists in the DB (e.g. tests, control-plane admin context),
+        // expose the full available catalog — there is no per-tenant visibility restriction.
+        if ($tenant === null) {
+            return [
+                'middleware'              => $saas['middleware'],
+                'producers'               => $saas['producers'],
+                'subscribers'             => $saas['subscribers'],
+                'available_producers'     => $saas['producers'],
+                'available_subscribers'   => $saas['subscribers'],
+                'visible_producer_ids'    => $this->moduleIds($saas['producers']),
+                'visible_subscriber_ids'  => $this->moduleIds($saas['subscribers']),
+                'dashboard_configured'    => false,
+                'service_contact_message' => $saas['service_contact_message'],
+            ];
+        }
+
         $configured = $this->hasActiveDashboardConfiguration();
 
         return [
@@ -66,6 +84,7 @@ final class ClientDashboardModulesService
             'service_contact_message' => $saas['service_contact_message'],
         ];
     }
+
 
     /**
      * @param list<string> $producerIds

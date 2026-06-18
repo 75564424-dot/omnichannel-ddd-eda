@@ -23,15 +23,18 @@ yarn-error.log
 .env
 .env.*
 !.env.example
+!.env.*.example
 !.env.testing
 !.env.playwright
 .env.backup
 
 # --- Build frontend (autogenerado por npm run build) ---
 /public/build
+/public/fonts/material-symbols-outlined.woff2
 
 # --- Laravel runtime ---
 /bootstrap/cache
+/bootstrap/cache/*.php
 /storage/logs
 /storage/framework/views/
 /storage/framework/testing/
@@ -55,9 +58,13 @@ yarn-error.log
 /storage/app/simulation-handoff/
 /storage/app/simulation-pulse.json
 /storage/app/simulation-worker-*.bat
+/storage/app/simulation-worker-*.sh
 /storage/logs/simulation-*.log
 /storage/logs/simulation-worker-*.log
 
 # --- E2E / QA ---
 /playwright-report/
 /test-results/
+
+# Historical env backups must never contain real secrets
+/docs/**/backups/**/.env*

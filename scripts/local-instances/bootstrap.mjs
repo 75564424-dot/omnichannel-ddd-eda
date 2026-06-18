@@ -11,6 +11,7 @@ import {
     ensureEnvFile,
     ensureFleetRegistry,
     ensureInstancesDbDir,
+    ensureStorageDirectories,
     envFileForInstance,
     loadManifest,
     root,
@@ -31,6 +32,7 @@ if (instances.length === 0) {
 
 ensureInstancesDbDir();
 ensureFleetRegistry();
+ensureStorageDirectories();
 
 console.log(`Bootstrapping ${instances.length} local instance(s) from ${root}\n`);
 

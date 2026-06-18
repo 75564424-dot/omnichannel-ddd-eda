@@ -1,0 +1,18 @@
+# Force all files to have LF endings on checkout/commit
+* text=auto eol=lf
+
+# Explicitly declare eol=lf for code and configurations
+*.php text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+
+# Denotate binary files to prevent Git from modifying their line endings
+*.woff2 binary
+*.sqlite binary
+*.sqlite-shm binary
+*.sqlite-wal binary

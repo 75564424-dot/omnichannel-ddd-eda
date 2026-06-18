@@ -42,6 +42,16 @@ composer install
 
 npm install
 
+npm run instances:bootstrap
+
+```
+
+Cada `.env.*` local (p. ej. `.env.control-plane`) **no se versiona** y recibe un `APP_KEY` único al bootstrap. Para regenerar claves sin re-migrar:
+
+```bash
+
+npm run instances:env-keys
+
 ```
 
 
@@ -384,7 +394,69 @@ Ver [Runbook v1.7](docs/Plan_Desarrollo_Serviciov1.7/Runbook_v1.7_Certificacion_
 
 ## Más detalle
 
-
-
 Ver [deploy/local-instances/README.md](deploy/local-instances/README.md) para provisioning automático, ciclo de vida y mirror.
+
+---
+
+## Seguridad, Git y Portabilidad (GitHub Ready)
+
+### Configuración Git recomendada & Line Endings
+El proyecto está normalizado para usar finales de línea **LF** de forma consistente para garantizar portabilidad entre Windows y Linux.
+Para evitar que Git convierta finales de línea automáticamente en Windows a CRLF, asegúrese de configurar:
+```bash
+git config --global core.autocrlf false
+```
+El archivo `.gitattributes` en la raíz se encarga de forzar la política de line endings en checkouts y commits de archivos de código fuente.
+
+### Archivos ignorados y Artefactos runtime
+El sistema está diseñado para que no se versionen datos de ejecución ni de simulación. Los siguientes recursos se excluyen automáticamente en `.gitignore` para mantener limpio el repositorio:
+- El registro dinámico de clientes: `deploy/local-instances/fleet-registry.json`
+- Las bases de datos SQLite operativas: `database/database.sqlite` y `/database/instances/*.sqlite`
+- Los archivos `.bat` y `.sh` generados temporalmente para orquestar los procesos de simulación en `storage/app/`
+- Los caches compilados de Laravel en `bootstrap/cache/*.php` (preservando el directorio vacío mediante un `.gitkeep`)
+- Los assets de fuentes de Material Symbols compilados en `public/fonts/material-symbols-outlined.woff2` (se recrean en `postinstall` con `npm install`)
+- Carpetas de testing de instancias en `storage/framework/testing/`
+
+### Seguridad de APIs
+Todas las APIs operativas del sistema (middleware, observabilidad, métricas, topología) están protegidas estrictamente mediante:
+- **Autenticación obligatoria:** Middleware `auth.platform` para peticiones de API tradicionales y `auth.platform.web` para rutas web.
+- **Tokens Internos de Simulación:** El canal de comunicación interna de simulación (`control/internal/*`) requiere el envío de la cabecera `X-Simulation-Internal-Token` y se limita estrictamente a tráfico local (`127.0.0.1` o `::1`) a través del middleware `EnsureSimulationInternalRequest`.
+
+### Generación de claves y secretos
+Los secretos (`APP_KEY`, tokens de simulación, claves de API, etc.) viven **solo** en archivos `.env.*` locales, excluidos por `.gitignore`.
+**Nunca** versione `.env.control-plane`, `.env.client-*` ni `.env.playwright`.
+
+| Comando | Uso |
+| --- | --- |
+| `npm run instances:bootstrap` | Crea `.env.control-plane` (y silos) con `APP_KEY` nuevo |
+| `npm run instances:env-keys` | Genera `APP_KEY` faltante en envs locales existentes |
+| `npm run instances:env-keys -- --force` | Rota todas las `APP_KEY` locales |
+| `npm run verify:clone` | Audita que el repo esté listo para clonar sin secretos ni rutas rotas |
+
+Plantillas versionadas: `.env.example`, `.env.playwright.example` (sin claves reales).
+
+### Recuperación del entorno desde cero
+Para levantar el proyecto en un entorno limpio sin residuos históricos:
+1. Asegúrese de que no existan silos ni entornos residuales:
+   ```bash
+   php artisan platform:clean-environment --force --env=control-plane
+   ```
+2. Realice una instalación limpia de dependencias:
+   ```bash
+   npm install
+   ```
+3. Prepare y configure el control plane:
+   ```bash
+   npm run instances:bootstrap
+   ```
+4. Compile los archivos estáticos frontend:
+   ```bash
+   npm run build
+   ```
+5. Inicie la plataforma multi-instancia:
+   ```bash
+   npm run instances:serve
+   ```
+6. Acceda a `/control/provisioning` en el control plane y cree sus tenants según sea requerido.
+
 

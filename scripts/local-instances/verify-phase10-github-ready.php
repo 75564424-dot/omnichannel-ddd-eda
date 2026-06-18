@@ -30,7 +30,8 @@ check('fs-no-launchers', count(glob($root . '/storage/app/simulation-launchers/*
 check('fs-no-simulation-logs', count(glob($root . '/storage/logs/simulation-*')) === 0);
 
 // Registry
-$registry = json_decode((string) file_get_contents($root . '/deploy/local-instances/fleet-registry.json'), true);
+$registryFile = $root . '/deploy/local-instances/fleet-registry.json';
+$registry = is_file($registryFile) ? json_decode((string) file_get_contents($registryFile), true) : ['instances' => []];
 check('registry-empty', ($registry['instances'] ?? []) === []);
 
 // Control Plane DB
