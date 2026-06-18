@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Logging;
+namespace App\Http\Middleware;
 
 /**
  * @deprecated Use CorrelationIdMiddleware — kept for middleware alias compatibility.

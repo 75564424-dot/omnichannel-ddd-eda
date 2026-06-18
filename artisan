@@ -11,7 +11,15 @@ if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
 
 require __DIR__.'/bootstrap/ensure-runtime-dirs.php';
 
-require __DIR__.'/vendor/autoload.php';
+$autoload = __DIR__.'/vendor/autoload.php';
+if (! is_file($autoload)) {
+    fwrite(STDERR, "Error: no existe vendor/autoload.php.\n");
+    fwrite(STDERR, "Tras git clone ejecute primero: composer install\n");
+    fwrite(STDERR, "Luego: npm install && npm run instances:bootstrap\n");
+    exit(1);
+}
+
+require $autoload;
 
 $app = require_once __DIR__.'/bootstrap/app.php';
 

@@ -66,10 +66,19 @@ No hace falta un `.env` en la raíz: el bootstrap genera `.env.control-plane` de
 | `deploy/local-instances/fleet-registry.example.json` | `deploy/local-instances/fleet-registry.json` |
 | `database/instances/.gitkeep` | `database/instances/*.sqlite` |
 | `.env.example`, `.env.testing`, `.env.playwright` | `config/modules/instances/{slug}/` |
-| `composer.json`, migraciones, código fuente | `public/build/` (ejecutar `npm run build`) |
+| `composer.json`, migraciones, código fuente | `vendor/` (ejecutar `composer install`) |
+| | `node_modules/` (ejecutar `npm install`) |
+| | `public/build/` (ejecutar `npm run build`) |
 | | `storage/app/simulation-*`, logs de simulación |
 
-Tras un `git clone`, los artefactos de la columna derecha **no existen** hasta ejecutar `npm run instances:bootstrap` y `npm run build`.
+Tras un `git clone`, ejecute **en este orden** antes de cualquier comando `php artisan`:
+
+```bash
+composer install
+npm install
+npm run instances:bootstrap
+npm run build
+```
 
 
 
@@ -81,9 +90,14 @@ Flujo reproducible desde clone limpio **sin datos legacy**. Los silos de cliente
 
 
 
-Ejecuta los comandos **en este orden**:
+Ejecuta los comandos **en este orden** (omitir `composer install` / `npm install` solo si ya los ejecutó en «Primera vez»):
 
+### 0. Dependencias (obligatorio tras `git clone`)
 
+```bash
+composer install
+npm install
+```
 
 ### 1. `npm run instances:bootstrap`
 
@@ -169,7 +183,7 @@ Simulación
 
 ## Flujo de limpieza
 
-Vuelve al estado **GitHub Ready** (solo control plane, sin tenants cliente). Requiere haber ejecutado al menos una vez `npm run instances:bootstrap` (para que exista `.env.control-plane`).
+Vuelve al estado **GitHub Ready** (solo control plane, sin tenants cliente). Requiere `composer install` y al menos una vez `npm run instances:bootstrap` (para `.env.control-plane`).
 
 ```text
 Detener npm run instances:serve   ← obligatorio (SQLite bloqueadas si sigue activo)
@@ -194,6 +208,8 @@ php artisan platform:clean-environment --verify --env=control-plane
 
 | Síntoma | Solución |
 |---------|----------|
+| `vendor/autoload.php: No such file or directory` | Ejecutar `composer install` (normal tras clone; `vendor/` no va en Git) |
+| `database.sqlite does not exist` durante `composer install` | Normal en clone limpio; vuelva a ejecutar `composer install` tras el fix, luego `npm run instances:bootstrap` |
 | `platform:clean-environment` no reconoce control plane | Falta `.env.control-plane` → `npm run instances:bootstrap` |
 | UI sin estilos / Vite | `npm run build` |
 | `fleet-registry.json` no existe | Se crea en bootstrap desde `fleet-registry.example.json` |

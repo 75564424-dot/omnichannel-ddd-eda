@@ -37,6 +37,9 @@ for (const rel of requiredFiles) {
     check(`file:${rel}`, existsSync(join(root, rel)));
 }
 
+check('vendor-autoload', existsSync(join(root, 'vendor', 'autoload.php')), 'run: composer install');
+check('node-modules', existsSync(join(root, 'node_modules')), 'run: npm install');
+
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 check('vite-major-8', String(pkg.devDependencies?.vite ?? '').includes('8'));
 check('plugin-vue-major-6', String(pkg.devDependencies?.['@vitejs/plugin-vue'] ?? '').includes('6'));

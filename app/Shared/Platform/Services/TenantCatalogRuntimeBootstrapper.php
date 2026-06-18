@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Platform\Services;
 
 use App\Dashboard\Application\Services\ConfiguredModuleNodeRegistrar;
+use App\Shared\Platform\Support\PlatformDatabaseReadiness;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -19,7 +20,11 @@ final class TenantCatalogRuntimeBootstrapper
 
     public function bootstrapIfConfigured(): void
     {
-        if (config('platform.control_plane', false) || ! Schema::hasTable('tenants')) {
+        if (config('platform.control_plane', false) || ! PlatformDatabaseReadiness::canQuerySchema()) {
+            return;
+        }
+
+        if (! Schema::hasTable('tenants')) {
             return;
         }
 
