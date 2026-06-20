@@ -1,3 +1,0 @@
-[2026-06-13 15:38:14] Dispatch: C:\xampp\php\php.exe C:\Proyectos\antigravity\omnichannel-ddd-eda\artisan platform:simulation:execute-run 28fd52ae-64d9-4c79-bf95-a27262398b2d --env=client-pruebas --no-ansi
-  APP_ENV=client-pruebas PLATFORM_CONTROL_PLANE=false PLATFORM_CLIENT_SLUG=pruebas
-[2026-06-13 15:38:14] Launched Windows detached (bat): C:\Proyectos\antigravity\omnichannel-ddd-eda\storage\app\simulation-worker-28fd52ae-64d9-4c79-bf95-a27262398b2d.bat

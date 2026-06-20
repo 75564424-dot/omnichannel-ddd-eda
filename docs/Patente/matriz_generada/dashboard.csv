@@ -1,0 +1,23 @@
+metrica,valor,fecha_calculo,fuente,notas
+cantidad_procesos,20,2026-06-10,docs/matriz_generada/procesos.csv,Filas datos excluyendo encabezado
+cantidad_actividades_bpmn,32,2026-06-10,docs/matriz_generada/actividades_bpmn.csv,
+cantidad_flujos_bpmn,31,2026-06-10,docs/matriz_generada/flujo_bpmn.csv,Relaciones nodos en flujo_bpmn.csv
+cantidad_requerimientos,37,2026-06-10,docs/matriz_generada/requerimientos.csv,
+cantidad_control_versiones,20,2026-06-10,docs/matriz_generada/control_versiones.csv,
+cantidad_ai_dlc,60,2026-06-10,docs/matriz_generada/ai_dlc.csv,Filas etapa×funcionalidad
+cantidad_dependencias,30,2026-06-10,docs/matriz_generada/dependencias.csv,
+cantidad_merges,4,2026-06-10,docs/matriz_generada/merges.csv,2 merges git + 2 NO_EVIDENCIADO
+cantidad_historial,24,2026-06-10,docs/matriz_generada/historial.csv,
+cantidad_artefactos,60,2026-06-10,docs/matriz_generada/artefactos.csv,Muestra representativa no exhaustiva de 158 archivos docs
+cantidad_pmv,12,2026-06-10,docs/matriz_generada/pmv.csv,7 módulos saas_catalog + capacidades plataforma
+cantidad_modulos_saas_catalog,7,2026-06-10,config/saas_catalog.php,middleware dashboard observability integrations analytics security_audit multi_channel
+cantidad_bounded_contexts_app,14,2026-06-10,app/,Carpetas top-level bajo app/
+cantidad_migraciones,31,2026-06-10,database/migrations/,
+cantidad_tests_php,81,2026-06-10,tests/,Archivos *.php en tests/
+cantidad_commits_git,37,2026-06-10,git rev-list --all --count,
+cantidad_ramas_locales,5,2026-06-10,git branch,main feature/v1.5 feature/v1.6 feature/v1.7 refactorizacion
+cantidad_ramas_remotas,17,2026-06-10,git branch -a,Incluye dependabot y feature branches
+cantidad_adrs,9,2026-06-10,docs/production/ADR_*.md,
+cantidad_runbooks,8,2026-06-10,docs/,Archivos con Runbook en nombre
+cantidad_planes_produccion,16,2026-06-10,docs/production/Plan_*.md,Conteo archivos Plan_*.md en production
+cantidad_registros_totales_matriz,330,2026-06-10,docs/matriz_generada/*.csv,Suma filas datos 11 tablas conocimiento excluyendo dashboard.csv

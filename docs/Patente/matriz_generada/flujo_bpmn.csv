@@ -1,0 +1,32 @@
+id_flujo,id_nodo_origen,id_nodo_destino,tipo_relacion,condicion,proceso_id,descripcion,evidencia_ruta,notas
+FLU-001,EVT-INICIO-PUBLISH,ACT-001,secuencia,,PROC-001,Inicio flujo publicación HTTP,app/Shared/Api/Routes/MiddlewareApiRoutes.php,
+FLU-002,ACT-001,ACT-002,secuencia,,PROC-001,Controller delega a publisher,app/Middleware/Interfaces/Http/Controllers/EventQueueController.php,
+FLU-003,ACT-002,GW-VALIDACION,secuencia,,PROC-001,Resultado validación envelope,app/Middleware/Application/Services/EventPublisherService.php,
+FLU-004,GW-VALIDACION,ACT-003,secuencia,validación OK,PROC-001,Envelope válido persiste tracking,NO_EVIDENCIADO nombre gateway en código,Gateway inferido del flujo implementado
+FLU-005,GW-VALIDACION,ACT-DLQ,secuencia,validación falla,PROC-001,Error a dead letter según política,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Control_Middleware.md §6,Condición inferida de diseño DLQ
+FLU-006,ACT-003,ACT-004,secuencia,,PROC-001,Tracking luego despacho bus,app/Middleware/Application/Services/EventProcessingService.php,
+FLU-007,ACT-004,ACT-010,secuencia,,PROC-004,Bus dispatch dispara listeners wildcard,app/Dashboard/Listeners/UniversalDashboardFeedListener.php,
+FLU-008,ACT-010,ACT-011,secuencia,,PROC-004,Listener proyecta feed,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Dashboard_General.md §6,
+FLU-009,ACT-011,EVT-FIN-OBSERVACION,secuencia,,PROC-004,Fin observación dashboard,ACT-032 actividades_bpmn.csv,
+FLU-010,EVT-INICIO-SYNC,ACT-005,secuencia,,PROC-002,Inicio sync registry sync-config,app/Middleware/Interfaces/Http/Controllers/ModuleRegistrySyncController.php,
+FLU-011,ACT-005,ACT-006,secuencia,,PROC-002,Lee eventbus y modules_config,docs/production/Plan_de_implementacion.md §Fase B B.2,
+FLU-012,ACT-006,EVT-FIN-SYNC,secuencia,,PROC-002,Registry sincronizado,app/Middleware/Application/UseCases/SyncConfiguredModulesToRegistryUseCase.php,
+FLU-013,EVT-INICIO-LOGIN,ACT-014,secuencia,,PROC-005,Usuario accede /login,routes/web.php,
+FLU-014,ACT-014,GW-AUTH-OK,secuencia,,PROC-005,Verificación credenciales,app/Http/Controllers/Auth/LoginController.php,
+FLU-015,GW-AUTH-OK,/dashboard,secuencia,auth OK + portal,PROC-005,Redirección dashboard instancia,routes/web.php middleware instance.portal,
+FLU-016,GW-AUTH-OK,/control/overview,secuencia,auth OK + control,PROC-005,Redirección control plane,routes/control.php middleware control.web,
+FLU-017,EVT-INICIO-PROVISION,ACT-019,secuencia,,PROC-008,POST control/provisioning,routes/control.php,
+FLU-018,ACT-019,ACT-020,secuencia,,PROC-008,Tras alta asegurar tenant instancia,docs/production/Runbook_Onboarding_Cliente.md,PENDIENTE_VALIDACION orden exacto en código
+FLU-019,EVT-INICIO-SIM,ACT-021,secuencia,,PROC-009,platform:simulate-client inicia,app/Console/Commands/SimulateClientCommand.php,
+FLU-020,ACT-021,ACT-005,secuencia,catalogo válido,PROC-009,Sync registry en simulación,app/Console/Commands/SimulateClientCommand.php,PENDIENTE_VALIDACION secuencia interna exacta
+FLU-021,ACT-005,ACT-022,secuencia,,PROC-009,Publicación fixtures,tests/Fixtures/clients/acmepos/sample_events.json,
+FLU-022,ACT-022,ACT-010,secuencia,,PROC-009,Eventos observados en dashboard,tests/E2E/Middleware/ClientProductionLikeSimulationTest.php,
+FLU-023,ACT-DOC-026,ACT-DOC-027,secuencia,,PROC-017,Flujo documental 5 etapas etapa 1→2,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md §3.1-3.2,documental
+FLU-024,ACT-DOC-027,ACT-DOC-028,secuencia,,PROC-017,Etapa 2→3 enrutamiento topics,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md §3.3,documental
+FLU-025,ACT-DOC-028,ACT-DOC-029,secuencia,,PROC-017,Etapa 3→4 distribución broker,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md §3.4,documental
+FLU-026,ACT-DOC-029,ACT-DOC-030,secuencia,,PROC-017,Etapa 4→5 consumo dominio,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md §3.5,documental
+FLU-027,GW-OAUTH2,ACT-014,secuencia,enterprise IdP requerido,PROC-005,ADR-002 defer OAuth2,docs/production/ADR_002_autenticacion_enterprise.md,diferido
+FLU-028,GW-MULTITENANT,ACT-020,secuencia,instance_per_client,PROC-018,ADR-001 modelo aceptado,docs/production/ADR_001_instancia_por_cliente.md,decidido
+FLU-029,ACT-023,ACT-002,secuencia,webhook válido,PROC-011,Webhook transformado a publish,docs/production/Plan_Integraciones.md §5,
+FLU-030,SCHEDULER,ACT-024,secuencia,monitoring enabled,PROC-013,Evaluación alertas cada minuto,routes/console.php,
+FLU-031,SCHEDULER,ACT-025,secuencia,diario 02:30,PROC-014,Purga retención,routes/console.php,

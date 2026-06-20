@@ -1,0 +1,33 @@
+id_actividad,nombre,tipo_bpmn,proceso_id,rol,entrada,salida,descripcion,evidencia_ruta,estado
+ACT-001,Recepción evento HTTP publish,actividad,PROC-001,Integrador API,Request JSON envelope,Envelope validado,Endpoint POST /api/middleware/events/publish,app/Middleware/Interfaces/Http/Controllers/EventQueueController.php,implementado
+ACT-002,Validación mínima sobre evento,actividad,PROC-001,EventPublisherService,Envelope,PublishResult o error,Validación event_id event_type occurred_at,app/Middleware/Application/Services/EventPublisherService.php,implementado
+ACT-003,Persistencia QueueEntry tracking,actividad,PROC-001,Middleware persistence,Evento validado,Fila bus_queue_entries,Registro tránsito C2 Plan Middleware,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Control_Middleware.md §3 C2,implementado
+ACT-004,Despacho a bus Laravel/Kafka,actividad,PROC-001,EventBusPort,Evento,Listeners invocados,Driver según config eventbus.driver,app/Middleware/Infrastructure/EventBus/LaravelEventBusAdapter.php,implementado
+ACT-005,Sincronizar eventbus al registry,actividad,PROC-002,SyncConfiguredModulesToRegistryUseCase,config/eventbus.php,registered_modules actualizado,Lectura config y persistencia,app/Middleware/Application/UseCases/SyncConfiguredModulesToRegistryUseCase.php,implementado
+ACT-006,Sincronizar modules_config al registry,actividad,PROC-002,SyncConfiguredModulesToRegistryUseCase,config/modules/modules_config.json,Registry enriquecido,B.2 Plan_de_implementacion.md,docs/production/Plan_de_implementacion.md §Fase B,implementado
+ACT-007,Consultar métricas bus,actividad,PROC-003,BusMetricsController,GET /metrics,JSON métricas,Capability C3,app/Shared/Api/Routes/MiddlewareApiRoutes.php,implementado
+ACT-008,Consultar topología,actividad,PROC-003,TopologyController,GET /topology,JSON config+observed,Capability C3,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Control_Middleware.md §6,implementado
+ACT-009,Resolver dead letter,actividad,PROC-003,DeadLetterController,PATCH/POST dead-letters,Estado DLQ actualizado,Operación manual según política,app/Shared/Api/Routes/MiddlewareApiRoutes.php,implementado
+ACT-010,Observar evento wildcard,actividad,PROC-004,UniversalDashboardFeedListener,Evento host,Proyección feed,C5 observación plataforma,app/Dashboard/Listeners/UniversalDashboardFeedListener.php,implementado
+ACT-011,Proyectar feed entries,actividad,PROC-004,EventFeedProjector,Evento observado,Fila event_feed_entries,Read model dashboard,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Dashboard_General.md §6,implementado
+ACT-012,Actualizar métricas middleware dashboard,actividad,PROC-004,MiddlewareMetricsListener,Señal bus,Snapshots métricas,Listener métricas dashboard,app/Dashboard/Listeners/MiddlewareMetricsListener.php,implementado
+ACT-013,Renderizar KPIs configurables,actividad,PROC-004,GetDynamicMetricSeriesUseCase,dashboard_config.json,Series JSON,O2 dashboard plan,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Dashboard_General.md §3 O2,implementado
+ACT-014,Login operador web,actividad,PROC-005,LoginController,credenciales,session autenticada,Autenticación web platform,app/Http/Controllers/Auth/LoginController.php,implementado
+ACT-015,Verificar ability API,actividad,PROC-006,EnforcePlatformAbility,Request+token,403 o continuar,RBAC por abilities,config/platform_roles.php,implementado
+ACT-016,Crear empresa tenant,actividad,PROC-007,CompanyController,formulario empresa,tenant row,Alta en CP,routes/control.php POST companies,implementado
+ACT-017,Actualizar plan comercial,actividad,PROC-007,TenantAdminService,plan saas_catalog,settings tenant,PATCH companies/{tenant}/plan,routes/control.php,implementado
+ACT-018,Activar/suspender tenant,actividad,PROC-007,CompanyController,acción lifecycle,estado tenant,POST suspend/activate,routes/control.php,implementado
+ACT-019,Provisionar instancia,actividad,PROC-008,ProvisioningController,datos provisioning,instancia preparada,POST /control/provisioning,app/Http/Controllers/Control/ProvisioningController.php,implementado parcial
+ACT-020,Ensure instance tenant,actividad,PROC-010,EnsureInstanceTenantCommand,PLATFORM_CLIENT_SLUG,tenant upserted,Comando ops ADR-001,app/Console/Commands/EnsureInstanceTenantCommand.php,implementado
+ACT-021,Validar catálogo pre-simulación,actividad,PROC-009,SimulateClientCommand,slug cliente,validación OK,Primer paso simulate-client,app/Console/Commands/SimulateClientCommand.php,implementado
+ACT-022,Publicar eventos fixture simulación,actividad,PROC-009,SimulateClientCommand,sample_events.json,eventos publicados,Tráfico de prueba,tests/Fixtures/clients/acmepos/sample_events.json,implementado
+ACT-023,Recibir webhook externo,actividad,PROC-011,ReceiveWebhookUseCase,POST webhook,publish al bus,Ingress integraciones,tests/Feature/Integration/WebhookIngressTest.php,implementado
+ACT-024,Evaluar alertas monitoreo,actividad,PROC-013,EvaluateMonitoringAlertsCommand,umbrales config,alertas evaluadas,Schedule cada minuto,routes/console.php,implementado
+ACT-025,Purgar retención tablas,actividad,PROC-014,PurgePlatformRetentionCommand,platform_retention.php,filas purgadas,Schedule diario 02:30,routes/console.php,implementado
+ACT-026,Ingesta documentada etapa 1,actividad,PROC-017,Conectores fuente,Eventos ERP/POS/e-commerce,Canal interno,Etapa 3.1 Flujo_Middleware.md,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md,documentado
+ACT-027,Procesamiento y validación documentado,actividad,PROC-017,Middleware doc,Evento crudo,Evento normalizado,Etapa 3.2 transformación enriquecimiento,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md,documentado no completo en código
+ACT-028,Enrutamiento a tópicos dominio,actividad,PROC-017,Broker doc,Evento clasificado,Tópico Inventario/Pedido/Cliente,Etapa 3.3 topics documentales,docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md §3.3,NO_EVIDENCIADO en código,Tópicos retail no implementados en core agnóstico
+ACT-029,Gateway decisión OAuth2 enterprise,compuerta,PROC-005,Arquitectura,Requisito SSO,Flujo IdP o defer,ADR-002 Propuesto,docs/production/ADR_002_autenticacion_enterprise.md,diferido
+ACT-030,Gateway decisión multi-tenant vs instancia,compuerta,PROC-018,Arquitectura,Requisito aislamiento,instance_per_client o multi_tenant,ADR-001 Aceptado instance_per_client,docs/production/ADR_001_instancia_por_cliente.md,decidido
+ACT-031,Evento inicio publicación,evento_inicio,PROC-001,Integrador,HTTP POST o CLI,Inicio flujo publish,Trigger PROC-001,app/Shared/Api/Routes/MiddlewareApiRoutes.php,implementado
+ACT-032,Evento fin observación dashboard,evento_fin,PROC-004,Dashboard,Proyección completa,Feed actualizado,Fin cadena observabilidad,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Dashboard_General.md §6,implementado

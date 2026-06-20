@@ -1,0 +1,5 @@
+id_merge,commit_hash,rama_origen,rama_destino,fecha,autor,mensaje,estado,notas
+MERGE-001,0fb1a9feacea24d17bd9d9c8b3d55d4808e05a21,PENDIENTE_VALIDACION,PENDIENTE_VALIDACION,2026-06-16,Guillen-Sanabria,Resolve merge conflict,completado,Parents: 87667b8 y 98440bd; git name-rev 87667b8=remotes/origin/HEAD~1
+MERGE-002,78567e6f8e40a1d594598580b5c8b89d5e4b20d5,refactorizacion~2,PENDIENTE_VALIDACION,2026-06-18,Brayan Estif Guillen Sanabria,se resuelven problemas de merg,completado,Parents: 29c9b71 y 98440bd; git name-rev 29c9b71=refactorizacion~2
+MERGE-003,NO_EVIDENCIADO,NO_EVIDENCIADO,main,NO_EVIDENCIADO,NO_EVIDENCIADO,Merge feature/v1.7,NO_EVIDENCIADO,Solo 2 merges en git log --merges; ramas feature/v1.5 v1.6 v1.7 existen sin merge commit explícito
+MERGE-004,NO_EVIDENCIADO,NO_EVIDENCIADO,main,NO_EVIDENCIADO,NO_EVIDENCIADO,Merge refactorizacion,NO_EVIDENCIADO,Commit 05c6714 menciona pasar refactorizacion a principal sin merge commit registrado

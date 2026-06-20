@@ -1,0 +1,31 @@
+id_dependencia,origen,destino,tipo_dependencia,descripcion,evidencia_ruta,criticidad,notas
+DEP-001,Dashboard,Middleware,servicio,Dashboard consume métricas cola y señales del bus,docs/Plan_Desarrollo_Modulos_v0.1/Plan_Modulo_Dashboard_General.md §1,alta,Acoplamiento permitido solo read models
+DEP-002,Middleware,eventbus.php,configuracion,Suscripciones producers y umbrales enrutamiento,config/eventbus.php,alta,Fuente enrutamiento C4
+DEP-003,Dashboard,modules_config.json,configuracion,Topología declarativa UI,config/modules/modules_config.json,alta,Riesgo divergencia documentado Plan_de_implementacion §2.1
+DEP-004,Middleware,modules_config.json,configuracion,Sync registry lee catálogo declarativo,app/Middleware/Application/UseCases/SyncConfiguredModulesToRegistryUseCase.php,alta,B.2 implementado
+DEP-005,Control Plane,saas_catalog.php,configuracion,Planes y módulos comerciales provisioning,config/saas_catalog.php,media,Catálogo venta SaaS
+DEP-006,Integration,Middleware,servicio,Webhooks y outbound publican al bus,app/Integration/Application/UseCases/ReceiveWebhookUseCase.php,alta,
+DEP-007,Shared/EventBus,Middleware,servicio,PackSubscriptionCatalogMerger fusiona suscripciones,app/Providers/EventBusIntegrationServiceProvider.php,alta,Fase C implementada
+DEP-008,Platform,Database,servicio,InstanceTenantContext y tenant_id en repos,app/Shared/Platform/DatabaseInstanceTenantContext.php,alta,ADR-001
+DEP-009,Observability,Middleware,servicio,BusTrackingListener y trace_logs,app/Middleware/Listeners/BusTrackingListener.php,media,
+DEP-010,Monitoring,Observability,servicio,Alertas usan métricas y canary publish,config/platform_monitoring.php,media,
+DEP-011,Identity,Security,servicio,Gates abilities y middleware auth,app/Providers/IdentityServiceProvider.php;app/Providers/SecurityServiceProvider.php,alta,
+DEP-012,Control,Simulation,servicio,SimulationRunOrchestrator ejecuta runs por tenant,app/Control/Application/Services/SimulationRunOrchestrator.php,media,
+DEP-013,Laravel Framework,todos los BC,infraestructura,Host Laravel 11 PHP 8.2,composer.json require laravel/framework,alta,
+DEP-014,Inertia+Vue,Control+Dashboard,frontend,UI web portal control y dashboard,package.json dependencies @inertiajs/vue3 vue,alta,14 páginas Vue en resources/js/Pages
+DEP-015,Sanctum,Identity,infraestructura,Tokens API personal access,composer.json laravel/sanctum,alta,
+DEP-016,SQLite/MySQL,Platform+Middleware,infraestructura,BD operativa migraciones 31 archivos,database/migrations/,alta,
+DEP-017,Vite,Frontend,infraestructura,Build assets frontend,package.json vite laravel-vite-plugin,media,
+DEP-018,Playwright,QA,infraestructura,UI E2E smoke tests,package.json @playwright/test,media,tests/e2e-ui/smoke-pages.spec.js
+DEP-019,Pest/PHPUnit,QA,infraestructura,Suite tests 81 archivos PHP,phpunit.xml;composer.json pestphp/pest,alta,
+DEP-020,OpenAPI,API,contrato,Contrato API docs/api/openapi.yaml,docs/api/openapi.yaml,media,OpenApiContractTest
+DEP-021,Kafka adapter,Middleware,infraestructura,Driver alternativo eventbus Kafka opcional,app/Middleware/Infrastructure/EventBus/KafkaEventBusAdapter.php,baja,Default laravel en config/eventbus.php
+DEP-022,dashboard_config.json,Dashboard,configuracion,KPIs métricas series UI,config/dashboard_config.json,alta,
+DEP-023,platform_roles.php,Identity,configuracion,Matriz RBAC roles→abilities,config/platform_roles.php,alta,
+DEP-024,Control,Tenant DB,servicio,Gestión tenants tabla tenants,app/Shared/Infrastructure/Models/TenantModel.php,alta,migration 2026_05_21_100000
+DEP-025,Scripts CI,Quality,infraestructura,Pipeline lint analyse validate test,composer.json scripts ci,media,scripts/ci/
+DEP-026,Grafana/Prometheus docs,Observability,documentacion,Dashboards y alertas referencia,docs/observability/grafana/;docs/monitoring/prometheus/,baja,No evidencia deploy activo en código
+DEP-027,Demo pack,EventBus,modulo,Ejemplo EventConsumerRegistrationInterface,app/Platform/Demo/DemoPackEventConsumers.php,baja,DEMO_PACK_ENABLED
+DEP-028,PHPUnit fixtures,Simulación,datos,Fixtures acmepos retailco para simulación,tests/Fixtures/clients/,media,
+DEP-029,Redis/Queue Laravel,Middleware,infraestructura,Jobs ProcessEventJob RelayOutboxJob,database/migrations/2026_05_01_230954_create_jobs_table.php,media,driver queue PENDIENTE_VALIDACION en .env.example
+DEP-030,Control,Middleware,consulta,ControlMiddlewareService vista global CP,app/Control/Application/Services/ControlMiddlewareService.php,media,

@@ -1,0 +1,25 @@
+id_evento,fecha,tipo_evento,descripcion,responsable,evidencia,commit_hash
+HIST-001,2026-05-27,hito,Initial commit version beta core listo para pruebas,Brayan Estif Guillen Sanabria,git log,b175b8da5a048e5d7b1e2f0645016a023e378229
+HIST-002,2026-05-28,desarrollo,Fase aislamiento cada cliente en propio entorno,Guillen-Sanabria,git log,b22759d8c9e9e3f0a5b74d7661c1ae28ba4568ed
+HIST-003,2026-05-28,desarrollo,BD dejada en github para facilidad duplicados,Guillen-Sanabria,git log,b561ba791f50417d09483795ec9b3c07fec3258b
+HIST-004,2026-05-28,desarrollo,Aislamiento y pruebas simuladas funcionando,Guillen-Sanabria,git log,94ed7753d0e8048f37115806af7403d303fdf494
+HIST-005,2026-05-28,refactorizacion,Primera refactorización limpieza código spagueti,Guillen-Sanabria,git log,c6ae8f66b006ea74ef64b5df29e7536402dbfc5a
+HIST-006,2026-05-30,documentacion,Formalización versiones con runbook por carpeta,Brayan Estif Guillen Sanabria,git log,c306b051aa4ea3fe69d5277941b860d7f92428c4
+HIST-007,2026-05-30,desarrollo,Primera parte del feature,Brayan Estif Guillen Sanabria,git log,8e95e526f7ee88b1f28da8662ec991d8e1b98282
+HIST-008,2026-05-31,documentacion,Runbook fase 5 listo para fase 6,Brayan Estif Guillen Sanabria,git log,28790e19868c939904ab936892648ade77bd6b88
+HIST-009,2026-06-01,hito,Phase 6 harden lifecycle test coverage and certify UI,Brayan Estif Guillen Sanabria,git log,35cd726270d5c72b6f0d663f9c08e4b1ff189e23
+HIST-010,2026-06-02,desarrollo,Fase 6 silos sin reiniciar proyecto datos legacy contaminados,Brayan Estif Guillen Sanabria,git log,6eb0b5cde78d6e434313986453a9c5e451aa5bf5
+HIST-011,2026-06-06,hito,Version 1.7 arreglos rutas y creación tenants,Brayan Estif Guillen Sanabria,git log,6500034d6420ab89765fe1cba4f68d75121fef50
+HIST-012,2026-06-10,respaldo,Copia de seguridad funcional con leves problemas flujo,Brayan Estif Guillen Sanabria,git log,a56dbd1abb418c68232922b4918ae24fec7627ca
+HIST-013,2026-06-13,refactorizacion,Refactorización y reparación funciones pendiente seguridad,Brayan Estif Guillen Sanabria,git log,63c0fa4c2fd3026377c4e32b8e515d79df37925c
+HIST-014,2026-06-13,integracion,Pasar cambios refactorizacion a principal,Brayan Estif Guillen Sanabria,git log,05c6714a4f562d1cba595f5a98b2d4d823dd7511
+HIST-015,2026-06-15,desarrollo,Prueba historial de versiones,Brayan Estif Guillen Sanabria,git log,87667b8486b79dc3cd5516599678b5f9ecde4c23
+HIST-016,2026-06-15,bugfix,Notificaciones y actualización tiempo real errores conexión,Brayan Estif Guillen Sanabria,git log,95d01f84861589e4805e83e7a3f78244bc5c46a3
+HIST-017,2026-06-16,merge,Resolve merge conflict,Guillen-Sanabria,git log --merges,0fb1a9feacea24d17bd9d9c8b3d55d4808e05a21
+HIST-018,2026-06-16,dependencia,Dependabot bumps axios vue inertiajs,dependabot[bot],git log,9c2f0a5b2de6464be807524fc0556d5cf14e7c05
+HIST-019,2026-06-18,merge,se resuelven problemas de merg,Brayan Estif Guillen Sanabria,git log --merges,78567e6f8e40a1d594598580b5c8b89d5e4b20d5
+HIST-020,2026-06-18,mantenimiento,comprobacion de leves cosas,Brayan Estif Guillen Sanabria,git log,2c552e08ec64942bb5b26532466cb57369419911
+HIST-021,2026-05-21,documentacion,Auditoría producción y planes individuales Plan_*.md,NO_EVIDENCIADO commit,docs/production/Auditoria_Produccion.md;docs/production/Plan_de_implementacion.md,
+HIST-022,2026-05-21,documentacion,Reporte implementación planes producción completados,NO_EVIDENCIADO commit,docs/production/Reporte_Implementacion.md,
+HIST-023,2026-05-28,dependencia,Dependabot bumps actions checkout cache sanctum vite,dependabot[bot],git log,c341aef4ed99073ad6928409927b3da539d3d316
+HIST-024,NO_EVIDENCIADO,documentacion,Matriz control versiones BPMN CSV referenciada,NO_EVIDENCIADO,docs/matriz de control de versiones/,Archivo no localizado en workspace al generar matriz

@@ -1,0 +1,13 @@
+id_pmv,nombre_modulo,tipo,estado,alcance,evidencia_ruta,criterios_cumplimiento,notas
+PMV-001,middleware,nucleo,implementado,Ingesta FIFO cola APIs topología DLQ sync registry,config/saas_catalog.php;app/Middleware/,C1-C5 implementados; Plan_de_implementacion Cumple publish API,required=true en saas_catalog
+PMV-002,dashboard,complemento,implementado,Feed KPIs métricas bus topología nodos UI /dashboard,config/saas_catalog.php;app/Dashboard/,O1-O4 Cumple Plan_de_implementacion §1.1; O5 SSE PENDIENTE_VALIDACION,
+PMV-003,observability,complemento,implementado,Métricas Prometheus trace_logs alertas canary,config/saas_catalog.php;app/Observability/;app/Monitoring/,Reporte_Implementacion Plan_Observabilidad Completado,
+PMV-004,integrations,modulo_comercial,implementado parcial,Webhooks CRUD canales credenciales adapters,config/saas_catalog.php;app/Integration/,IntegrationAdminApiTest WebhookIngressTest; tablas sin uso completo Plan_de_implementacion §2.4,
+PMV-005,analytics,modulo_comercial,parcial,Agregados throughput reportes uso temporal,config/saas_catalog.php,DbBusQueueAnalyticsRepository existe; módulo catálogo sin UI dedicada evidenciada,NO_EVIDENCIADO alcance UI analytics
+PMV-006,security_audit,modulo_comercial,parcial,Bitácora cambios config roles acciones sensibles,config/saas_catalog.php,platform.audit middleware y audit_logs migration; panel dedicado NO_EVIDENCIADO,
+PMV-007,multi_channel,modulo_comercial,NO_EVIDENCIADO,Orquestación varios canales entrada/salida,config/saas_catalog.php,Solo definición catálogo comercial; sin implementación código evidenciada,
+PMV-008,control_plane,plataforma,implementado,Portal /control empresas simulaciones provisioning incidentes,routes/control.php;app/Control/,Rutas y servicios Control implementados,NO_EVIDENCIADO en saas_catalog como módulo separado
+PMV-009,simulacion_cliente,capacidad,implementado,platform:simulate-client fixtures E2E,docs/production/Plan_de_implementacion.md §1.1,Cumple [ACTUALIZADO],
+PMV-010,autenticacion_rbac,capacidad,implementado,Sanctum sesión web roles abilities,config/platform_roles.php;app/Providers/IdentityServiceProvider.php,ADR-002/003 Fase 3 diferida,
+PMV-011,dominios_retail_legacy,vertical,obsoleto,Ventas Inventario Pedidos mockups,docs/DC_Mockups_obsoletos(NOusar)/,Eliminados del código según matrix_validacion_middleware.md,no PMV actual
+PMV-012,config_dinamica_runtime,capacidad,pendiente,Cliente configura módulos sin redeploy,docs/production/Plan_de_implementacion.md §1.1,Estado explícito No cumple,
