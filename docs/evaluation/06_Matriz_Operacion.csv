@@ -1,0 +1,5 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C17,Operacion,Provisioning,Crear y preparar una instancia o tenant,"Capacidad de crear, preparar y dejar operativa una instancia.","Plan de tenants, runbook onboarding y ADR de instancia.","Claridad de pasos, artefactos y estados del provisioning.",4,>= 3,,,
+C18,Operacion,Lifecycle tenant,"Activar, suspender y restaurar tenants",Capacidad de gestionar estados del tenant de forma controlada.,"ADR de lifecycle, runbook v1.5 y planes de tenants.","Presencia de estados, transiciones y reglas de operacion.",4,>= 3,,,
+C19,Operacion,Resiliencia operativa,"Tolerar fallos, recuperar y mantener continuidad",Capacidad de recuperacion y continuidad ante incidentes.,"Plan de resiliencia, DLQ, retries y runbooks.",Existencia de estrategias de recuperacion y fallback.,4,>= 3,,,
+C20,Operacion,Cloud readiness,Desplegarse de forma reproducible en cloud o contenedor,Capacidad de ejecutar la arquitectura en entornos cloud o contenedores.,"Plan cloud, CI/CD y deployment guides.","Presencia de Docker, pipeline, health checks y backup.",4,>= 3,,,

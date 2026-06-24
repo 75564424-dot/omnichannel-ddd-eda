@@ -1,0 +1,9 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones,Aceptado
+A01,Arquitectura,Resumen de aceptacion,Aceptacion arquitectonica,Consolida si la arquitectura sostiene el problema real,Matrices Arquitectura y Calidad,Revision de puntajes y evidencia de arquitectura,21,>= 4,,,,
+A02,Middleware,Resumen de aceptacion,Aceptacion middleware,Consolida si el middleware agrega valor tecnico real,Matrices Middleware y Observabilidad,"Revision de routing, persistencia y trazabilidad",22,>= 4,,,,
+A03,Integracion,Resumen de aceptacion,Aceptacion de integracion,Consolida si la integracion omnicanal es efectiva,Matrices Integracion y Seguridad,"Revision de canales, adapters y conectores",8,>= 4,,,,
+A04,Observabilidad,Resumen de aceptacion,Aceptacion de observabilidad,Consolida si el sistema es trazable y operable,Matrices Observabilidad y Operacion,"Revision de logs, metricas, trazas y alertas",14,>= 4,,,,
+A05,Seguridad,Resumen de aceptacion,Aceptacion de seguridad,Consolida si la superficie de acceso esta protegida,Matrices Seguridad y Calidad,"Revision de auth, hardening y auditoria",13,>= 4,,,,
+A06,Operacion,Resumen de aceptacion,Aceptacion operativa,Consolida si la solucion puede operar y recuperarse,Matrices Operacion y Observabilidad,"Revision de provisioning, lifecycle, resiliencia y cloud",16,>= 4,,,,
+A07,IA aplicada,Resumen de aceptacion,Aceptacion de IA,Consolida si la IA aporto valor controlado,Matrices IA y documentacion cientifica,"Revision de soporte documental, arquitectonico y gobernanza",10,>= 3,,,,
+A08,Calidad de Software,Resumen de aceptacion,Aceptacion de calidad,Consolida si la solucion es estable y coherente,Matrices Calidad y APIs,"Revision de versionado, idempotencia y coherencia documental",11,>= 4,,,,

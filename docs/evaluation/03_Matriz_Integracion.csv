@@ -1,0 +1,3 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C09,Integracion,Integracion multicanal,"Conectar POS, ecommerce, ERP, CRM, mobile y webhooks",Capacidad de conectar multiples canales empresariales.,"Plan de integraciones, diccionario y runbooks.",Variedad de canales y patrones de integracion documentados.,4,>= 4,,,
+C10,Integracion,Adaptacion y transformacion,"Usar adapters para validar, transformar, enriquecer o enrutar",Capacidad de transformar y adaptar mensajes dentro del pipeline.,Plan de integraciones y arquitectura de BD.,"Presencia de adapters, connectors y pipeline de integracion.",4,>= 3,,,

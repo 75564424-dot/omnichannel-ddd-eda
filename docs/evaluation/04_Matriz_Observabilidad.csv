@@ -1,0 +1,4 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C13,Observabilidad,Logs,Registrar eventos relevantes de operacion y diagnostico,Capacidad de registrar trazas y eventos operativos relevantes.,"Plan de logs, observability docs y runbooks.","Presencia de logging estructurado, contexto y retencion.",4,>= 4,,,
+C14,Observabilidad,Metricas,"Medir latencia, throughput, errores, cola y salud",Capacidad de exponer metricas utiles para operacion.,"Plan de observabilidad, monitoreo y dashboards.","Existencia de metricas unificadas, SLI y dashboards.",5,>= 4,,,
+C15,Observabilidad,Trazabilidad,Seguir un evento desde origen hasta destino,Capacidad de seguir un evento end-to-end.,"Trace logs, correlation_id, dashboards y runbooks.","Cobertura documental de event_id, trace_id, spans y correlacion.",5,>= 4,,,

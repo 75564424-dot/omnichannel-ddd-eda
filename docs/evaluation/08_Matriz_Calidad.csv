@@ -1,0 +1,4 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C24,Calidad de Software,Versionado APIs,Contrato estable y gestionado de las APIs de plataforma,Capacidad de mantener contratos versionados y compatibles.,"OpenAPI, policy de breaking changes y changelog.","Claridad de v1, legacy y compatibilidad retroactiva.",4,>= 4,,,
+C25,Calidad de Software,Idempotencia,Evitar efectos duplicados en operaciones repetidas,Capacidad de evitar duplicados en eventos y operaciones.,"Plan de APIs, event bus docs y persistence docs.",Presencia de claves de idempotencia y unique constraints documentados.,4,>= 3,,,
+C26,Calidad de Software,Coherencia documental,Consistencia terminologica y alineacion entre documentos,Capacidad de mantener un corpus documental coherente.,"Corpus documental, ADR, planes y runbooks.",Ausencia de contradicciones graves y trazabilidad de evolucion.,3,>= 4,,,

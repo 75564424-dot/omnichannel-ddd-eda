@@ -1,0 +1,4 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C11,Seguridad,Seguridad de acceso,"Control de acceso a APIs, UI y operaciones administrativas",Capacidad de proteger la superficie de acceso y administracion.,"Plan de seguridad, autenticacion y API docs.","Presencia de auth, abilities, tokens, sesiones y hardening.",5,>= 4,,,
+C12,Seguridad,Hardening,Defensas basicas de capa de plataforma,Capacidad de aplicar defensas de plataforma contra exposicion indebida.,"CORS, security headers, rate limiting y WAF docs.",Cantidad de controles defensivos documentados y su coherencia.,4,>= 3,,,
+C16,Seguridad,Auditoria,Registrar acciones administrativas y cambios sensibles,Capacidad de auditar operaciones y cambios importantes.,"Audit_logs, plan de logs y security docs.",Existencia de flujo de auditoria y evidencias de gobierno.,4,>= 3,,,

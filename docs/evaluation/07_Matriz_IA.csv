@@ -1,0 +1,4 @@
+﻿ID,Dominio,Capacidad,Criterio,Descripcion,Evidencia Esperada,Metodo Evaluacion,Peso,Valor Esperado,Puntaje,Resultado,Observaciones
+C21,IA aplicada,IA documental,"Apoyar sintesis, clasificacion y documentacion",Capacidad de la IA para asistir el trabajo documental.,Corpus de analisis de IA y resultados de consolidacion.,Volumen de apoyo documental y calidad de integracion con la evidencia.,3,>= 3,,,
+C22,IA aplicada,IA arquitectonica,Apoyar analisis y estructuracion arquitectonica,Capacidad de la IA para organizar decisiones y capas.,Documentos de analisis general y blueprint.,"Utilidad en la estructuracion de dominios, capas y decisiones.",3,>= 3,,,
+C23,IA aplicada,Gobernanza IA,"Control humano, validacion y mitigacion de riesgos de automatizacion",Capacidad de gobernar el uso de IA con supervision humana.,"Literatura de confianza, oversight y responsible AI.","Presencia de revision humana, riesgos y mitigaciones documentadas.",4,>= 3,,,
