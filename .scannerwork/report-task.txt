@@ -1,0 +1,6 @@
+projectKey=omnichannel-sass
+serverUrl=http://localhost:9000
+serverVersion=26.6.0.123539
+dashboardUrl=http://localhost:9000/dashboard?id=omnichannel-sass
+ceTaskId=925ebdf5-266c-4c2a-807b-d9cc17207a1e
+ceTaskUrl=http://localhost:9000/api/ce/task?id=925ebdf5-266c-4c2a-807b-d9cc17207a1e
