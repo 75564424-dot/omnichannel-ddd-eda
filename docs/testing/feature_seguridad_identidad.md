@@ -38,26 +38,19 @@ Macroproceso: [04_Macroproceso_Seguridad_Acceso.md](../Diagrama_BPMN/04_Macropro
 | TC-0136 | `sync_config_writes_audit_log_when_enabled` | Audit log sync |
 | TC-0137 | `sanctum_token_grants_access_with_abilities` | Token Sanctum |
 
-### OperatorLoginTest (PROC-005) — **1 FALLÓ**
+### OperatorLoginTest (PROC-005)
 
 | ID | Método | Resultado |
 |----|--------|-----------|
 | TC-0067 | `dashboard_redirects_guest_to_login` | PASÓ |
 | TC-0068 | `operator_can_login_and_access_dashboard` | PASÓ |
 | TC-0069 | `operator_of_another_tenant_can_login_when_multi_tenant_portal_enabled` | PASÓ |
-| **TC-0070** | **`operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled`** | **FALLÓ** |
+| TC-0070 | `operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | PASÓ |
 | TC-0071 | `saas_admin_cannot_login_on_client_silo` | PASÓ |
 | TC-0072 | `control_routes_return_not_found_on_client_silo` | PASÓ |
 | TC-0073 | `platform_operator_seeder_creates_admin_user` | PASÓ |
 
-**Detalle fallo TC-0070 (INC-613e3b):**
-
-```
-Expected redirect: http://localhost/login
-Actual redirect:   http://localhost/dashboard
-```
-
-El test espera rechazo del operador de otro tenant cuando `multi_tenant_portal` está deshabilitado; la aplicación permite acceso al dashboard. Revisar `InstanceDeploymentService` vs middleware de login.
+**Corrección TC-0070 (2026-06-24):** `PlatformDatabaseReadiness` bloqueaba resolución de tenant con SQLite `:memory:`; corregido en `app/Shared/Platform/Support/PlatformDatabaseReadiness.php`. Incidencia INC-613e3b cerrada.
 
 ### RoleBasedAuthorizationTest (PROC-005)
 
@@ -82,20 +75,19 @@ El test espera rechazo del operador de otro tenant cuando `multi_tenant_portal` 
 
 IDs TC-0233–TC-0236 — CSP y headers configurables.
 
-## 5. Resultado obtenido (2026-06-27)
+## 5. Resultado obtenido (2026-06-24)
 
 | Métrica | Valor |
 |---------|-------|
 | Casos en CSV | 25 |
-| PASÓ | 24 |
-| **FALLÓ** | **1** (TC-0070) |
-| Criticidad fallo | Alta — aislamiento portal multi-tenant |
+| PASÓ | 25 |
+| FALLÓ | 0 |
 
 ## 6. Criterios de aceptación
 
 - Integrador sin token → 401 Problem Details (PROC-006).
 - Operador con rol insuficiente → 403 en rutas restringidas.
-- Operador tenant A no accede a silo tenant B cuando portal multi-tenant disabled → **pendiente corrección**.
+- Operador tenant A no accede a silo tenant B cuando portal multi-tenant disabled → verificado (TC-0070).
 
 ## 7. Ejecución
 
@@ -108,4 +100,4 @@ php vendor/bin/phpunit tests/Feature/Identity/RoleBasedAuthorizationTest.php
 ## 8. Trazabilidad
 
 CU-SEC-01…CU-SEC-03 en [Matriz_Trazabilidad_Pruebas.csv](./Matriz_Trazabilidad_Pruebas.csv).  
-Riesgo RSK-F01 en `instrumentos/Matriz_Riesgos_Testing.csv`.
+Riesgo RSK-F01 cerrado en `instrumentos/Matriz_Riesgos_Testing.csv`.

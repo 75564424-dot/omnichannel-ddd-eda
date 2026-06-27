@@ -47,6 +47,14 @@
         "validate-openapi": "bash scripts/ci/lint-openapi.sh",
         "test:stats": "@php docs/testing/tools/sync_test_stats.php",
         "test:stats:check": "@php docs/testing/tools/sync_test_stats.php --check",
+        "test:docs": [
+            "@php vendor/bin/phpunit --log-junit docs/testing/tools/last_junit.xml",
+            "@php docs/testing/tools/generate_test_catalogs.php",
+            "@php docs/testing/tools/export_test_matrix.php",
+            "@php docs/testing/tools/export_strategic_csvs.php",
+            "@php docs/testing/tools/generate_strategic_matrices.php",
+            "@test:stats"
+        ],
         "quality:load": "bash scripts/ci/run-k6-load-test.sh",
         "ci": [
             "@lint",

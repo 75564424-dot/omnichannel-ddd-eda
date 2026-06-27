@@ -1,9 +1,11 @@
 # Arquitectura de Persistencia — Middleware Omnicanal
 
-**Versión:** 1.0  
-**Fecha:** 2026-05-21  
+**Versión:** 2.0  
+**Fecha:** 2026-06-24  
 **Estado:** Activo  
-**Alcance:** Plataforma `platform/event-bus-core` — capa de persistencia del middleware de integración
+**Alcance:** Plataforma `platform/event-bus-core` — capa de persistencia del middleware de integración  
+**Tablas activas:** 38 (+ `migrations` Laravel)  
+**Diagrama ER:** [`er_diagram.md`](er_diagram.md) · **Diccionario:** [`middleware_database_dictionary.md`](middleware_database_dictionary.md)
 
 ---
 
@@ -93,15 +95,21 @@ Un middleware **no persiste el estado de negocio** (stock, pedidos, clientes). P
 
 ```mermaid
 flowchart TB
-    subgraph config [Dominio: Configuración]
+    subgraph identity [Dominio: Plataforma e identidad]
         tenants
+        users
+        personal_access_tokens
+        sessions
+    end
+
+    subgraph config [Dominio: Configuración]
+        system_configurations
         channels
         providers
         integrations
         adapters
         connectors
         integration_credentials
-        system_configurations
     end
 
     subgraph events [Dominio: Eventos]
@@ -110,6 +118,7 @@ flowchart TB
         message_queue
         dead_letter_queue
         retries
+        outbox_messages
     end
 
     subgraph processing [Dominio: Procesamiento]
@@ -134,11 +143,19 @@ flowchart TB
         registered_modules
     end
 
+    subgraph controlplane [Dominio: Control plane]
+        client_incident_reports
+        simulation_runs
+    end
+
+    identity --> config
     config --> events
     events --> processing
     integration --> events
     events --> observability
     processing --> observability
+    identity --> controlplane
+    events --> controlplane
 ```
 
 ### 5.2 Flujo EDA de persistencia
@@ -149,6 +166,7 @@ flowchart TB
    event_store (append-only, canonical)
         ↓
    message_queue (estado de procesamiento)
+   outbox_messages (relay transaccional al bus externo)
         ↓
    [Consumidores / workflows]
         ↓
@@ -159,8 +177,10 @@ flowchart TB
 
 ### 5.3 Reglas DDD
 
-- **Middleware BC** escribe en: `event_store`, `message_queue`, `dead_letter_queue`, `retries`, `registered_modules`
+- **Middleware BC** escribe en: `event_store`, `message_queue`, `dead_letter_queue`, `retries`, `outbox_messages`, `registered_modules`
 - **Dashboard BC** escribe proyecciones en: `event_feed_projections`, `observability_metrics`, `channel_status_snapshots`
+- **Control Plane BC** escribe en: `client_incident_reports`, `simulation_runs`
+- **Identidad** (`users`, `personal_access_tokens`, `sessions`) soporta portal multi-tenant y API Sanctum
 - **Dominios de negocio externos** (Inventario, Pedidos, etc.) mantienen **su propia BD**; el middleware solo registra tránsito
 
 ---
@@ -169,13 +189,15 @@ flowchart TB
 
 | Dominio | Tablas | Responsabilidad |
 |---------|--------|-----------------|
-| **Configuración** | `tenants`, `system_configurations` | Multi-tenant, settings dinámicos |
+| **Plataforma e identidad** | `tenants`, `users`, `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs` | Multi-tenant, operadores, API tokens, infra Laravel |
+| **Configuración** | `system_configurations` | Settings dinámicos |
 | **Canales e integraciones** | `channels`, `providers`, `integrations`, `adapters`, `connectors`, `integration_credentials` | Topología de integración |
-| **Eventos** | `event_store`, `event_logs`, `message_queue`, `dead_letter_queue`, `retries` | Ciclo de vida del evento |
+| **Eventos** | `event_store`, `event_logs`, `message_queue`, `dead_letter_queue`, `retries`, `outbox_messages` | Ciclo de vida del evento + outbox |
 | **Procesamiento** | `processing_jobs`, `workflows`, `workflow_steps`, `transactions` | Orquestación y estado |
 | **Webhooks** | `webhook_requests`, `webhook_responses` | Ingesta/respuesta HTTP |
 | **Notificaciones** | `notifications` | Alertas outbound |
 | **Observabilidad** | `audit_logs`, `trace_logs`, `observability_metrics`, `channel_status_snapshots`, `event_feed_projections`, `registered_modules` | Monitoreo, auditoría, CQRS |
+| **Control plane** | `client_incident_reports`, `simulation_runs` | Soporte cliente, simulación de carga |
 
 ---
 
@@ -223,7 +245,7 @@ La tabla `observability_metrics` reemplaza `bus_metrics_snapshots` y `middleware
 
 ### 8.3 Proyecciones CQRS
 
-`event_feed_projections` es el read model del Dashboard — desacoplado del write model (`event_store` + `message_queue`).
+`event_feed_projections` es el read model del Dashboard — desacoplado del write model (`event_store` + `message_queue`). Incluye `correlation_id` desde v2.0 para agrupar flujos en el feed.
 
 ### 8.4 Estado de canales
 
@@ -294,6 +316,10 @@ RECIBIDO → event_store (recorded)
 
 Tabla `retries` registra cada intento programado/ejecutado, vinculado a `message_queue_id`.
 
+### 11.4 Outbox pattern
+
+Tabla `outbox_messages` garantiza publicación transaccional: el evento se persiste en la misma transacción que el write model y un job (`RelayOutboxJob`) lo relaya al bus externo de forma asíncrona.
+
 ---
 
 ## 12. Resiliencia y tolerancia a fallos
@@ -327,17 +353,22 @@ Tabla `retries` registra cada intento programado/ejecutado, vinculado a `message
 ## 14. Decisiones técnicas clave
 
 1. **SQLite/MySQL compatible** — tipos Laravel estándar, JSON columns, UUID como `char(36)` o native UUID según driver
-2. **Monolito modular** — una BD, dominios lógicos separados; preparado para split futuro
+2. **Monolito modular** — una BD, 38 tablas en 9 dominios lógicos; preparado para split futuro
 3. **Sin FK estricta event_store → message_queue** — desacoplamiento; correlación por `event_uuid`
 4. **Dashboard BC no escribe en write models** — solo proyecciones
 5. **Credenciales encriptadas** — `integration_credentials.encrypted_value` nunca en texto plano
-6. **Instancia por cliente (Fase D)** — `tenant_id` nullable hasta activar multi-tenant
+6. **Multi-tenant operativo** — `users.tenant_id` FK + `tenant_id` nullable en tablas operativas
+7. **Outbox implementado** — `outbox_messages` para relay transaccional (v2.0)
+8. **Control plane persistido** — incidentes de soporte y simulaciones de carga en BD dedicada
 
 ---
 
 ## 15. Referencias
 
-- `docs/architecture/middleware_database_dictionary.md` — diccionario completo de entidades
+- [`er_diagram.md`](er_diagram.md) — diagramas ER por dominio (38 tablas)
+- [`middleware_database_dictionary.md`](middleware_database_dictionary.md) — diccionario columna a columna
+- [`data_dictionary.md`](data_dictionary.md) — modelo retail obsoleto (referencia histórica)
+- `database/migrations/` — fuente de verdad del esquema (31 migraciones)
 - `docs/Plan_Desarrollo_Servicio_v0.1/Flujo_Middleware.md` — pipeline de 5 etapas
 - `docs/Plan_Desarrollo_Servicio_v0.1/DDD_en_la_arquitectura.md` — bounded contexts
 - `docs/Modulos/Modulo_Control_Middleware.md` — módulo de control
@@ -346,9 +377,12 @@ Tabla `retries` registra cada intento programado/ejecutado, vinculado a `message
 
 ## 16. Evolución planificada
 
-| Fase | Mejora |
-|------|--------|
-| v1.1 | Broker externo (Kafka/RabbitMQ) con outbox pattern |
-| v1.2 | Multi-tenant activo con RLS o schema-per-tenant |
-| v1.3 | Particionamiento temporal de `event_store` |
-| v2.0 | Extracción de dominios a microservicios con BD dedicada |
+| Fase | Mejora | Estado |
+|------|--------|--------|
+| v1.1 | Outbox pattern (`outbox_messages`) | **Implementado** (2026-05-21) |
+| v1.2 | Identidad multi-tenant (`users.tenant_id`, `platform_role`) | **Implementado** (2026-05-27) |
+| v1.3 | Control plane (`client_incident_reports`, `simulation_runs`) | **Implementado** (2026-05-28) |
+| v2.0 | Broker externo (Kafka/RabbitMQ) vía outbox relay | Planificado |
+| v2.1 | Multi-tenant con RLS o schema-per-tenant | Planificado |
+| v2.2 | Particionamiento temporal de `event_store` | Planificado |
+| v3.0 | Extracción de dominios a microservicios con BD dedicada | Planificado |

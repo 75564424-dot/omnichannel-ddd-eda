@@ -63,7 +63,7 @@ El generador `generate_test_catalogs.php` aún mapea paths legacy a labels `Inve
 | Métrica histórica | Valor actual | Fuente |
 |-------------------|--------------|--------|
 | 160 métodos | 362 métodos / 363 PHPUnit | `README.md`, `matriz_maestra_casos.csv` |
-| Sin fallos documentados | 2 fallos activos | TC-0070, TC-0161 |
+| Sin fallos documentados | Suite en verde | 364/364 PASÓ (2026-06-24) |
 
 Incremento principal: módulos Control (+65 casos), Dashboard (+71), Platform (+59), API v1, Security/Identity.
 

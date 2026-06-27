@@ -330,8 +330,8 @@ $auditRows = [
     ['AUD-08', 'MiddlewarePipelineEndToEndTest vs ClientProductionLikeSimulationTest', 'Duplicación funcional', 'Vigente', 'Coexistencia justificada', 'Feature=regresión B.2; E2E=multi-tipo', 'Sin asserts triviales duplicados', $date, 'audit_suite_redundancia.md'],
     ['AUD-09', 'Flujos omnicanal legacy (Inventario/Pedido)', 'Feature código', 'Obsoleto', 'No en suite', 'Platform.* fixtures', 'ADR-001 silos por cliente', $date, 'audit_suite_redundancia.md'],
     ['AUD-10', 'matriz_maestra_casos.csv', 'Artefacto', 'Vigente', 'Fuente maestra', 'export_test_matrix.php', '362 filas con junit', $date, 'audit_suite_redundancia.md'],
-    ['AUD-11', 'InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed', 'Test', 'Vigente', 'FALLÓ en CI local', 'Corregir seed tenant_id', 'INC junit 2026-06-27', $date, 'audit_suite_redundancia.md'],
-    ['AUD-12', 'OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled', 'Test', 'Vigente', 'FALLÓ en CI local', 'Revisar redirect login', 'INC junit 2026-06-27', $date, 'audit_suite_redundancia.md'],
+    ['AUD-11', 'InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed', 'Test', 'Vigente', 'PASÓ tras fix PlatformDatabaseReadiness :memory:', 'Corregido INC-e36025', 'Fix 2026-06-24', $date, 'audit_suite_redundancia.md'],
+    ['AUD-12', 'OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled', 'Test', 'Vigente', 'PASÓ tras fix PlatformDatabaseReadiness :memory:', 'Corregido INC-613e3b', 'Fix 2026-06-24', $date, 'audit_suite_redundancia.md'],
 ];
 writeCsv($base.'/docs/testing/audit_suite_redundancia.csv', $auditHeaders, $auditRows);
 echo "audit: ".count($auditRows)."\n";

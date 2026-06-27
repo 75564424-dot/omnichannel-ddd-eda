@@ -1,8 +1,8 @@
-# Auditoría integral de testing — docs vs código (2026-06-27)
+# Auditoría integral de testing — docs vs código (2026-06-24)
 
-**Versión:** v1.8 | **Fecha:** 2026-06-27  
+**Versión:** v1.9 | **Fecha:** 2026-06-24  
 **Baseline histórico:** documentación auto-generada **2026-05-22** (~160 métodos)  
-**Estado actual:** **363 tests PHPUnit** / **362 métodos** en matriz maestra
+**Estado actual:** **364 tests PHPUnit** / **363 métodos** en matriz maestra
 
 ---
 
@@ -12,13 +12,13 @@ Comparar la documentación de testing vigente hasta **2026-05-22** con el códig
 
 ## 2. Resumen ejecutivo
 
-| Dimensión | 2026-05-22 | 2026-06-27 | Δ |
+| Dimensión | 2026-05-22 | 2026-06-24 | Δ |
 |-----------|------------|------------|---|
-| Métodos documentados | ~160 | 362 | **+202 (+126%)** |
-| PHPUnit ejecutados | — | 363 | +1 data provider |
+| Métodos documentados | ~160 | 363 | **+203 (+127%)** |
+| PHPUnit ejecutados | — | 364 | +1 data provider / test nuevo |
 | Clases Test.php | ~90 | 156 | +66 |
 | Documentos estratégicos modulares | 6 | **18** | +12 |
-| Fallos activos | No documentados | **2** | TC-0070, TC-0161 |
+| Fallos activos | No documentados | **0** | TC-0070, TC-0161 corregidos |
 | Procesos BPMN con tests | ~12 | **22** | Ver Matriz Cobertura |
 
 ## 3. Documentación obsoleta vs vigente
@@ -50,9 +50,9 @@ Comparar la documentación de testing vigente hasta **2026-05-22** con el códig
 
 ## 4. Evolución por suite
 
-| Suite | 2026-05-22 (est.) | 2026-06-27 | Nuevas áreas |
+| Suite | 2026-05-22 (est.) | 2026-06-24 | Nuevas áreas |
 |-------|-------------------|------------|--------------|
-| Unit | ~80 | **200** | Control, Platform/Fleet, Simulation, Observability Unit |
+| Unit | ~80 | **201** | Control, Platform/Fleet, Simulation, Observability Unit |
 | Integration | ~15 | **21** | Platform tenant seeding, trace pipeline |
 | Feature | ~60 | **139** | Control completo, Dashboard 17 endpoints, Identity, API v1 |
 | E2E | ~2 | **2** | Sin cambio count; escenarios enriquecidos |
@@ -81,16 +81,16 @@ Documentadas en [Funcionalidades_Obsoletas.csv](./Funcionalidades_Obsoletas.csv)
 - Eventos omnicanal legacy → fixtures `Platform.*` agnósticos.
 - **Multi-tenancy lógico Fase 3** (PROC-018) diferido — silos físicos por tenant (ADR-001).
 
-## 7. Fallos activos (honestos)
+## 7. Fallos resueltos (2026-06-24)
 
-Ejecución: `php vendor/bin/phpunit` — **2026-06-27**, 01:20, 363 tests, **2 failures**.
+Ejecución: `php vendor/bin/phpunit` — **2026-06-24**, 364 tests, **0 failures**.
 
-| ID | Test | Proceso | Síntoma |
-|----|------|---------|---------|
-| **TC-0070** | `OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | PROC-005 | Redirect a `/dashboard` en lugar de `/login` |
-| **TC-0161** | `InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed` | PROC-011/010 | `message_queue.tenant_id` = null |
+| ID | Test | Proceso | Causa raíz | Corrección |
+|----|------|---------|------------|------------|
+| **TC-0070** | `OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | PROC-005 | `PlatformDatabaseReadiness::canQuerySchema()` devolvía `false` con SQLite `:memory:` | Permitir `:memory:` como BD lista para consulta |
+| **TC-0161** | `InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed` | PROC-011/010 | Misma causa — `tenantId()` no resolvía slug en tests | Idem |
 
-Incidencias: INC-613e3b, INC-e36025. JUnit: `docs/testing/tools/last_junit.xml`.
+Incidencias cerradas: INC-613e3b, INC-e36025. JUnit: `docs/testing/tools/last_junit.xml`.
 
 ## 8. Brechas de cobertura identificadas
 
@@ -119,7 +119,7 @@ Decisión AUD-08 en [audit_suite_redundancia.md](./audit_suite_redundancia.md).
 
 | Artefacto | Ubicación |
 |-----------|-----------|
-| Matriz maestra (362 filas) | [matriz_maestra_casos.csv](./matriz_maestra_casos.csv) |
+| Matriz maestra (363 filas) | [matriz_maestra_casos.csv](./matriz_maestra_casos.csv) |
 | Catálogos auto-generados | `*_catalogo_autogenerado.md` |
 | Mapa procesos BPMN | [00_Mapa_Procesos.md](../Diagrama_BPMN/00_Mapa_Procesos.md) |
 | Brechas BPMN | [99_Validacion_Brechas.md](../Diagrama_BPMN/99_Validacion_Brechas.md) |
@@ -127,11 +127,9 @@ Decisión AUD-08 en [audit_suite_redundancia.md](./audit_suite_redundancia.md).
 
 ## 11. Acciones recomendadas
 
-1. Corregir TC-0070 (portal multi-tenant disabled) antes de release.
-2. Corregir TC-0161 (tenant_id en message_queue post-seed).
-3. Ejecutar LOAD-01 k6 en staging y registrar en load/README.csv.
-4. Añadir tests PROC-012 ampliados (rotación secretos, disable canal).
-5. Mantener `export_test_matrix.php` en CI tras cada cambio de suite.
+1. Ejecutar LOAD-01 k6 en staging y registrar en load/README.csv.
+2. Añadir tests PROC-012 ampliados (rotación secretos, disable canal).
+3. Mantener `export_test_matrix.php` en CI tras cada cambio de suite.
 
 ## 12. Referencias cruzadas
 

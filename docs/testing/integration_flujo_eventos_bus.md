@@ -66,7 +66,7 @@ Detalle: [integration_flujo_eventos_bus.csv](./integration_flujo_eventos_bus.csv
 
 **2026-06-27:** 17/17 métodos de este alcance **PASÓ**.
 
-Suite Integration completa: 21 métodos — **20 PASÓ, 1 FALLÓ** (`InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed`, fuera del alcance bus directo).
+Suite Integration completa: 21 métodos — **21 PASÓ** (2026-06-24).
 
 Comando:
 

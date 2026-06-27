@@ -3,13 +3,13 @@ PROC-001,"Publicación eventos bus",MP-02,Implementado,Alta,86,86,0,Alta,,TC-006
 PROC-002,"Sync catálogo → registry",MP-02,Implementado,Alta,20,20,0,Alta,"Cobertura vía sync-config; etiqueta matriz a menudo PROC-001",TC-0076;TC-0078;TC-0082;TC-0094;TC-0095,docs/Diagrama_BPMN/02_Proceso_*.md,2026-06-27
 PROC-003,"Consulta operativa bus",MP-02,Implementado,Alta,9,9,0,Media,,TC-0003;TC-0004;TC-0005;TC-0006;TC-0007,docs/Diagrama_BPMN/03_Proceso_*.md,2026-06-27
 PROC-004,"Observabilidad dashboard",MP-03,Implementado,Alta,41,41,0,Alta,,TC-0046;TC-0047;TC-0048;TC-0049;TC-0050,docs/Diagrama_BPMN/04_Proceso_*.md,2026-06-27
-PROC-005,"Auth operadores web",MP-04,Implementado,Crítica,16,15,1,Alta,"1 test(s) FALLÓ",TC-0067;TC-0068;TC-0069;TC-0070;TC-0071,docs/Diagrama_BPMN/05_Proceso_*.md,2026-06-27
+PROC-005,"Auth operadores web",MP-04,Implementado,Crítica,16,16,0,Alta,,TC-0067;TC-0068;TC-0069;TC-0070;TC-0071,docs/Diagrama_BPMN/05_Proceso_*.md,2026-06-27
 PROC-006,"Auth API integradores",MP-04,Implementado,Crítica,9,9,0,Media,,TC-0133;TC-0134;TC-0135;TC-0136;TC-0137,docs/Diagrama_BPMN/06_Proceso_*.md,2026-06-27
 PROC-007,"Gestión empresas CP",MP-01,Implementado,Alta,15,15,0,Alta,,TC-0030;TC-0031;TC-0032;TC-0033;TC-0034,docs/Diagrama_BPMN/07_Proceso_*.md,2026-06-27
 PROC-008,"Provisioning instancia",MP-01,Parcial,Alta,12,12,0,Alta,,TC-0026;TC-0027;TC-0138;TC-0139;TC-0140,docs/Diagrama_BPMN/08_Proceso_*.md,2026-06-27
-PROC-009,"Simulación cliente E2E",MP-05,Implementado,Alta,69,69,0,Alta,,TC-0001;TC-0002;TC-0015;TC-0016;TC-0017,docs/Diagrama_BPMN/09_Proceso_*.md,2026-06-27
+PROC-009,"Simulación cliente E2E",MP-05,Implementado,Alta,70,70,0,Alta,,TC-0001;TC-0002;TC-0015;TC-0016;TC-0017,docs/Diagrama_BPMN/09_Proceso_*.md,2026-06-27
 PROC-010,"Onboarding instancia",MP-01,Implementado,Media,0,0,0,"Sin tests","Onboarding cubierto indirectamente vía provisioning/portal",,docs/Diagrama_BPMN/10_Proceso_*.md,2026-06-27
-PROC-011,"Ingress webhooks",MP-08,Parcial,Alta,24,23,1,Alta,"1 test(s) FALLÓ",TC-0083;TC-0084;TC-0085;TC-0086;TC-0145,docs/Diagrama_BPMN/11_Proceso_*.md,2026-06-27
+PROC-011,"Ingress webhooks",MP-08,Parcial,Alta,24,24,0,Alta,,TC-0083;TC-0084;TC-0085;TC-0086;TC-0145,docs/Diagrama_BPMN/11_Proceso_*.md,2026-06-27
 PROC-012,"Gestión canales/integraciones",MP-08,Implementado,Alta,1,1,0,Parcial,"Admin API parcial; ampliar CRUD canales y rotación secretos",TC-0083,docs/Diagrama_BPMN/12_Proceso_*.md,2026-06-27
 PROC-013,"Monitoreo y alertas",MP-03,Implementado,Alta,28,28,0,Alta,,TC-0112;TC-0113;TC-0114;TC-0115;TC-0116,docs/Diagrama_BPMN/13_Proceso_*.md,2026-06-27
 PROC-014,"Retención y purga",MP-06,Implementado,Media,7,7,0,Media,,TC-0121;TC-0122;TC-0123;TC-0163;TC-0164,docs/Diagrama_BPMN/14_Proceso_*.md,2026-06-27

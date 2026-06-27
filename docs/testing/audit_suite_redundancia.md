@@ -1,6 +1,6 @@
 # Auditoría de la suite — redundancia, obsolescencia y limpieza
 
-**Versión:** v1.8 | **Fecha:** 2026-06-27 | **CSV:** [audit_suite_redundancia.csv](./audit_suite_redundancia.csv)
+**Versión:** v1.9 | **Fecha:** 2026-06-24 | **CSV:** [audit_suite_redundancia.csv](./audit_suite_redundancia.csv)
 
 ---
 
@@ -25,7 +25,7 @@ Registrar decisiones de **limpieza de documentación y pruebas** para evitar dup
 - Un solo conjunto de catálogos con prefijo `*_catalogo_autogenerado.md`.
 - Matrices estratégicas (8 documentos + CSV) actualizadas a **2026-06-27**.
 - Elementos obsoletos marcados explícitamente en CSV (AUD-01…AUD-09).
-- Fallos activos documentados con incidencia (AUD-11, AUD-12).
+- Fallos históricos AUD-11/AUD-12 corregidos 2026-06-24 (ver sección Resultados).
 
 ## Casos
 
@@ -41,8 +41,8 @@ Registrar decisiones de **limpieza de documentación y pruebas** para evitar dup
 | AUD-08 | E2E vs Feature middleware | Duplicación | Vigente | Coexistencia justificada |
 | AUD-09 | Flujos omnicanal legacy | Feature código | Obsoleto | No en suite; fixtures `Platform.*` |
 | AUD-10 | `matriz_maestra_casos.csv` | Artefacto | Vigente | Fuente maestra 362 filas |
-| AUD-11 | `InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed` | Test | Vigente | **FALLÓ** 2026-06-27 |
-| AUD-12 | `OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | Test | Vigente | **FALLÓ** 2026-06-27 |
+| AUD-11 | `InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed` | Test | Vigente | **PASÓ** 2026-06-24 |
+| AUD-12 | `OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | Test | Vigente | **PASÓ** 2026-06-24 |
 
 Detalle en [audit_suite_redundancia.csv](./audit_suite_redundancia.csv).
 
@@ -55,24 +55,21 @@ Detalle en [audit_suite_redundancia.csv](./audit_suite_redundancia.csv).
 
 ## Resultados
 
-### Suite actual (2026-06-27)
+### Suite actual (2026-06-24)
 
 | Suite | Métodos | PHPUnit |
 |-------|---------|---------|
-| Unit | 200 | 200 PASÓ |
-| Integration | 21 | 20 PASÓ, 1 FALLÓ |
-| Feature | 139 | 138 PASÓ, 1 FALLÓ |
+| Unit | 201 | 201 PASÓ |
+| Integration | 21 | 21 PASÓ |
+| Feature | 139 | 140 PASÓ |
 | E2E | 2 | 2 PASÓ |
-| **Total** | **362** | **363 tests, 361 OK, 2 failures** |
+| **Total** | **363** | **364 tests, 364 OK, 0 failures** |
 
-### Módulos con cobertura nueva (desde auditoría 2026-05-03)
+### Corrección reciente (AUD-11, AUD-12)
 
-Control, Dashboard, Simulation, Platform/Fleet, Observability, Monitoring, Quality, Integration, Security, Identity, API v1.
+Causa raíz: `PlatformDatabaseReadiness::canQuerySchema()` devolvía `false` para SQLite `:memory:` (entorno PHPUnit), impidiendo resolver `tenant_id` en `DatabaseInstanceTenantContext`.
 
-### Fallos activos
-
-1. **`Tests\Integration\Platform\InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed`** — `tenant_id` no persiste en `message_queue` tras seed.
-2. **`Tests\Feature\Identity\OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled`** — redirect esperado `http://localhost/login`, actual difiere.
+Fix en `app/Shared/Platform/Support/PlatformDatabaseReadiness.php`. Incidencias INC-613e3b e INC-e36025 cerradas.
 
 ### Duplicación funcional aceptada (AUD-08)
 
@@ -91,7 +88,7 @@ Control, Dashboard, Simulation, Platform/Fleet, Observability, Monitoring, Quali
 |--------|---------|
 | Métricas desactualizadas en README | Decisiones QA incorrectas |
 | Reintroducir docs `catalog_*.md` | Duplicación y confusión |
-| Ignorar 2 fallos en CI | Regresión multi-tenant y portal |
+| Ignorar regresiones tenant en CI | Aislamiento portal y cola |
 | Pruebas load sin ejecutar | Brecha capacidad vs baseline 100 eps |
 
 ## Dependencias
@@ -119,7 +116,7 @@ Control, Dashboard, Simulation, Platform/Fleet, Observability, Monitoring, Quali
 | Dashboard | `DashboardEndpointsTest`, `ConfigModulesCatalogPresentationTest` |
 | Simulation | `SimulationRunReportTest`, `ClientProductionLikeSimulationTest` |
 | Platform/Fleet | `LocalFleetRegistryTest`, `InstanceTenantSeedingIntegrationTest` |
-| Identity | `OperatorLoginTest` (fallo activo) |
+| Identity | `OperatorLoginTest` |
 | API v1 | `V1RoutesMirrorLegacyTest`, `OpenApiContractTest` |
 
 ## Trazabilidad BPMN
@@ -129,7 +126,7 @@ Control, Dashboard, Simulation, Platform/Fleet, Observability, Monitoring, Quali
 | Calidad y validación | [05_Macroproceso_Calidad_Validacion.md](../Diagrama_BPMN/05_Macroproceso_Calidad_Validacion.md) | Gate CI y catálogos |
 | Operación middleware | [02_Macroproceso_Operacion_Middleware_Eventos.md](../Diagrama_BPMN/02_Macroproceso_Operacion_Middleware_Eventos.md) | Duplicación E2E/Feature |
 | Integración omnicanal | [08_Macroproceso_Integracion_Omnicanal.md](../Diagrama_BPMN/08_Macroproceso_Integracion_Omnicanal.md) | Legacy obsoleto (AUD-09) |
-| Multi-tenancy | [27_Proceso_Multi_Tenancy_Logico_Fase3.md](../Diagrama_BPMN/27_Proceso_Multi_Tenancy_Logico_Fase3.md) | Fallo seeding (AUD-11) |
-| Portal cliente | [28_Proceso_Portal_Instancia_Cliente.md](../Diagrama_BPMN/28_Proceso_Portal_Instancia_Cliente.md) | Fallo login (AUD-12) |
+| Multi-tenancy | [27_Proceso_Multi_Tenancy_Logico_Fase3.md](../Diagrama_BPMN/27_Proceso_Multi_Tenancy_Logico_Fase3.md) | Seeding tenant (AUD-11 OK) |
+| Portal cliente | [28_Proceso_Portal_Instancia_Cliente.md](../Diagrama_BPMN/28_Proceso_Portal_Instancia_Cliente.md) | Login portal (AUD-12 OK) |
 
 Brechas documentadas: [99_Validacion_Brechas.md](../Diagrama_BPMN/99_Validacion_Brechas.md).

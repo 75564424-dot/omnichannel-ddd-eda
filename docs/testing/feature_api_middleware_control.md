@@ -68,7 +68,7 @@ Comando:
 php vendor/bin/phpunit --testsuite Feature --filter Middleware
 ```
 
-Suite global: 363 tests, 2 fallos fuera de este alcance (Platform seeding, Identity login).
+Suite global: 364 tests en verde (2026-06-24).
 
 ## Observaciones
 

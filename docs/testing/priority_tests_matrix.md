@@ -52,7 +52,7 @@ Detalle método a método: [priority_tests_matrix.csv](./priority_tests_matrix.c
 
 **2026-06-27:** Los **6 tests prioritarios (18 métodos agregados)** — **PASÓ**.
 
-Suite global: 363 tests, 2 fallos en Identity/Platform seeding **no pertenecen** a esta matriz prioritaria.
+Suite global: 364 tests en verde (2026-06-24).
 
 Comandos de verificación individual:
 

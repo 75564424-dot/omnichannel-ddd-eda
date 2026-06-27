@@ -1,6 +1,6 @@
 # Matriz de trazabilidad de pruebas — CU → BPMN → Servicio → API → Test
 
-**Versión:** v1.8 | **Fecha:** 2026-06-27 | **CSV:** [Matriz_Trazabilidad_Pruebas.csv](./Matriz_Trazabilidad_Pruebas.csv)  
+**Versión:** v1.9 | **Fecha:** 2026-06-24 | **CSV:** [Matriz_Trazabilidad_Pruebas.csv](./Matriz_Trazabilidad_Pruebas.csv)  
 **IDs tests:** [matriz_maestra_casos.csv](./matriz_maestra_casos.csv)
 
 ---
@@ -50,14 +50,14 @@ BPMN: [13_Proceso_Observabilidad_Dashboard.md](../Diagrama_BPMN/13_Proceso_Obser
 
 | CU | Caso de uso | BPMN | Servicio | API / Comando | Tests |
 |----|-------------|------|----------|---------------|-------|
-| CU-SEC-01 | Login operador web | PROC-005 | `OperatorLoginTest` | `POST /login` | TC-0068;**TC-0070** |
+| CU-SEC-01 | Login operador web | PROC-005 | `OperatorLoginTest` | `POST /login` | TC-0068;TC-0070 |
 | CU-SEC-02 | Autorización por rol | PROC-005 | `RoleBasedAuthorizationTest` | `POST /api/middleware/sync-config` | TC-0076;TC-0078 |
 | CU-SEC-03 | Auth API integradores | PROC-006 | `PlatformApiAuthenticationTest` | `POST .../events/publish` | TC-0133;TC-0135 |
 
 Documento: [feature_seguridad_identidad.md](./feature_seguridad_identidad.md)  
 BPMN: [14_Proceso_Autenticacion_Operadores_Web.md](../Diagrama_BPMN/14_Proceso_Autenticacion_Operadores_Web.md), [15_Proceso_Autenticacion_API_Integradores.md](../Diagrama_BPMN/15_Proceso_Autenticacion_API_Integradores.md)
 
-> **TC-0070 FALLÓ** — trazabilidad CU-SEC-01 incompleta hasta corrección.
+> TC-0070 PASÓ (2026-06-24) — trazabilidad CU-SEC-01 completa.
 
 ## 6. Trazabilidad Integración
 

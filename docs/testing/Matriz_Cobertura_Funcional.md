@@ -1,6 +1,6 @@
 # Matriz de cobertura funcional — PROC-001 a PROC-034
 
-**Versión:** v1.8 | **Fecha:** 2026-06-27 | **CSV:** [Matriz_Cobertura_Funcional.csv](./Matriz_Cobertura_Funcional.csv)  
+**Versión:** v1.9 | **Fecha:** 2026-06-24 | **CSV:** [Matriz_Cobertura_Funcional.csv](./Matriz_Cobertura_Funcional.csv)  
 **Fuente tests:** [matriz_maestra_casos.csv](./matriz_maestra_casos.csv)  
 **Mapa BPMN:** [00_Mapa_Procesos.md](../Diagrama_BPMN/00_Mapa_Procesos.md)
 
@@ -25,10 +25,10 @@ Mapear cada proceso BPMN (PROC-001…PROC-034) y requisito dinámico **REQ-DYN-0
 
 | Macroproceso | Procesos | Tests totales | Cobertura agregada |
 |--------------|----------|---------------|-------------------|
-| MP-01 Plataforma SaaS | 007,008,010,015,020,034 | ~90 | Alta (fallos portal/seeding) |
+| MP-01 Plataforma SaaS | 007,008,010,015,020,034 | ~90 | Alta |
 | MP-02 Middleware | 001,002,003,017 | ~85 | Alta PROC-001–003; PROC-017 indirecta |
 | MP-03 Observabilidad | 004,013 | ~71 | Alta |
-| MP-04 Seguridad | 005,006 | ~25 | Media-Alta (1 fallo PROC-005) |
+| MP-04 Seguridad | 005,006 | ~25 | Alta |
 | MP-05 Calidad | 009,016 | ~45 | Alta |
 | MP-06 Operaciones | 014,030,031,032 | ~8 | Parcial (solo PROC-014) |
 | MP-07 Gobernanza | 033,018 | 0–1 | Documental / Diferido |
@@ -43,13 +43,13 @@ Mapear cada proceso BPMN (PROC-001…PROC-034) y requisito dinámico **REQ-DYN-0
 | PROC-002 | Sync registry | 18+ | 18+ | 0 | Alta | — |
 | PROC-003 | Consulta operativa bus | 22+ | 22+ | 0 | Alta | — |
 | PROC-004 | Dashboard observabilidad | 45+ | 45+ | 0 | Alta | REQ-DYN-01 load parcial |
-| PROC-005 | Auth operadores web | 16+ | 15+ | **1** | Media | TC-0070 portal |
+| PROC-005 | Auth operadores web | 16+ | 16+ | 0 | Media | — |
 | PROC-006 | Auth API integradores | 9+ | 9+ | 0 | Media | — |
 | PROC-007 | Gestión empresas CP | 12+ | 12+ | 0 | Alta | — |
 | PROC-008 | Provisioning instancia | 14+ | 14+ | 0 | Media | Fleet VM real |
 | PROC-009 | Simulación E2E | 35+ | 35+ | 0 | Alta | — |
 | PROC-010 | Onboarding instancia | 2 | 2 | 0 | Parcial | E2E onboarding |
-| PROC-011 | Ingress webhooks | 20+ | 19+ | **1** | Media | TC-0161 tenant_id |
+| PROC-011 | Ingress webhooks | 20+ | 20+ | 0 | Media | Rate limit / replay |
 | PROC-012 | Canales integraciones | 1 | 1 | 0 | Parcial | CRUD ampliado |
 | PROC-013 | Monitoreo alertas | 8+ | 8+ | 0 | Media | Canal alerta externo |
 | PROC-014 | Retención purga | 5+ | 5+ | 0 | Media | — |
@@ -77,14 +77,13 @@ Mapear cada proceso BPMN (PROC-001…PROC-034) y requisito dinámico **REQ-DYN-0
 | GAP-03 | PROC-030–032 sin automatización | Bajo ops | Checklist manual pre-GO |
 | GAP-04 | REQ-DYN-01 load | Alto perf | Ejecutar k6 LOAD-01 |
 | GAP-05 | PROC-034 integración | Medio | Test espejo multi-instancia |
-| GAP-06 | TC-0070, TC-0161 | Alto | Corregir antes release |
 
-## 6. Procesos con fallos
+## 6. Fallos resueltos (2026-06-24)
 
-| Proceso | Test ID | Clase |
-|---------|---------|-------|
-| PROC-005 | TC-0070 | `OperatorLoginTest` |
-| PROC-011 | TC-0161 | `InstanceTenantSeedingIntegrationTest` |
+| Proceso | Test ID | Corrección |
+|---------|---------|------------|
+| PROC-005 | TC-0070 | `PlatformDatabaseReadiness` — SQLite `:memory:` |
+| PROC-011 | TC-0161 | Idem — resolución `tenant_id` en cola |
 
 ## 7. Referencias documentales BPMN
 

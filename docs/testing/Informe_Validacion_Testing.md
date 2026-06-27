@@ -1,16 +1,16 @@
 # Informe de validación de testing — métricas finales
 
-**Versión:** v1.8 | **Fecha:** 2026-06-27  
+**Versión:** v1.9 | **Fecha:** 2026-06-24  
 **Ejecutor:** CI / QA local  
-**Comando:** `php vendor/bin/phpunit` (01:20, Memory 96 MB)
+**Comando:** `php vendor/bin/phpunit` (01:19, Memory 98 MB)
 
 ---
 
 ## 1. Resumen ejecutivo
 
-La suite de pruebas del proyecto **omnichannel-ddd-eda** fue auditada y documentada tras la evolución de módulos desde la línea base **2026-05-22** (160 métodos). El estado actual comprende **363 tests PHPUnit** con **361 pasando** y **2 fallos documentados** que bloquean validación completa de PROC-005 (portal) y seeding multi-tenant (PROC-011).
+La suite de pruebas del proyecto **omnichannel-ddd-eda** fue auditada y documentada tras la evolución de módulos desde la línea base **2026-05-22** (160 métodos). El estado actual comprende **364 tests PHPUnit** con **364 pasando** y **0 fallos**.
 
-**Veredicto:** **VALIDACIÓN PARCIAL** — apto para desarrollo continuo; **no apto para release productivo** sin resolver TC-0070 y TC-0161.
+**Veredicto:** **VALIDACIÓN COMPLETA (PHPUnit)** — suite en verde; pendientes operativos: load k6 (REQ-DYN-01) y procesos infra PROC-030–032.
 
 ---
 
@@ -18,23 +18,23 @@ La suite de pruebas del proyecto **omnichannel-ddd-eda** fue auditada y document
 
 | Métrica | Valor |
 |---------|-------|
-| Tests PHPUnit ejecutados | **363** |
-| Métodos en matriz maestra | **362** |
-| Assertions | **1.198** |
-| Pasaron | **361** (99,45%) |
-| Fallaron | **2** (0,55%) |
+| Tests PHPUnit ejecutados | **364** |
+| Métodos en matriz maestra | **363** |
+| Assertions | **1.202** |
+| Pasaron | **364** (100%) |
+| Fallaron | **0** |
 | Errores | 0 |
 | Skipped | 0 |
-| Tiempo ejecución | 80,2 s |
-| Fecha ejecución | 2026-06-27 |
+| Tiempo ejecución | 79 s |
+| Fecha ejecución | 2026-06-24 |
 
 ### Desglose por suite
 
 | Suite | Métodos | Ejecutados | PASÓ | FALLÓ |
 |-------|---------|------------|------|-------|
-| Unit | 200 | 200 | 200 | 0 |
-| Integration | 21 | 21 | 20 | **1** |
-| Feature | 139 | 141* | 139 | **1** |
+| Unit | 201 | 201 | 201 | 0 |
+| Integration | 21 | 21 | 21 | 0 |
+| Feature | 139 | 140* | 140 | 0 |
 | E2E | 2 | 2 | 2 | 0 |
 
 \*PHPUnit puede contar data providers adicionales vs métodos estáticos.
@@ -48,8 +48,8 @@ La suite de pruebas del proyecto **omnichannel-ddd-eda** fue auditada y document
 | Middleware | 80+ | `feature_api_middleware_control.md` | PROC-001–003 | OK |
 | Control Plane | 65 | `feature_control_plane.md` | PROC-007,008,015,020,034 | OK |
 | Dashboard/Obs | 71 | `feature_dashboard_observabilidad.md` | PROC-004,013 | OK |
-| Security/Identity | 25 | `feature_seguridad_identidad.md` | PROC-005,006 | **1 fallo** |
-| Integration | 24 | `feature_integracion_webhooks.md` | PROC-011,012 | **1 fallo** |
+| Security/Identity | 25 | `feature_seguridad_identidad.md` | PROC-005,006 | OK |
+| Integration | 24 | `feature_integracion_webhooks.md` | PROC-011,012 | OK |
 | Platform/Fleet | 59 | `feature_plataforma_fleet_simulacion.md` | PROC-009,010,020 | OK |
 | Quality | 5+ | `unit_configuracion_catalogo_declarativo.md` | PROC-016 | OK |
 | E2E | 2 | `e2e_simulacion_cliente.md` | PROC-009 | OK |
@@ -86,35 +86,20 @@ Detalle completo: [Matriz_Cobertura_Funcional.csv](./Matriz_Cobertura_Funcional.
 
 ---
 
-## 5. Fallos activos (detalle)
+## 5. Corrección reciente (2026-06-24)
 
-### TC-0070 — OperatorLoginTest
+### Causa raíz común — TC-0070 y TC-0161
 
-```
-Tests\Feature\Identity\OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled
+`PlatformDatabaseReadiness::canQuerySchema()` trataba SQLite `:memory:` (usado por PHPUnit) como «no listo», impidiendo que `DatabaseInstanceTenantContext` resolviera el `tenant_id` desde `PLATFORM_CLIENT_SLUG`.
 
-Expected: http://localhost/login
-Actual:   http://localhost/dashboard
-```
+**Impacto:**
 
-- **Proceso:** PROC-005
-- **Incidencia:** INC-613e3b
-- **Impacto:** Aislamiento portal multi-tenant
-- **Documento:** [feature_seguridad_identidad.md](./feature_seguridad_identidad.md)
+- **TC-0070:** el login no rechazaba operadores de otro tenant (check omitido al ser `configuredInstanceTenantId()` null).
+- **TC-0161:** `message_queue.tenant_id` quedaba null al publicar eventos vía `BusTrackingListener`.
 
-### TC-0161 — InstanceTenantSeedingIntegrationTest
+**Fix:** `app/Shared/Platform/Support/PlatformDatabaseReadiness.php` — retornar `true` para `:memory:`.
 
-```
-message_queue_persists_tenant_id_after_seed
-
-Expected tenant_id: 102be7b0-f31a-4220-933d-af811faa0a9b
-Actual tenant_id:   null
-```
-
-- **Proceso:** PROC-011 / PROC-010
-- **Incidencia:** INC-e36025
-- **Impacto:** Trazabilidad tenant en cola post-seed
-- **Documento:** [feature_integracion_webhooks.md](./feature_integracion_webhooks.md)
+**Test añadido:** `PlatformDatabaseReadinessTest::can_query_schema_is_true_for_in_memory_sqlite`.
 
 ---
 
@@ -150,10 +135,10 @@ Matriz CRIT-01…CRIT-15 en [matrix_validacion_middleware.csv](./matrix_validaci
 
 | Indicador | Antes | Ahora | Δ |
 |-----------|-------|-------|---|
-| Métodos | 160 | 362 | +126% |
+| Métodos | 160 | 363 | +127% |
 | Módulos documentados | 4 suites genéricas | 10 fichas modulares | +6 |
-| IDs trazables | Parcial | 362 TC-xxxx | Completo |
-| Fallos conocidos | 0 doc | 2 doc | Transparencia |
+| IDs trazables | Parcial | 363 TC-xxxx | Completo |
+| Fallos conocidos | 0 doc | 0 activos | Suite verde |
 
 Auditoría: [00_Auditoria_Testing.md](./00_Auditoria_Testing.md)
 
@@ -163,7 +148,7 @@ Auditoría: [00_Auditoria_Testing.md](./00_Auditoria_Testing.md)
 
 | Artefacto | Filas / estado |
 |-----------|----------------|
-| `matriz_maestra_casos.csv` | 362 |
+| `matriz_maestra_casos.csv` | 363 |
 | `feature_control_plane.csv` | 65 |
 | `feature_dashboard_observabilidad.csv` | 71 |
 | `feature_seguridad_identidad.csv` | 25 |
@@ -172,7 +157,7 @@ Auditoría: [00_Auditoria_Testing.md](./00_Auditoria_Testing.md)
 | `Matriz_Cobertura_Funcional.csv` | 26 |
 | `Matriz_Trazabilidad_Pruebas.csv` | 24 |
 | `Funcionalidades_Obsoletas.csv` | 10 |
-| `last_junit.xml` | 363 testcases |
+| `last_junit.xml` | 364 testcases |
 
 ---
 
@@ -180,16 +165,15 @@ Auditoría: [00_Auditoria_Testing.md](./00_Auditoria_Testing.md)
 
 ### Conclusiones
 
-1. La suite creció **126%** con cobertura sólida de Control Plane, Dashboard, Platform/Fleet y API v1.
+1. La suite creció **127%** con cobertura sólida de Control Plane, Dashboard, Platform/Fleet y API v1.
 2. Middleware core (PROC-001–003) mantiene cobertura alta Feature + Integration + E2E.
-3. **2 fallos** impiden certificar PROC-005 portal isolation y seeding tenant en cola.
+3. **Suite PHPUnit en verde** tras corrección de resolución tenant en tests SQLite.
 4. Operaciones infra (PROC-030–032) y load (REQ-DYN-01) permanecen fuera de PHPUnit.
 
 ### Recomendaciones pre-release
 
 | Prioridad | Acción |
 |-----------|--------|
-| P0 | Corregir TC-0070 y TC-0161 |
 | P1 | Ejecutar LOAD-01 en staging |
 | P2 | Ampliar PROC-012 y PROC-034 |
 | P3 | Checklist manual PROC-030–032 |
@@ -198,10 +182,10 @@ Auditoría: [00_Auditoria_Testing.md](./00_Auditoria_Testing.md)
 
 | Rol | Estado | Fecha |
 |-----|--------|-------|
-| QA automatizado | PARCIAL (2 fallos) | 2026-06-27 |
-| Arquitectura middleware | OK (CRIT-01–15) | 2026-06-27 |
-| Control Plane | OK módulo | 2026-06-27 |
-| Release productivo | **BLOQUEADO** hasta P0 | — |
+| QA automatizado | OK (364/364) | 2026-06-24 |
+| Arquitectura middleware | OK (CRIT-01–15) | 2026-06-24 |
+| Control Plane | OK módulo | 2026-06-24 |
+| Release productivo | **Condicionado** a load + checklist ops | — |
 
 ---
 

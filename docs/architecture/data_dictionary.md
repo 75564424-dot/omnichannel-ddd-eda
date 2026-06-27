@@ -1,9 +1,10 @@
 # Data Dictionary (Legacy — Retail OLTP)
 
 > **Deprecado:** Este modelo describe un sistema de retail monolítico y **no refleja** la persistencia actual del middleware omnicanal.  
-> Consulte la documentación vigente:
-> - [`middleware_database_architecture.md`](middleware_database_architecture.md)
-> - [`middleware_database_dictionary.md`](middleware_database_dictionary.md)
+> Consulte la documentación vigente (v2.0, 2026-06-24):
+> - [`er_diagram.md`](er_diagram.md) — diagramas entidad-relación (38 tablas)
+> - [`middleware_database_dictionary.md`](middleware_database_dictionary.md) — diccionario completo
+> - [`middleware_database_architecture.md`](middleware_database_architecture.md) — arquitectura DDD/EDA
 
 ---
 

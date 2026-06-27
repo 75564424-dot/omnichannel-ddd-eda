@@ -17,8 +17,12 @@ final class PlatformDatabaseReadiness
 
         $path = config('database.connections.sqlite.database');
 
-        if (! is_string($path) || $path === '' || $path === ':memory:') {
+        if (! is_string($path) || $path === '') {
             return false;
+        }
+
+        if ($path === ':memory:') {
+            return true;
         }
 
         return is_file($path);

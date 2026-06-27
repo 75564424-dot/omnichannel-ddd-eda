@@ -1,6 +1,6 @@
 # Sistema de pruebas — omnichannel-ddd-eda (DDD + EDA + middleware)
 
-**Versión documentación:** v1.8 | **Última auditoría:** 2026-06-27
+**Versión documentación:** v1.9 | **Última auditoría:** 2026-06-24
 
 Este directorio documenta la estrategia de validación automática del proyecto **omnichannel-ddd-eda**: capas `tests/Unit`, `tests/Integration`, `tests/Feature`, `tests/E2E`, instrumentos ISO, matrices CSV y trazabilidad con procesos BPMN (`docs/Diagrama_BPMN/`).
 
@@ -25,7 +25,7 @@ Este directorio documenta la estrategia de validación automática del proyecto 
 | Documento | CSV | Contenido |
 |-----------|-----|-----------|
 | [00_Auditoria_Testing.md](./00_Auditoria_Testing.md) | — | Comparación 160→362 tests, módulos nuevos, brechas |
-| [Informe_Validacion_Testing.md](./Informe_Validacion_Testing.md) | — | Veredicto: **VALIDACIÓN PARCIAL** (2 fallos) |
+| [Informe_Validacion_Testing.md](./Informe_Validacion_Testing.md) | — | Veredicto: **VALIDACIÓN COMPLETA (PHPUnit)** — 364/364 |
 | [Matriz_Cobertura_Funcional.md](./Matriz_Cobertura_Funcional.md) | [Matriz_Cobertura_Funcional.csv](./Matriz_Cobertura_Funcional.csv) | PROC ↔ tests ↔ brechas |
 | [Matriz_Trazabilidad_Pruebas.md](./Matriz_Trazabilidad_Pruebas.md) | [Matriz_Trazabilidad_Pruebas.csv](./Matriz_Trazabilidad_Pruebas.csv) | CU → BPMN → API → TC-xxxx |
 | [Funcionalidades_Obsoletas.md](./Funcionalidades_Obsoletas.md) | [Funcionalidades_Obsoletas.csv](./Funcionalidades_Obsoletas.csv) | Historial retirados |
@@ -139,6 +139,7 @@ composer test:stats
 
 ```bash
 php vendor/bin/phpunit
+php artisan test
 php vendor/bin/phpunit --testsuite Unit
 php vendor/bin/phpunit --testsuite Integration
 php vendor/bin/phpunit --testsuite Feature
@@ -146,9 +147,11 @@ php vendor/bin/phpunit --testsuite E2E
 composer test
 ```
 
+> **Nota:** `php artisan test` (Pest) requiere el archivo `.env.testing` en la raíz (incluido en el repo). Sin él, Laravel intenta leer `.env` inexistente y Pest reporta cientos de *warnings* aunque las aserciones pasen.
+
 ---
 
-## Entorno de pruebas (`phpunit.xml`)
+## Entorno de pruebas (`phpunit.xml` + `.env.testing`)
 
 - `QUEUE_CONNECTION=sync` — determinismo en CI
 - `DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`
@@ -160,38 +163,18 @@ composer test
 ## Resultado real (auto-sincronizado)
 
 - **Fecha:** 2026-06-27  
-- **Comando:** `php vendor/bin/phpunit`  
-- **Resultado:** **FALLÓ** (363 tests, 1198 assertions, 2 failures, 0 errors)
+- **Comando:** \`php vendor/bin/phpunit\` (fuente: junit)  
+- **Resultado:** OK (364 tests, 1202 assertions)
 
 ### Desglose por suite (métodos de test)
 
-- **Unit:** 200 métodos `#[Test]` — 200 PASÓ
-- **Integration:** 21 métodos `#[Test]` — 20 PASÓ, **1 FALLÓ**
-- **Feature:** 139 métodos `#[Test]` — 138 PASÓ, **1 FALLÓ**
-- **E2E:** 2 métodos `#[Test]` — 2 PASÓ
+- **Unit:** 201 métodos `#[Test]`
+- **Integration:** 21 métodos `#[Test]`
+- **Feature:** 139 métodos `#[Test]`
+- **E2E:** 2 métodos `#[Test]`
 
-### Fallos activos (no inventados — evidencia JUnit)
+> Actualizado por \`php docs/testing/tools/sync_test_stats.php\` — ejecutar tras añadir tests (\`composer test:stats\`).
 
-| ID | Test | Incidencia |
-|----|------|------------|
-| TC-0070 | `OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | Redirect `/login` esperado, `/dashboard` obtenido |
-| TC-0161 | `InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed` | `tenant_id` null en `message_queue` |
-
-> Actualizado por `php docs/testing/tools/sync_test_stats.php` — ejecutar tras cambios (`composer test:stats`).
-
----
-
-## Estadísticas carpeta
-
-| Métrica | Valor |
-|---------|-------|
-| Archivos Markdown | 38+ |
-| Archivos CSV | 25+ |
-| Casos en matriz maestra | 362 |
-| Instrumentos | 9 pares MD+CSV |
-| Documentos estratégicos modulares | 18 |
-
----
 
 ## Observaciones
 

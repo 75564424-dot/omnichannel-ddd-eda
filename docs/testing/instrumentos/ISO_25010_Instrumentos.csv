@@ -9,7 +9,7 @@ ISO-07,Compatibilidad,Interoperabilidad,API versionada e integradores,OpenAPI v1
 ISO-08,Compatibilidad,Coexistencia,Control plane + silo cliente,Routing portal y auth scoped,Feature,TenantPortalRoutingTest;OperatorLoginTest,it_redirects_login_path_to_silo,~16,Alta,ADR_001,01_Arquitectura C27,Parcial,2026-06-27
 ISO-09,Usabilidad,Reconocibilidad,Adecuación UI operador,Login dashboard middleware web,Feature,OperatorLoginTest;ClientDashboardNodesWebTest,operator_can_login_and_access_dashboard,~10,Baja,Manual UI pre-GO,08_Calidad C26,Parcial,2026-06-27
 ISO-10,Usabilidad,Capacidad_Aprendizaje,Documentación operador,Runbooks y catálogos test,DOC,docs/testing/*_catalogo_autogenerado.md,,0,N/A,Revision documental,08_Calidad C26,Verde,2026-06-27
-ISO-11,Fiabilidad,Madurez,Estabilidad bajo uso normal,363 tests 2 fallos,All,matriz_maestra_casos.csv,,363,Alta,junit last_junit.xml,08_Calidad C24,2 failures,2026-06-27
+ISO-11,Fiabilidad,Madurez,Estabilidad bajo uso normal,364 tests 0 fallos,All,matriz_maestra_casos.csv,,364,Alta,junit last_junit.xml,08_Calidad C24,OK,2026-06-24
 ISO-12,Fiabilidad,Disponibilidad,Health y readiness,/up /health/ready,Feature,HealthEndpointTest,up_endpoint_returns_ok;readiness_returns_ready,3,Alta,smoke-test.sh,06_Operacion C19,Verde,2026-06-27
 ISO-13,Fiabilidad,Recuperabilidad,DLQ retry requeue,Resiliencia bus,Feature+Unit,ResilienceApiTest;RetryPolicyTest,lists_dead_letters;retry_policy_*,~12,Alta,Plan_Resiliencia,02_Middleware C08,Verde,2026-06-27
 ISO-14,Fiabilidad,Tolerancia_Fallos,Degradación controlada,Bus status evaluate,Unit,BusStatusEvaluateTest;EnsureTenantOperationalStatusTest,bus_status_*;suspended tenant 503,~8,Media,Plan_Resiliencia,02_Middleware C08,Verde,2026-06-27

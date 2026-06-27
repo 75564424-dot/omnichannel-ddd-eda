@@ -1,8 +1,8 @@
 # Instrumento — Matriz de riesgos de testing
 
 **Versión:** 1.0  
-**Fecha:** 2026-06-27  
-**Evidencia de ejecución:** `docs/testing/tools/last_junit.xml` (363 tests, 2 failures, 0 errors)  
+**Fecha:** 2026-06-24  
+**Evidencia de ejecución:** `docs/testing/tools/last_junit.xml` (364 tests, 0 failures, 0 errors)  
 **Matriz de evaluación relacionada:** [docs/evaluation/08_Matriz_Calidad.csv](../../evaluation/08_Matriz_Calidad.csv), [docs/evaluation/13_Matriz_Trazabilidad.csv](../../evaluation/13_Matriz_Trazabilidad.csv)
 
 ## 1. Propósito
@@ -13,17 +13,17 @@ Registrar riesgos activos de la suite de pruebas: fallos abiertos, zonas inestab
 
 | Categoría | Cantidad | Severidad máxima |
 |-----------|----------|------------------|
-| Fallos actuales (CI) | 2 | Alta |
+| Fallos actuales (CI) | 0 | — |
 | Áreas flaky / sensibles a config | 4 | Media |
 | Brechas de cobertura documentadas | 12 | Alta–Media |
 | Deuda documental en tests | 3 | Baja |
 
-## 3. Fallos actuales (bloquean verde total)
+## 3. Fallos resueltos (2026-06-24)
 
-| ID | Caso | Clase | Impacto |
-|----|------|-------|---------|
-| RSK-F01 | `operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | `OperatorLoginTest` | Seguridad portal multi-tenant (PROC-005) |
-| RSK-F02 | `message_queue_persists_tenant_id_after_seed` | `InstanceTenantSeedingIntegrationTest` | ADR-004 tenant_id en cola (PROC-011) |
+| ID | Caso | Corrección |
+|----|------|------------|
+| RSK-F01 | `operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled` | `PlatformDatabaseReadiness` — SQLite `:memory:` |
+| RSK-F02 | `message_queue_persists_tenant_id_after_seed` | Idem |
 
 ## 4. Áreas flaky o sensibles
 
@@ -53,10 +53,9 @@ Referencia cruzada: [99_Validacion_Brechas.md](../../Diagrama_BPMN/99_Validacion
 
 ## 6. Mitigaciones recomendadas
 
-1. Corregir RSK-F01 y RSK-F02 antes del próximo GO staging.
-2. Activar `platform:quality-coverage --min=70` en CI (REQ-QA-01).
-3. Añadir Feature test de rate limit y headers en respuesta HTTP.
-4. Documentar en release notes los 2 fallos si se acepta GO-with-risks.
+1. Activar `platform:quality-coverage --min=70` en CI (REQ-QA-01).
+2. Añadir Feature test de rate limit y headers en respuesta HTTP.
+3. Ejecutar LOAD-01 k6 en staging.
 
 ## 7. CSV
 

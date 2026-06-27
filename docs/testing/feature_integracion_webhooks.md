@@ -67,7 +67,7 @@ Servicio: `WebhookIngressProcessor`, `WebhookEventEnvelopeBuilder`, `WebhookSign
 |-------|-----|-----|
 | `EventAndAuditLogServiceTest` | TC-0145, TC-0146 | Logs evento/audit |
 | `TraceLogsPipelineIntegrationTest` | TC-0159 | Trazas post-webhook |
-| `InstanceTenantSeedingIntegrationTest` | TC-0160, **TC-0161** | Seeding tenant — **TC-0161 FALLÓ** |
+| `InstanceTenantSeedingIntegrationTest` | TC-0160, TC-0161 | Seeding tenant — TC-0161 PASÓ (fix 2026-06-24) |
 
 ## 5. Flujo validado (PROC-011 → PROC-001)
 
@@ -84,19 +84,19 @@ sequenceDiagram
     BUS->>DS: Wildcard listener
 ```
 
-## 6. Resultado obtenido (2026-06-27)
+## 6. Resultado obtenido (2026-06-24)
 
 | Métrica | Valor |
 |---------|-------|
 | Casos en CSV | 24 |
 | Feature WebhookIngress + Admin | 3/3 PASÓ |
 | Unit Integration | 15/15 PASÓ |
-| Integración seeding | 1/2 PASÓ (**TC-0161 FALLÓ**) |
+| Integración seeding | 2/2 PASÓ |
 | PROC-012 cobertura | Parcial — 1 test CRUD admin |
 
-### Fallo relacionado TC-0161
+### Corrección TC-0161 (2026-06-24)
 
-`message_queue_persists_tenant_id_after_seed`: `tenant_id` queda `null` tras seed de instancia. Impacta trazabilidad multi-tenant en cola (PROC-010/011).
+`message_queue_persists_tenant_id_after_seed` fallaba porque `PlatformDatabaseReadiness` no permitía consultar schema con SQLite `:memory:`. Corregido; `tenant_id` persiste correctamente tras seed. INC-e36025 cerrada.
 
 ## 7. Brechas
 

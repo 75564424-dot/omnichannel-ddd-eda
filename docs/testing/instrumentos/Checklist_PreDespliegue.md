@@ -1,7 +1,7 @@
 # Instrumento — Checklist pre-despliegue (Staging pre-GO)
 
 **Versión:** 1.0  
-**Fecha:** 2026-06-27  
+**Fecha:** 2026-06-24  
 **Fuente operativa:** [docs/production/Checklist_Staging_PreGO.md](../../production/Checklist_Staging_PreGO.md)  
 **Matriz de evaluación relacionada:** [docs/evaluation/06_Matriz_Operacion.csv](../../evaluation/06_Matriz_Operacion.csv), [docs/evaluation/10_Matriz_Aceptacion_Final.csv](../../evaluation/10_Matriz_Aceptacion_Final.csv)
 
@@ -22,7 +22,7 @@ Primera certificación de instancia staging antes de producción (`Plan_Simulaci
 | **MAN** | Verificación manual obligatoria (UI/ops) |
 | **GAP** | Sin automatización suficiente — riesgo documentado |
 
-## 4. Resumen de cobertura (2026-06-27)
+## 4. Resumen de cobertura (2026-06-24)
 
 | Sección | Ítems | AUTO | CMD | MAN | GAP |
 |---------|-------|------|-----|-----|-----|
@@ -40,7 +40,7 @@ Ver CSV completo: [Checklist_PreDespliegue.csv](./Checklist_PreDespliegue.csv).
 
 - **Instancia staging dedicada** — MAN: revisar `PLATFORM_CLIENT_SLUG` en `.env` vs inventario ([Inventario_Instancias.md](../../production/Inventario_Instancias.md)).
 - **`/up` y `/health/ready`** — AUTO: `HealthEndpointTest` (TC-0064–TC-0066).
-- **Auth habilitada** — AUTO: `PlatformApiAuthenticationTest`, `OperatorLoginTest` (parcial: 1 fallo abierto INC-613e3b).
+- **Auth habilitada** — AUTO: `PlatformApiAuthenticationTest`, `OperatorLoginTest` (OK — suite en verde 2026-06-24).
 
 ### Configuración cliente
 
@@ -60,7 +60,7 @@ Ver CSV completo: [Checklist_PreDespliegue.csv](./Checklist_PreDespliegue.csv).
 ## 6. Ejecución recomendada pre-GO
 
 ```bash
-# Suite completa (363 tests, 2 fallos conocidos — ver Matriz_Riesgos_Testing)
+# Suite completa (364 tests — verde)
 composer test
 
 # Smoke operativo en staging
@@ -69,7 +69,7 @@ CLIENT_SLUG=<slug> EVENTS=50 bash scripts/ops/simulate-client-smoke.sh
 
 ## 7. Decisión GO/NO-GO
 
-Registrar en el checklist fuente: cliente/slug, fixture, fecha, responsable QA, decisión. Bloqueadores actuales: **TC-0070** (portal multi-tenant), **TC-0161** (tenant_id en seed).
+Registrar en el checklist fuente: cliente/slug, fixture, fecha, responsable QA, decisión. Bloqueadores PHPUnit resueltos 2026-06-24; pendientes: load k6 y checklist ops manual.
 
 ## 8. Referencias
 

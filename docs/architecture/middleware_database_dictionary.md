@@ -1,14 +1,17 @@
 # Diccionario de Datos — Middleware Omnicanal
 
-**Versión:** 1.0  
-**Fecha:** 2026-05-21  
+**Versión:** 2.0  
+**Fecha:** 2026-06-24  
 **Base de datos:** SQLite (dev) / MySQL (prod)  
 **ORM:** Laravel Eloquent  
+**Tablas documentadas:** 38 (+ `migrations` Laravel)  
+**Diagrama ER:** [`er_diagram.md`](er_diagram.md)
 
 ---
 
 ## Índice de dominios
 
+0. [Plataforma e identidad](#0-plataforma-e-identidad)
 1. [Configuración y multi-tenant](#1-configuración-y-multi-tenant)
 2. [Canales e integraciones](#2-canales-e-integraciones)
 3. [Eventos y mensajería](#3-eventos-y-mensajería)
@@ -16,6 +19,7 @@
 5. [Webhooks](#5-webhooks)
 6. [Notificaciones](#6-notificaciones)
 7. [Observabilidad y auditoría](#7-observabilidad-y-auditoría)
+8. [Control plane](#8-control-plane)
 
 ---
 
@@ -29,6 +33,69 @@
 | Timestamps | `created_at`, `updated_at` en entidades mutables; omitidos en append-only |
 | Soft delete | `deleted_at` en entidades de configuración |
 | Status enums | Valores en minúsculas con guión bajo internamente; mayúsculas en capa legacy del bus |
+
+---
+
+## 0. Plataforma e identidad
+
+### 0.1 `users`
+
+**Propósito:** Operadores de la plataforma (portal web) y actores de API Sanctum. Vinculados opcionalmente a un tenant de instancia.
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador interno |
+| `tenant_id` | UUID | FK → tenants, NULL, INDEX | Tenant al que pertenece el operador |
+| `name` | VARCHAR(255) | NOT NULL | Nombre visible |
+| `email` | VARCHAR(255) | UNIQUE, NOT NULL | Credencial de login |
+| `email_verified_at` | TIMESTAMP | NULL | Verificación de email |
+| `password` | VARCHAR(255) | NOT NULL | Hash bcrypt |
+| `platform_role` | VARCHAR(40) | NOT NULL, DEFAULT `platform_admin` | `saas_admin`, `platform_admin`, `bus_operator`, `dashboard_viewer` |
+| `remember_token` | VARCHAR(100) | NULL | Sesión persistente |
+| `created_at` | TIMESTAMP | NULL | |
+| `updated_at` | TIMESTAMP | NULL | |
+
+**Índices:** `UNIQUE(email)`, `INDEX(tenant_id, platform_role)`
+
+**Migraciones:** `2026_05_21_120000_*`, `130000_add_platform_role_*`, `2026_05_27_230000_add_tenant_id_to_users_table.php`
+
+---
+
+### 0.2 `personal_access_tokens`
+
+**Propósito:** Tokens API Sanctum (M2M / integradores con abilities).
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PK | |
+| `tokenable_type` | VARCHAR(255) | NOT NULL | Polimórfico (p. ej. `App\Models\User`) |
+| `tokenable_id` | BIGINT UNSIGNED | NOT NULL, INDEX | |
+| `name` | VARCHAR(255) | NOT NULL | Etiqueta del token |
+| `token` | VARCHAR(64) | UNIQUE, NOT NULL | Hash del token |
+| `abilities` | TEXT | NULL | Lista JSON de scopes (`events:publish`, `bus:read`, …) |
+| `last_used_at` | TIMESTAMP | NULL | |
+| `expires_at` | TIMESTAMP | NULL | |
+| `created_at` | TIMESTAMP | NULL | |
+| `updated_at` | TIMESTAMP | NULL | |
+
+**Migraciones:** `2026_05_21_120000_create_users_and_personal_access_tokens_tables.php`
+
+---
+
+### 0.3 `sessions`
+
+**Propósito:** Sesiones web Laravel (driver `database` en producción).
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | VARCHAR(255) | PK | ID de sesión |
+| `user_id` | BIGINT UNSIGNED | NULL, INDEX | Usuario autenticado |
+| `ip_address` | VARCHAR(45) | NULL | |
+| `user_agent` | TEXT | NULL | |
+| `payload` | LONGTEXT | NOT NULL | Datos serializados |
+| `last_activity` | INT | NOT NULL, INDEX | Unix timestamp |
+
+**Migraciones:** `2026_05_01_234418_create_sessions_table.php`
 
 ---
 
@@ -357,6 +424,28 @@
 
 ---
 
+### 3.6 `outbox_messages`
+
+**Propósito:** Patrón outbox para publicación transaccional al bus externo / relay asíncrono (`RelayOutboxJob`).
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| `event_uuid` | UUID | NOT NULL, INDEX | Evento pendiente de relay |
+| `event_type` | VARCHAR(120) | NOT NULL | |
+| `origin` | VARCHAR(120) | NOT NULL, DEFAULT `Unknown` | |
+| `payload` | JSON | NOT NULL | Envelope completo |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT `pending` | `pending`, `published`, `failed` |
+| `attempt_count` | TINYINT UNSIGNED | NOT NULL, DEFAULT 0 | |
+| `published_at` | TIMESTAMP | NULL | Cuándo se relayó |
+| `created_at` | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+
+**Índices:** `INDEX(status, created_at)`, `INDEX(event_uuid)`
+
+**Migraciones:** `2026_05_21_150000_create_outbox_messages_table.php`
+
+---
+
 ## 4. Procesamiento y orquestación
 
 ### 4.1 `processing_jobs`
@@ -627,6 +716,7 @@
 |---------|------|-------------|-------------|
 | `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | `event_uuid` | UUID | UNIQUE, NOT NULL | |
+| `correlation_id` | UUID | NULL, INDEX | Flujo de negocio (desde 2026-05-21) |
 | `event_type` | VARCHAR(120) | NOT NULL, INDEX | |
 | `origin` | VARCHAR(120) | NOT NULL | |
 | `impact` | VARCHAR(80) | NOT NULL | Resumen legible |
@@ -636,9 +726,11 @@
 | `raw_payload` | JSON | NOT NULL | |
 | `created_at` | TIMESTAMP | NOT NULL | |
 
-**Índices:** `UNIQUE(event_uuid)`, `INDEX(event_type, occurred_at)`
+**Índices:** `UNIQUE(event_uuid)`, `INDEX(event_type, occurred_at)`, `INDEX(correlation_id)`
 
 **Flujo:** UniversalDashboardFeedListener → EventFeedProjector → esta tabla.
+
+**Migraciones:** `2026_05_21_100004_*`, `2026_05_21_160000_add_correlation_id_to_event_feed_projections.php`
 
 ---
 
@@ -660,38 +752,154 @@
 
 ---
 
-## Diagrama de relaciones principales
+## 8. Control plane
 
-```mermaid
-erDiagram
-    tenants ||--o{ channels : has
-    tenants ||--o{ providers : has
-    tenants ||--o{ integrations : has
-    channels ||--o{ integrations : links
-    providers ||--o{ integrations : links
-    integrations ||--o{ adapters : has
-    integrations ||--o{ connectors : has
-    integrations ||--o{ integration_credentials : has
-    integrations ||--o{ webhook_requests : receives
-    webhook_requests ||--o| webhook_responses : responds
-    event_store ||--o| message_queue : correlates
-    message_queue ||--o{ retries : has
-    message_queue ||--o| dead_letter_queue : may_become
-    workflows ||--o{ workflow_steps : contains
-    channels ||--o{ channel_status_snapshots : monitors
-```
+### 8.1 `client_incident_reports`
+
+**Propósito:** Incidentes de soporte reportados desde el portal cliente (PROC-015). Incluye hilo de respuesta admin.
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | UUID | PK | |
+| `tenant_id` | UUID | NULL, INDEX | Tenant afectado |
+| `user_id` | BIGINT UNSIGNED | FK → users, NULL | Operador que reporta |
+| `reporter_name` | VARCHAR(120) | NOT NULL | |
+| `reporter_email` | VARCHAR(190) | NOT NULL | |
+| `tenant_name` | VARCHAR(120) | NULL | Snapshot al reportar |
+| `tenant_slug` | VARCHAR(80) | NULL | |
+| `subject` | VARCHAR(160) | NULL | |
+| `description` | TEXT | NOT NULL | Detalle del incidente |
+| `severity` | VARCHAR(20) | NOT NULL, DEFAULT `normal` | `low`, `normal`, `high`, `critical` |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT `open` | `open`, `acknowledged`, `resolved`, … |
+| `page_url` | VARCHAR(500) | NULL | URL donde ocurrió |
+| `diagnostic_log` | JSON | NOT NULL | Contexto técnico capturado |
+| `admin_response` | TEXT | NULL | Respuesta del operador SaaS |
+| `responded_by_name` | VARCHAR(120) | NULL | |
+| `responded_at` | TIMESTAMP | NULL | |
+| `client_read_at` | TIMESTAMP | NULL | Lectura por el cliente |
+| `acknowledged_at` | TIMESTAMP | NULL | |
+| `resolved_at` | TIMESTAMP | NULL | |
+| `created_at` | TIMESTAMP | NULL | |
+| `updated_at` | TIMESTAMP | NULL | |
+
+**Índices:** `INDEX(status, created_at)`, `INDEX(tenant_id)`
+
+**Migraciones:** `2026_05_27_120000_*`, `2026_05_27_140000_add_response_fields_*`
 
 ---
 
-## Tablas de infraestructura Laravel (sin cambios)
+### 8.2 `simulation_runs`
 
-| Tabla | Propósito |
-|-------|-----------|
-| `jobs` | Cola Laravel |
-| `failed_jobs` | Jobs fallidos Laravel |
-| `cache`, `cache_locks` | Cache |
-| `sessions` | Sesiones web |
-| `migrations` | Control de migraciones |
+**Propósito:** Ejecuciones de simulación de carga de eventos por tenant (Control Plane / PROC-009, PROC-020).
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | UUID | PK | |
+| `tenant_id` | UUID | FK → tenants, NOT NULL, INDEX | Tenant simulado |
+| `started_by_user_id` | BIGINT UNSIGNED | FK → users, NULL | Operador que inició |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT `pending` | `pending`, `running`, `completed`, `failed`, `cancelled` |
+| `fixture_slug` | VARCHAR(40) | NOT NULL | Fixture de cliente (`acmepos`, …) |
+| `events_per_minute` | SMALLINT UNSIGNED | NOT NULL | Throughput objetivo |
+| `duration_minutes` | SMALLINT UNSIGNED | NOT NULL | Duración planificada |
+| `planned_total` | INT UNSIGNED | NOT NULL | Eventos totales esperados |
+| `prepare_first` | BOOLEAN | NOT NULL, DEFAULT true | Preparar silo antes de publicar |
+| `published` | INT UNSIGNED | NOT NULL, DEFAULT 0 | Eventos publicados |
+| `queue_matches` | INT UNSIGNED | NOT NULL, DEFAULT 0 | Filas en cola verificadas |
+| `progress_current` | INT UNSIGNED | NOT NULL, DEFAULT 0 | Progreso actual |
+| `started_at` | TIMESTAMP | NULL | |
+| `finished_at` | TIMESTAMP | NULL | |
+| `error_message` | TEXT | NULL | Error terminal |
+| `metrics` | JSON | NULL | Métricas agregadas post-run |
+| `event_ids` | JSON | NULL | UUIDs publicados (muestra) |
+| `created_at` | TIMESTAMP | NULL, INDEX | |
+| `updated_at` | TIMESTAMP | NULL | |
+
+**Índices:** `INDEX(tenant_id)`, `INDEX(tenant_id, status)`, `INDEX(created_at)`
+
+**Migraciones:** `2026_05_28_100000_create_simulation_runs_table.php`
+
+---
+
+## Diagrama de relaciones principales
+
+Ver diagramas completos por dominio en [`er_diagram.md`](er_diagram.md).
+
+---
+
+## Tablas de infraestructura Laravel
+
+### `jobs`
+
+Cola de trabajos asíncronos del framework (workers `queue:work`).
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| `queue` | VARCHAR(255) | NOT NULL, INDEX | Nombre de cola (`default`, `outbox`, …) |
+| `payload` | LONGTEXT | NOT NULL | Job serializado |
+| `attempts` | TINYINT UNSIGNED | NOT NULL | Intentos ejecutados |
+| `reserved_at` | INT UNSIGNED | NULL | Timestamp reserva worker |
+| `available_at` | INT UNSIGNED | NOT NULL | Cuándo está disponible |
+| `created_at` | INT UNSIGNED | NOT NULL | Unix timestamp creación |
+
+**Migración:** `2026_05_01_230954_create_jobs_table.php`
+
+---
+
+### `failed_jobs`
+
+Jobs que agotaron reintentos en la cola Laravel.
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PK | |
+| `uuid` | VARCHAR(255) | UNIQUE | |
+| `connection` | TEXT | NOT NULL | Conexión de cola |
+| `queue` | TEXT | NOT NULL | |
+| `payload` | LONGTEXT | NOT NULL | |
+| `exception` | LONGTEXT | NOT NULL | Stack trace |
+| `failed_at` | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+
+**Migración:** `2026_05_01_235119_create_failed_jobs_table.php`
+
+---
+
+### `cache`
+
+Driver de cache `database`.
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `key` | VARCHAR(255) | PK | Clave de cache |
+| `value` | MEDIUMTEXT | NOT NULL | Valor serializado |
+| `expiration` | INT | NOT NULL | Unix timestamp expiración |
+
+---
+
+### `cache_locks`
+
+Locks distribuidos del driver de cache.
+
+| Columna | Tipo | Constraints | Descripción |
+|---------|------|-------------|-------------|
+| `key` | VARCHAR(255) | PK | Clave del lock |
+| `owner` | VARCHAR(255) | NOT NULL | Identificador del proceso |
+| `expiration` | INT | NOT NULL | Unix timestamp expiración |
+
+**Migración:** `2026_05_02_000827_create_cache_table.php`
+
+---
+
+### Resumen infraestructura
+
+| Tabla | Propósito | Migración |
+|-------|-----------|-----------|
+| `jobs` | Cola Laravel (workers) | `2026_05_01_230954_*` |
+| `failed_jobs` | Jobs fallidos Laravel | `2026_05_01_235119_*` |
+| `cache` | Cache key-value | `2026_05_02_000827_*` |
+| `cache_locks` | Locks de cache | `2026_05_02_000827_*` |
+| `sessions` | Sesiones web | Ver §0.3 |
+| `migrations` | Control de migraciones | Framework |
 
 ---
 
@@ -721,6 +929,7 @@ erDiagram
 
 ## Referencias cruzadas
 
-- Arquitectura: `middleware_database_architecture.md`
-- Modelo retail obsoleto: `data_dictionary.md` (deprecado)
-- Migraciones: `database/migrations/2026_05_21_*`
+- Diagrama ER: [`er_diagram.md`](er_diagram.md)
+- Arquitectura: [`middleware_database_architecture.md`](middleware_database_architecture.md)
+- Modelo retail obsoleto: [`data_dictionary.md`](data_dictionary.md) (deprecado)
+- Migraciones: `database/migrations/` (31 archivos, estado 2026-06-24)

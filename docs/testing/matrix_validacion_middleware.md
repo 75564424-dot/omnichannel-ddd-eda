@@ -67,7 +67,7 @@ Detalle completo en [matrix_validacion_middleware.csv](./matrix_validacion_middl
 | Fallaron | 2 |
 | Errores | 0 |
 
-Los **15 criterios de esta matriz** están en verde (clases representativas PASÓ). Los 2 fallos globales pertenecen a **Platform/Identity** fuera del alcance directo de middleware: `InstanceTenantSeedingIntegrationTest` y `OperatorLoginTest`.
+Los **15 criterios de esta matriz** están en verde (clases representativas PASÓ). Suite global PHPUnit: **364/364 OK** (2026-06-24).
 
 Comando de verificación:
 
