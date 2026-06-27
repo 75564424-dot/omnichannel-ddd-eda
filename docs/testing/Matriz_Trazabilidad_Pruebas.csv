@@ -1,0 +1,25 @@
+CU_ID,Caso_Uso,Proceso_BPMN,Servicio_Clase,API_Comando,Tests_ID,Documento_Prueba,Fecha
+CU-CP-01,"Gestionar empresas tenant",PROC-007,TenantOperatorsScopedTest,"GET /control/companies",TC-0031;TC-0032,feature_control_plane.md,2026-06-27
+CU-CP-02,"Provisionar nueva instancia",PROC-008,ProvisionNewTenantInputMapper,"POST /control/companies",TC-0198;TC-0199;TC-0026,feature_control_plane.md,2026-06-27
+CU-CP-03,"Simular desde control plane",PROC-020,CompanySimulationAutomationTest,"POST /control/companies/{id}/simulate",TC-0015;TC-0018,feature_control_plane.md,2026-06-27
+CU-CP-04,"Espejar catálogo CP→Silo",PROC-034,TenantModuleCatalogService,"PUT /control/tenants/{id}/catalog",TC-0028;TC-0029,feature_control_plane.md,2026-06-27
+CU-CP-05,"Gestionar incidentes soporte",PROC-015,ClientSupportReportTest,"POST /portal/support-report",TC-0012;TC-0013;TC-0014,feature_control_plane.md,2026-06-27
+CU-DASH-01,"Consultar feed dashboard",PROC-004,DashboardEndpointsTest,"GET /api/dashboard/events/feed",TC-0054;TC-0047,feature_dashboard_observabilidad.md,2026-06-27
+CU-DASH-02,"Activar módulos LIVE",PROC-004,ModuleActivationGateServiceTest,"PATCH /api/dashboard/nodes/{id}/middleware-events",TC-0215;TC-0216,feature_dashboard_observabilidad.md,2026-06-27
+CU-OBS-01,"Exportar métricas Prometheus",PROC-013,PrometheusMetricsEndpointTest,"GET /metrics",TC-0117;TC-0118,feature_dashboard_observabilidad.md,2026-06-27
+CU-OBS-02,"Evaluar alertas plataforma",PROC-013,EvaluateMonitoringAlertsCommandTest,"php artisan platform:monitoring-evaluate",TC-0113;TC-0114,feature_dashboard_observabilidad.md,2026-06-27
+CU-SEC-01,"Login operador web",PROC-005,OperatorLoginTest,"POST /login",TC-0068;TC-0070,feature_seguridad_identidad.md,2026-06-27
+CU-SEC-02,"Autorización por rol",PROC-005,RoleBasedAuthorizationTest,"POST /api/middleware/sync-config",TC-0076;TC-0078,feature_seguridad_identidad.md,2026-06-27
+CU-SEC-03,"Auth API integradores",PROC-006,PlatformApiAuthenticationTest,"POST /api/middleware/events/publish",TC-0133;TC-0135,feature_seguridad_identidad.md,2026-06-27
+CU-INT-01,"Recibir webhook firmado",PROC-011,WebhookIngressTest,"POST /api/integrations/webhooks/{channel}",TC-0085;TC-0086,feature_integracion_webhooks.md,2026-06-27
+CU-INT-02,"Administrar canales",PROC-012,IntegrationAdminApiTest,"POST /api/integrations/channels",TC-0083,feature_integracion_webhooks.md,2026-06-27
+CU-PLT-01,"Simular cliente CLI",PROC-009,SimulateClientCommandTest,"php artisan platform:simulate-client",TC-0128;TC-0129,feature_plataforma_fleet_simulacion.md,2026-06-27
+CU-PLT-02,"Gestionar flota local",PROC-009,LocalFleetRegistryTest,deploy/local-instances/fleet-registry.json,TC-0324;TC-0349,feature_plataforma_fleet_simulacion.md,2026-06-27
+CU-BUS-01,"Publicar evento al bus",PROC-001,MiddlewareControlApiTest,"POST /api/middleware/events/publish",TC-0035;TC-0036,feature_api_middleware_control.md,2026-06-27
+CU-BUS-02,"Sync registry",PROC-002,MiddlewarePipelineEndToEndTest,"POST /api/middleware/sync-config",TC-0037,matrix_validacion_middleware.md,2026-06-27
+CU-BUS-03,"Consultar cola bus",PROC-003,MiddlewareControlApiTest,"GET /api/middleware/queue",TC-0003;TC-0010,feature_api_middleware_control.md,2026-06-27
+CU-PRT-01,"Acceder portal tenant",PROC-019,TenantPortalRoutingTest,"GET /t/{slug}/dashboard",TC-0037;TC-0041,feature_control_plane.md,2026-06-27
+CU-QLT-01,"Validar catálogo CI",PROC-016,ValidatePlatformCatalogTest,"php artisan platform:validate-catalog",TC-0332;TC-0335,unit_configuracion_catalogo_declarativo.md,2026-06-27
+CU-OPS-01,"Purgar retención datos",PROC-014,PurgePlatformRetentionTest,"php artisan platform:purge-retention",TC-0121;TC-0122,feature_plataforma_fleet_simulacion.md,2026-06-27
+CU-MT-01,"Multi-tenant lógico",PROC-018,(diferido),N/A,TC-0321,Funcionalidades_Obsoletas.md,2026-06-27
+CU-DOC-01,"Flujo 5 etapas middleware",PROC-017,(documental),N/A,"Indirecto PROC-001",Matriz_Cobertura_Funcional.md,2026-06-27

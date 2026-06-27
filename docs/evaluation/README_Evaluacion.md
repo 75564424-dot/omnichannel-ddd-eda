@@ -1,131 +1,159 @@
-# Evaluacion del Middleware
+# Framework de Evaluacion, Gobernanza y Evolucion Continua
 
-Este directorio contiene el framework oficial y las matrices CSV derivadas para evaluar la calidad, madurez y aceptacion arquitectonica del middleware.
+Este directorio contiene el sistema documental oficial para evaluar, priorizar, evolucionar y mantener trazabilidad del middleware y de su arquitectura de soporte.
 
-## Fuente oficial
+## Fuente normativa
 
-La unica fuente normativa para estas matrices es:
+La fuente normativa principal es:
 
 - [Middleware_Acceptance_Evaluation_Framework.md](Middleware_Acceptance_Evaluation_Framework.md)
 
-## Matrices disponibles
+## Estructura del sistema
 
-### 01_Matriz_Arquitectura.csv
+### Matrices de evaluacion principal
 
-Evalua desacoplamiento, modularidad, extensibilidad, mantenibilidad y escalabilidad futura.
+- `01_Matriz_Arquitectura.csv`
+- `02_Matriz_Middleware.csv`
+- `03_Matriz_Integracion.csv`
+- `04_Matriz_Observabilidad.csv`
+- `05_Matriz_Seguridad.csv`
+- `06_Matriz_Operacion.csv`
+- `07_Matriz_IA.csv`
+- `08_Matriz_Calidad.csv`
 
-### 02_Matriz_Middleware.csv
+Estas matrices evaluan capacidades, evidencias, brechas, impacto, prioridad, dependencias y trazabilidad documental por criterio.
 
-Evalua routing, validacion, persistencia operacional, DLQ, retries, trazabilidad middleware y valor tecnico del middleware.
+### Matrices de consolidacion
 
-### 03_Matriz_Integracion.csv
+- `09_Matriz_Madurez_Global.csv`
+- `10_Matriz_Aceptacion_Final.csv`
 
-Evalua integracion multicanal, adapters y connectors.
+Estas matrices consolidan el puntaje por dominio y la decision ejecutiva de aceptacion o remediacion.
 
-### 04_Matriz_Observabilidad.csv
+### Matrices especializadas de evolucion
 
-Evalua logs, metricas y trazabilidad.
+- `11_Matriz_Evolucion.csv`
+- `12_Matriz_Prompts.csv`
+- `13_Matriz_Trazabilidad.csv`
+- `14_Matriz_Dependencias.csv`
 
-### 05_Matriz_Seguridad.csv
+Estas matrices convierten cada criterio en un artefacto accionable para:
 
-Evalua autenticacion, hardening y auditoria.
+- identificar brechas;
+- proponer mejoras;
+- derivar acciones tecnicas y documentales;
+- generar prompts reutilizables;
+- mantener trazabilidad entre analisis, arquitectura, pruebas y documentacion.
 
-### 06_Matriz_Operacion.csv
+## Guias metodologicas
 
-Evalua provisioning, lifecycle tenant, resiliencia, backups, cloud readiness y CI/CD.
+Las siguientes guias explican como usar el framework de extremo a extremo:
 
-### 07_Matriz_IA.csv
+- [01_Guia_Framework_Evaluacion.md](01_Guia_Framework_Evaluacion.md)
+- [02_Guia_Uso_Matrices.md](02_Guia_Uso_Matrices.md)
+- [03_Guia_Evaluacion_Software.md](03_Guia_Evaluacion_Software.md)
+- [04_Guia_Instrumentos_Medicion.md](04_Guia_Instrumentos_Medicion.md)
+- [05_Guia_Puntuacion_Global.md](05_Guia_Puntuacion_Global.md)
+- [06_Guia_Iteracion_Framework.md](06_Guia_Iteracion_Framework.md)
 
-Evalua IA documental, IA arquitectonica y gobernanza de IA.
+## Rol de la Matriz de Prompts
 
-### 08_Matriz_Calidad.csv
+`12_Matriz_Prompts.csv` actua como el nucleo operativo para convertir una brecha detectada en un prompt reutilizable.
+Su funcion es recoger contexto, restricciones, documentacion, dependencias, riesgos, validaciones, pruebas y resultado esperado.
 
-Evalua versionado de APIs, idempotencia y coherencia documental.
+## Columnas comunes del sistema
 
-### 09_Matriz_Madurez_Global.csv
+Las matrices de evaluacion principal usan esta estructura base:
 
-Resume la madurez por dominio. Usa una fila por dominio para registrar el puntaje promedio, el peso acumulado y el nivel de madurez.
+- `ID`
+- `Dominio`
+- `Capacidad`
+- `Criterio`
+- `Descripcion`
+- `Que_Evalua`
+- `Como_Se_Evalua`
+- `Evidencia_Necesaria`
+- `Documentos_Base`
+- `Fuentes_Analisis`
+- `Brecha`
+- `Mejora`
+- `Impacto`
+- `Prioridad`
+- `Componentes_Afectados`
+- `Archivos_A_Modificar`
+- `Pruebas_Requeridas`
+- `Documentacion_A_Actualizar`
+- `Matrices_Relacionadas`
+- `Dependencias`
+- `Riesgos`
+- `Puntaje`
+- `Resultado`
+- `Observaciones`
 
-### 10_Matriz_Aceptacion_Final.csv
+## Como usar el framework
 
-Resume la decision ejecutiva por dominio. Sirve para producir la aceptacion final del middleware.
+1. Selecciona la matriz del dominio o del artefacto que quieres revisar.
+2. Verifica la evidencia documental y tecnica asociada a cada criterio.
+3. Asigna un puntaje de `0` a `5`.
+4. Registra brechas, dependencias, riesgos e impacto.
+5. Usa la matriz de evolucion para convertir la brecha en plan de accion.
+6. Usa la matriz de prompts para generar instrucciones reutilizables para Cursor.
+7. Consolida el resultado en la matriz global y cierra la decision en la matriz final.
 
-## Estructura comun de las matrices detalladas
+## Escala de puntaje
 
-Todas las matrices detalladas contienen estas columnas:
+- `0` = inexistente
+- `1` = muy deficiente
+- `2` = deficiente
+- `3` = aceptable
+- `4` = bueno
+- `5` = excelente
 
-- ID
-- Dominio
-- Capacidad
-- Criterio
-- Descripcion
-- Evidencia Esperada
-- Metodo Evaluacion
-- Peso
-- Valor Esperado
-- Puntaje
-- Resultado
-- Observaciones
+## Criterio de madurez
 
-## Como usar las matrices
+- `0-1` = no cumple
+- `2` = cumple parcialmente
+- `3` = cumple
+- `4` = cumple satisfactoriamente
+- `5` = cumple de forma sobresaliente
 
-1. Selecciona la matriz del dominio que quieres evaluar.
-2. Revisa la evidencia documental indicada en cada fila.
-3. Asigna un puntaje de 0 a 5.
-4. Registra observaciones cuando haya brechas o contradicciones.
-5. Consolida el resultado en la matriz de madurez global.
-6. Cierra la aceptacion final con la matriz ejecutiva.
+## Regla de gobierno
 
-## Escala de puntuacion
+Ningun criterio debe quedar reducido a una nota aislada. Cada fila debe permitir responder:
 
-- 0 = Inexistente
-- 1 = Muy deficiente
-- 2 = Deficiente
-- 3 = Aceptable
-- 4 = Bueno
-- 5 = Excelente
+- que evalua;
+- como se evalua;
+- que evidencia necesita;
+- que documentos lo respaldan;
+- que brecha existe;
+- como mejorarla;
+- que impacto tendria;
+- que prioridad posee;
+- que componentes afecta;
+- que archivos deberian modificarse;
+- que pruebas deberian ejecutarse;
+- que documentacion debe actualizarse;
+- que prompt puede generarse automaticamente.
 
-## Interpretacion recomendada
+## Referencias base
 
-- 0 a 1: No cumple
-- 2: Cumple parcialmente
-- 3: Cumple
-- 4: Cumple satisfactoriamente
-- 5: Cumple de forma sobresaliente
-
-## Calculo recomendado
-
-Puntaje ponderado por criterio:
-
-`puntaje_ponderado = peso x puntaje`
-
-Puntaje total:
-
-`puntaje_total = suma(puntaje_ponderado de todos los criterios)`
-
-Porcentaje de aceptacion:
-
-`porcentaje = puntaje_total / puntaje_maximo * 100`
-
-## Niveles de madurez
-
-- Nivel 1: Inicial
-- Nivel 2: Funcional
-- Nivel 3: Operativo
-- Nivel 4: Optimizado
-- Nivel 5: Enterprise
-
-## Consolidacion de la aceptacion final
-
-La aceptacion final debe basarse en la matriz ejecutiva y en la lectura conjunta de:
-
-- Arquitectura
-- Middleware
-- Integracion
-- Observabilidad
-- Seguridad
-- Operacion
-- IA aplicada
-- Calidad de Software
-
-Si los dominios criticos se mantienen en 4 o mas y no existen vacios severos en seguridad, trazabilidad o operacion, la solucion puede considerarse arquitectonicamente aceptable.
+- [docs/architecture/Architecture_Blueprint.md](../architecture/Architecture_Blueprint.md)
+- [docs/architecture/middleware_database_architecture.md](../architecture/middleware_database_architecture.md)
+- [docs/production/Plan_Middleware.md](../production/Plan_Middleware.md)
+- [docs/production/Plan_Integraciones.md](../production/Plan_Integraciones.md)
+- [docs/production/Plan_Observabilidad.md](../production/Plan_Observabilidad.md)
+- [docs/production/Plan_Seguridad.md](../production/Plan_Seguridad.md)
+- [docs/production/Plan_Tenants.md](../production/Plan_Tenants.md)
+- [docs/production/Plan_Resiliencia.md](../production/Plan_Resiliencia.md)
+- [docs/production/Plan_CI_CD.md](../production/Plan_CI_CD.md)
+- [docs/production/Plan_Cloud.md](../production/Plan_Cloud.md)
+- [docs/production/Plan_APIs.md](../production/Plan_APIs.md)
+- [docs/production/Plan_Calidad.md](../production/Plan_Calidad.md)
+- [docs/production/Plan_Logs.md](../production/Plan_Logs.md)
+- [docs/production/Plan_Monitoreo.md](../production/Plan_Monitoreo.md)
+- [docs/production/ADR_001_instancia_por_cliente.md](../production/ADR_001_instancia_por_cliente.md)
+- [docs/production/ADR_009_opentelemetry_distributed_tracing.md](../production/ADR_009_opentelemetry_distributed_tracing.md)
+- [docs/production/ADR_010_tenant_lifecycle_management.md](../production/ADR_010_tenant_lifecycle_management.md)
+- [docs/production/ADR_011_friendly_routing_multitenant.md](../production/ADR_011_friendly_routing_multitenant.md)
+- [docs/Analisis_v0.1](../Analisis_v0.1/)
+- [docs/Analisis_v0.2](../Analisis_v0.2/)

@@ -1,0 +1,11 @@
+ID,Funcionalidad,Tipo,Estado,Fecha_Retiro,Reemplazo,Evidencia_Eliminacion,Documento_Historico,Observaciones
+OBS-01,"Dominio Inventario retail en core","Bounded context",Retirado,2026-05-03,"Fixtures Platform.* agnósticos","Tests Inventario.* eliminados","audit_suite_redundancia.md AUD-09","ADR-001 silos por cliente"
+OBS-02,"Dominio Pedidos retail en core","Bounded context",Retirado,2026-05-03,"Eventos ejemplo integrador externo","Tests Pedido.* eliminados","audit_suite_redundancia.md AUD-09","Middleware sin lógica negocio"
+OBS-03,catalog_unit.md,"Documento testing",Retirado,2026-05-03,unit_catalogo_autogenerado.md,"Eliminado del repo","audit_suite_redundancia.csv AUD-01","160 tests baseline obsoleto"
+OBS-04,catalog_integration.md,"Documento testing",Retirado,2026-05-03,integration_catalogo_autogenerado.md,"Eliminado del repo",AUD-02,
+OBS-05,catalog_feature.md,"Documento testing",Retirado,2026-05-03,feature_catalogo_autogenerado.md,"Eliminado del repo",AUD-03,
+OBS-06,catalog_e2e.md,"Documento testing",Retirado,2026-05-03,e2e_catalogo_autogenerado.md,"Eliminado del repo",AUD-04,
+OBS-07,architecture_validation_matrix.md,"Documento testing",Retirado,2026-05-03,matrix_validacion_middleware.md,Reemplazado,AUD-05,
+OBS-08,"Multi-tenancy lógico Fase 3","Proceso BPMN",Diferido,2026-06-27,"Silos físicos por tenant","PROC-018 documental",27_Proceso_Multi_Tenancy_Logico_Fase3.md,"Sin implementación en core"
+OBS-09,"Conteo 160 tests (2026-05-22)","Métrica QA",Obsoleto,2026-06-27,"363 PHPUnit / 362 métodos","README.md actualizado",AUD-07,"+202 tests nuevos"
+OBS-10,"Flujos omnicanal InboundOrder/Stock","Feature E2E",Retirado,2026-05-03,ClientProductionLikeSimulationTest,"No en tests/",e2e_simulacion_cliente.md,"Platform.* genérico"

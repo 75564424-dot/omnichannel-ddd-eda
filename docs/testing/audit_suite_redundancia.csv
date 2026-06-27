@@ -1,0 +1,13 @@
+ID,Elemento,Tipo,Estado,Decision,Reemplazo,Observaciones,Fecha,Documento
+AUD-01,catalog_unit.md,Documento,Obsoleto,Eliminado,unit_catalogo_autogenerado.md,"Referencias legacy omnicanal",2026-06-27,audit_suite_redundancia.md
+AUD-02,catalog_integration.md,Documento,Obsoleto,Eliminado,integration_catalogo_autogenerado.md,"Volumen elevado desactualizado",2026-06-27,audit_suite_redundancia.md
+AUD-03,catalog_feature.md,Documento,Obsoleto,Eliminado,feature_catalogo_autogenerado.md,"Plantillas desactualizadas",2026-06-27,audit_suite_redundancia.md
+AUD-04,catalog_e2e.md,Documento,Obsoleto,Eliminado,e2e_catalogo_autogenerado.md,"Flujos omnicanal no presentes",2026-06-27,audit_suite_redundancia.md
+AUD-05,architecture_validation_matrix.md,Documento,Obsoleto,Reemplazado,matrix_validacion_middleware.md,"Alineado middleware genérico",2026-06-27,audit_suite_redundancia.md
+AUD-06,audit_phase1_phase2.md,Documento,Obsoleto,Fusionado,audit_suite_redundancia.md,"Historial fases 1-2",2026-06-27,audit_suite_redundancia.md
+AUD-07,"Conteo 160 tests (2026-05-22)",Métrica,Obsoleto,Actualizado,"362 métodos / 363 PHPUnit","README y matriz maestra v1.7+",2026-06-27,audit_suite_redundancia.md
+AUD-08,"MiddlewarePipelineEndToEndTest vs ClientProductionLikeSimulationTest","Duplicación funcional",Vigente,"Coexistencia justificada","Feature=regresión B.2; E2E=multi-tipo","Sin asserts triviales duplicados",2026-06-27,audit_suite_redundancia.md
+AUD-09,"Flujos omnicanal legacy (Inventario/Pedido)","Feature código",Obsoleto,"No en suite","Platform.* fixtures","ADR-001 silos por cliente",2026-06-27,audit_suite_redundancia.md
+AUD-10,matriz_maestra_casos.csv,Artefacto,Vigente,"Fuente maestra",export_test_matrix.php,"362 filas con junit",2026-06-27,audit_suite_redundancia.md
+AUD-11,InstanceTenantSeedingIntegrationTest::message_queue_persists_tenant_id_after_seed,Test,Vigente,"FALLÓ en CI local","Corregir seed tenant_id","INC junit 2026-06-27",2026-06-27,audit_suite_redundancia.md
+AUD-12,OperatorLoginTest::operator_of_another_tenant_is_rejected_when_multi_tenant_portal_disabled,Test,Vigente,"FALLÓ en CI local","Revisar redirect login","INC junit 2026-06-27",2026-06-27,audit_suite_redundancia.md

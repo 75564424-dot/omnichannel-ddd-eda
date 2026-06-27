@@ -1,0 +1,3 @@
+ID,Escenario,Herramienta,Endpoint,Throughput,Duracion_s,Umbral_p95_ms,Umbral_error_pct,Resultado_Obtenido,Observaciones,Documento,Fecha
+LOAD-01,"Publish sustained throughput",k6,"POST /api/middleware/events/publish","100 eps",60,2000,5,"PENDIENTE DE VALIDACIÓN","Requiere APP_URL y middleware en ejecución; no en PHPUnit",load/README.md,2026-06-27
+LOAD-02,"Publish baseline smoke",k6,"POST /api/middleware/events/publish","10 eps",30,2000,5,"PENDIENTE DE VALIDACIÓN","Workflow quality-load.yml workflow_dispatch",load/README.md,2026-06-27

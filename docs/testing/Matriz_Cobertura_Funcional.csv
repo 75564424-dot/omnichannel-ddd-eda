@@ -1,0 +1,27 @@
+Proceso_BPMN,Nombre_Proceso,Macroproceso,Estado_Implementacion,Criticidad,Tests_Asignados,Tests_PASO,Tests_FALLO,Cobertura,Brecha,IDs_Representativos,Documento_BPMN,Fecha
+PROC-001,"Publicación eventos bus",MP-02,Implementado,Alta,86,86,0,Alta,,TC-0064;TC-0065;TC-0066;TC-0087;TC-0088,docs/Diagrama_BPMN/01_Proceso_*.md,2026-06-27
+PROC-002,"Sync catálogo → registry",MP-02,Implementado,Alta,20,20,0,Alta,"Cobertura vía sync-config; etiqueta matriz a menudo PROC-001",TC-0076;TC-0078;TC-0082;TC-0094;TC-0095,docs/Diagrama_BPMN/02_Proceso_*.md,2026-06-27
+PROC-003,"Consulta operativa bus",MP-02,Implementado,Alta,9,9,0,Media,,TC-0003;TC-0004;TC-0005;TC-0006;TC-0007,docs/Diagrama_BPMN/03_Proceso_*.md,2026-06-27
+PROC-004,"Observabilidad dashboard",MP-03,Implementado,Alta,41,41,0,Alta,,TC-0046;TC-0047;TC-0048;TC-0049;TC-0050,docs/Diagrama_BPMN/04_Proceso_*.md,2026-06-27
+PROC-005,"Auth operadores web",MP-04,Implementado,Crítica,16,15,1,Alta,"1 test(s) FALLÓ",TC-0067;TC-0068;TC-0069;TC-0070;TC-0071,docs/Diagrama_BPMN/05_Proceso_*.md,2026-06-27
+PROC-006,"Auth API integradores",MP-04,Implementado,Crítica,9,9,0,Media,,TC-0133;TC-0134;TC-0135;TC-0136;TC-0137,docs/Diagrama_BPMN/06_Proceso_*.md,2026-06-27
+PROC-007,"Gestión empresas CP",MP-01,Implementado,Alta,15,15,0,Alta,,TC-0030;TC-0031;TC-0032;TC-0033;TC-0034,docs/Diagrama_BPMN/07_Proceso_*.md,2026-06-27
+PROC-008,"Provisioning instancia",MP-01,Parcial,Alta,12,12,0,Alta,,TC-0026;TC-0027;TC-0138;TC-0139;TC-0140,docs/Diagrama_BPMN/08_Proceso_*.md,2026-06-27
+PROC-009,"Simulación cliente E2E",MP-05,Implementado,Alta,69,69,0,Alta,,TC-0001;TC-0002;TC-0015;TC-0016;TC-0017,docs/Diagrama_BPMN/09_Proceso_*.md,2026-06-27
+PROC-010,"Onboarding instancia",MP-01,Implementado,Media,0,0,0,"Sin tests","Onboarding cubierto indirectamente vía provisioning/portal",,docs/Diagrama_BPMN/10_Proceso_*.md,2026-06-27
+PROC-011,"Ingress webhooks",MP-08,Parcial,Alta,24,23,1,Alta,"1 test(s) FALLÓ",TC-0083;TC-0084;TC-0085;TC-0086;TC-0145,docs/Diagrama_BPMN/11_Proceso_*.md,2026-06-27
+PROC-012,"Gestión canales/integraciones",MP-08,Implementado,Alta,1,1,0,Parcial,"Admin API parcial; ampliar CRUD canales y rotación secretos",TC-0083,docs/Diagrama_BPMN/12_Proceso_*.md,2026-06-27
+PROC-013,"Monitoreo y alertas",MP-03,Implementado,Alta,28,28,0,Alta,,TC-0112;TC-0113;TC-0114;TC-0115;TC-0116,docs/Diagrama_BPMN/13_Proceso_*.md,2026-06-27
+PROC-014,"Retención y purga",MP-06,Implementado,Media,7,7,0,Media,,TC-0121;TC-0122;TC-0123;TC-0163;TC-0164,docs/Diagrama_BPMN/14_Proceso_*.md,2026-06-27
+PROC-015,"Incidentes soporte",MP-01,Implementado,Alta,10,10,0,Alta,,TC-0012;TC-0013;TC-0014;TC-0019;TC-0182,docs/Diagrama_BPMN/15_Proceso_*.md,2026-06-27
+PROC-016,"Validación catálogo CI",MP-05,Implementado,Alta,25,25,0,Alta,,TC-0028;TC-0029;TC-0131;TC-0132;TC-0175,docs/Diagrama_BPMN/16_Proceso_*.md,2026-06-27
+PROC-017,"Flujo middleware 5 etapas",MP-08,Documental,Media,0,0,0,"Sin tests","Proceso documental; sin suite dedicada 5-etapas",,docs/Diagrama_BPMN/17_Proceso_*.md,2026-06-27
+PROC-018,"Multi-tenancy lógico Fase 3",MP-07,Diferido,Baja,0,0,0,Diferido,"Multi-tenant lógico diferido Fase 3",,docs/Diagrama_BPMN/18_Proceso_*.md,2026-06-27
+PROC-019,"Portal instancia cliente",MP-09,Implementado,Alta,11,11,0,Alta,,TC-0037;TC-0038;TC-0039;TC-0040;TC-0041,docs/Diagrama_BPMN/19_Proceso_*.md,2026-06-27
+PROC-020,"Simulación desde CP",MP-01,Implementado,Alta,10,10,0,Alta,"Etiqueta matriz primaria PROC-009; mapeo secundario PROC-020",TC-0015;TC-0016;TC-0017;TC-0018;TC-0020,docs/Diagrama_BPMN/20_Proceso_*.md,2026-06-27
+PROC-030,"Despliegue producción VM",MP-06,Documentado,Media,0,0,0,Documental,"Solo documentación/runbooks; sin tests automatizados",,docs/Diagrama_BPMN/30_Proceso_*.md,2026-06-27
+PROC-031,"Backup y restauración",MP-06,Documentado,Media,0,0,0,Documental,"Solo documentación/runbooks; sin tests automatizados",,docs/Diagrama_BPMN/31_Proceso_*.md,2026-06-27
+PROC-032,"DR Drill",MP-06,Documentado,Baja,0,0,0,Documental,"Solo documentación/runbooks; sin tests automatizados",,docs/Diagrama_BPMN/32_Proceso_*.md,2026-06-27
+PROC-033,"Evaluación aceptación middleware",MP-07,Documentado,Media,0,0,0,Documental,"Solo documentación/runbooks; sin tests automatizados",,docs/Diagrama_BPMN/33_Proceso_*.md,2026-06-27
+PROC-034,"Espejo catálogo CP→Silo",MP-01,Implementado,Alta,3,3,0,Media,"Espejo CP→Silo vía TenantModuleCatalogTest; ampliar integración multi-silo",TC-0028;TC-0029;TC-0205,docs/Diagrama_BPMN/34_Proceso_*.md,2026-06-27
+REQ-DYN-01,"Métricas dinámicas dashboard",MP-03,Implementado,Alta,8,8,0,Parcial,"Series dinámicas unitarias; load tests pendientes",TC-0051;TC-0212;TC-0213,docs/Diagrama_BPMN/13_Proceso_Observabilidad_Dashboard.md,2026-06-27

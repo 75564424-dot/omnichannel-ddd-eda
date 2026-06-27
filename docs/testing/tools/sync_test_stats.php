@@ -65,7 +65,26 @@ function runPHPUnitStats(string $base): ?array
         return [
             'tests'      => (int) $m[1],
             'assertions' => (int) $m[2],
+            'failures'   => 0,
+            'errors'     => 0,
             'date'       => date('Y-m-d'),
+            'status'     => 'OK',
+        ];
+    }
+
+    if (preg_match('/Tests: (\d+), Assertions: (\d+), Failures: (\d+)/', $joined, $m)) {
+        $errors = 0;
+        if (preg_match('/Errors: (\d+)/', $joined, $e)) {
+            $errors = (int) $e[1];
+        }
+
+        return [
+            'tests'      => (int) $m[1],
+            'assertions' => (int) $m[2],
+            'failures'   => (int) $m[3],
+            'errors'     => $errors,
+            'date'       => date('Y-m-d'),
+            'status'     => 'FAILURES',
         ];
     }
 
@@ -97,9 +116,17 @@ foreach ($suites as $name => $count) {
 }
 $suiteBlock = implode("\n", $suiteLines);
 
-$assertionLine = $assertions !== null
-    ? "- **Resultado:** OK ({$tests} tests, {$assertions} assertions)"
-    : "- **Resultado:** ~{$tests} tests (conteo estático de métodos)";
+$status = $runtime['status'] ?? null;
+$failures = $runtime['failures'] ?? 0;
+$errors = $runtime['errors'] ?? 0;
+
+if ($status === 'OK' && $assertions !== null) {
+    $assertionLine = "- **Resultado:** OK ({$tests} tests, {$assertions} assertions)";
+} elseif ($status === 'FAILURES' && $assertions !== null) {
+    $assertionLine = "- **Resultado:** **FALLÓ** ({$tests} tests, {$assertions} assertions, {$failures} failures, {$errors} errors)";
+} else {
+    $assertionLine = "- **Resultado:** ~{$tests} tests (conteo estático de métodos)";
+}
 
 $replacement = <<<MD
 ## Resultado real (auto-sincronizado)

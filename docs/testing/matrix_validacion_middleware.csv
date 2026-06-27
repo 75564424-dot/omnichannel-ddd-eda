@@ -1,0 +1,16 @@
+ID,Criterio,Proceso_BPMN,Clase_Representativa,Archivo,Tests_Cubiertos,Resultado_Agregado,Observaciones,Documento,Fecha
+CRIT-01,"Desacoplamiento productor-consumidor",PROC-001,EventPublisherServiceIntegrationTest,tests/Integration/Middleware/EventPublisherServiceIntegrationTest.php,2,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-02,"Rol middleware sin lógica de negocio",PROC-001,ClientProductionLikeSimulationTest,tests/E2E/Middleware/ClientProductionLikeSimulationTest.php,1,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-03,"Propagación bus y cola",PROC-001,BusTrackingDirectDispatchIntegrationTest,tests/Integration/Middleware/BusTrackingDirectDispatchIntegrationTest.php,2,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-04,"Config declarativa ↔ presentación",PROC-016,ConfigModulesCatalogPresentationTest,tests/Unit/Dashboard/ConfigModulesCatalogPresentationTest.php,2,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-05,"sync-config idempotente",PROC-002,MiddlewarePipelineEndToEndTest,tests/Feature/Middleware/MiddlewarePipelineEndToEndTest.php,4,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-06,"API control cola/topología/publish",PROC-003,MiddlewareControlApiTest,tests/Feature/Middleware/MiddlewareControlApiTest.php,11,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-07,"Coherencia config-ejecución-dashboard",PROC-004,MiddlewarePipelineEndToEndTest,tests/Feature/Middleware/MiddlewarePipelineEndToEndTest.php,4,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-08,"Reutilización por cliente/instancia",PROC-009,MultiClientFixtureSimulationTest,tests/E2E/Middleware/MultiClientFixtureSimulationTest.php,1,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-09,"Idempotencia event_store",PROC-001,EventStoreIdempotencyIntegrationTest,tests/Integration/Middleware/EventStoreIdempotencyIntegrationTest.php,1,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-10,"Registro suscripciones y bus",PROC-002,SubscriptionRegistryAndBusRegistrationIntegrationTest,tests/Integration/Middleware/SubscriptionRegistryAndBusRegistrationIntegrationTest.php,2,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-11,"Outbox relay",PROC-001,OutboxRelayIntegrationTest,tests/Integration/Middleware/OutboxRelayIntegrationTest.php,1,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-12,"Resiliencia publish/idempotency-key",PROC-003,ResilienceApiTest,tests/Feature/Middleware/ResilienceApiTest.php,3,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-13,"Tenant operacional en middleware",PROC-018,EnsureTenantOperationalStatusTest,tests/Feature/Middleware/EnsureTenantOperationalStatusTest.php,4,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-14,"Observabilidad dashboard desde bus",PROC-004,PlatformPingObservedByDashboardIntegrationTest,tests/Integration/Dashboard/PlatformPingObservedByDashboardIntegrationTest.php,1,PASÓ,,matrix_validacion_middleware.md,2026-06-27
+CRIT-15,"Validación catálogo CI",PROC-016,ValidatePlatformCatalogTest,tests/Unit/Platform/ValidatePlatformCatalogTest.php,4,PASÓ,,matrix_validacion_middleware.md,2026-06-27
